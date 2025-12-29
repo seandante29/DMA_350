@@ -62,14 +62,8 @@ module data_fsm #(
     input  wire [DATA_W-1:0] fillval,
     input  wire [3:0]        srcmaxburstlen,//
     input  wire [3:0]        desmaxburstlen,//
-
-    // FIFO
-   // input  wire              fifo_almost_full,   //remove these ---------------
-    //input  wire              fifo_almost_empty,  //remove these ---------------
-    //output reg               fifo_wr_en,
-    //output reg               fifo_rd_en,
-    //output reg [DATA_W-1:0]  fifo_w_data,
-    //input  wire [DATA_W-1:0] fifo_r_data,
+	input wire               src_xaddr_inc,  //added
+	input wire               des_xaddr_inc,  //added
 
     // AXI READ
     input  wire              ARREADY,
@@ -324,11 +318,11 @@ module data_fsm #(
                     des_addr_reg  <= des_ADDR;
                     
                     ARLEN  <= srcxsize;   //this needs to be updated
-                    ARBURST <= 2'b01;
+                    ARBURST <= (src_xaddr_inc)?2'b01:2'b00;   //00--> fixed  01-->inc burst
                     ARSIZE  <= transize;
                     ARID    <= 0;
 
-                    AWBURST <= 2'b01;
+                    AWBURST <= (des_xaddr_inc)?2'b01:2'b00;   //00--> fixed  01-->inc burst
                     AWSIZE  <= transize;
                     AWID    <= 0;
 					
@@ -352,14 +346,7 @@ module data_fsm #(
 							regvalerr <= 1;
 						end
 					end
-					
-					/*if ((use_src_trigin && src_trigin_sel > 1 && src_trigin_type == 2'b10)||
-					(use_des_trigin && des_trigin_sel > 1 && des_trigin_type == 2'b10)||
-					(use_trigout && trigout_sel > 1 && trigout_type == 2'b10)) begin
-						config_error <= 1;   // REGVALERR
-						regvalerr <= 1;
-					end*/
-					
+			
                     config_error <= (config_error |(x_type > 3) ? 1 : 0);
 
                     if (case1) begin
@@ -414,9 +401,6 @@ module data_fsm #(
                     
                 AR: begin
                     ARVALID <= 1;
-                    //if (x_type == 2 && case6)
-                       // ARADDR <= SRC_ADDR + wrap_index * beat_inc;
-                    //else
                     ARADDR <= src_addr_reg;
                 end
 
@@ -429,8 +413,8 @@ module data_fsm #(
 					 
 					if(RVALID && RREADY && src_left > 0) begin
 					 fifo_mem[fifo_wptr] <=  RDATA;
-					 fifo_wptr <= fifo_wptr + 1;
-					 src_left    <= src_left - 1;    
+					 fifo_wptr           <= fifo_wptr + 1;
+					 src_left            <= src_left - 1;    
 					end
 					end
    
@@ -439,14 +423,6 @@ module data_fsm #(
 				 case (x_type)
 
 				  2: begin
-				   //if (desxsize - src_left <= srcxsize) begin
-					//if (rvalid && rready) begin
-					// fifo_mem[fifo_wptr] <= RDATA;
-					// fifo_wptr           <= fifo_wptr + 1;
-					// src_left            <= src_left - 1;
-					//end
-				   //end
-				   //else
 				   if ((!(desxsize - src_left < srcxsize)) && src_left > 0) begin
 					// add else and check
 					fifo_mem[fifo_wptr] <= fifo_mem[wrap_rd_ptr];
@@ -457,14 +433,6 @@ module data_fsm #(
 				  end
 
 				  3: begin
-				   //if (rvalid && rready) begin
-				   // // fill
-				   // if (src_left > 0) begin
-				   //  fifo_mem[fifo_wptr] <= RDATA;
-				   //  src_left            <= src_left - 1; // 2,1,0
-				   //  fifo_wptr           <= fifo_wptr + 1; // 0,1,2
-				   // end
-					//else
 					if (fill_count > 0 &&
 					   src_left == 0 &&
 					   x_type == 3 &&
@@ -479,66 +447,7 @@ module data_fsm #(
 				  default : fifo_mem[fifo_wptr] <= fifo_mem[fifo_wptr] ;
 				 endcase
 				end
-
-    
-    
-    /*begin
-                    RREADY <= 1;
-                    if (RVALID && RREADY) begin
-      if(fill_count > 0 && src_left == 0 && x_type == 3 && (case2 || case6))//added xtype
-       begin
-       fifo_mem[fifo_wptr] <= fillval;
-       fill_count <= fill_count - 1;
-       fifo_wptr <= fifo_wptr + 1;
-       end
-       
-      else if ((x_type == 2 && case6 && wrap_rd_ptr < fifo_wptr && src_left > 0)) begin
-       if (!fifo_full) begin // write logic for fifo full
-        fifo_mem[fifo_wptr] <= (desxsize - src_left <= srcxsize)? RDATA: fifo_mem[wrap_rd_ptr];
-        wrap_rd_ptr <= (wrap_rd_ptr == srcxsize-1) ? 0 : wrap_rd_ptr + 1;
-        src_left    <= src_left - 1;
-        fifo_wptr <= fifo_wptr + 1;
-       end
-      end
-       
-      else
-      begin
-       fifo_mem[fifo_wptr] <= RDATA;
-       fifo_wptr <= fifo_wptr + 1;
-       src_left <= src_left - 1;
-      end
-         
-      if (RRESP == 2 && RLAST) begin
-       arpoison_error <= 1;
-       bus_error      <= 1;
-      end
-
-      if (RRESP == 3 && RLAST) begin
-       ard_error <= 1;
-       bus_error <= 1;
-                    end
-    else
-     //fill and wrap cases
-     
-                end
-                        //fifo_mem[] <= (fill_count > 0 && src_left == 0 && x_type == 3) ?//added xtype
-                           //             fillval : RDATA;
-                     
- 
-     
-      //if (x_type == 2 && case6) begin
-      // wrap_index <= (wrap_index == srcxsize - 1) ? 0 :
-      //      wrap_index + 1;
-      // src_left <= src_left - 1;
-      //end else if ((src_left == 0) && (case2 || case6) && x_type == 3)//added x type
-       //fill_count <= fill_count - 1;
-      //else begin
-       
-       //src_addr_reg <= src_addr_reg + beat_inc;
-      //end
-     
-      // */
-
+				
 				WAIT_WR:
 					if(des_trigin_type == 2'b10 && des_trigin)   // HW trigger only ack 
 					begin
