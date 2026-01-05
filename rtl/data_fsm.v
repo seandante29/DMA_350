@@ -150,8 +150,8 @@ module data_fsm #(
     wire case2 = (srcxsize == 0 && desxsize > 0);
     wire case3 = (srcxsize > 0 && desxsize == 0);
     wire case4 = (srcxsize == desxsize && srcxsize > 0);
-    wire case5 = (srcxsize > desxsize);
-    wire case6 = (srcxsize < desxsize);
+    wire case5 = (srcxsize > desxsize && desxsize > 0);
+    wire case6 = (srcxsize < desxsize && srcxsize > 0);
 
     assign ERROR   = config_error || ard_error || arpoison_error || awr_error || bus_error;
     assign trig_err = SRCTRIGINSELERR || DESTRIGINSELERR || TRIGOUTSELERR;
@@ -181,7 +181,7 @@ module data_fsm #(
                     next = DONE_ST;
                 else if (case2)
                     next = (x_type == 0) ? DONE_ST :
-                           ((x_type == 3) ? R : ERROR_ST);
+                           ((x_type == 3) ? WRAP_FILL : ERROR_ST);
                 else if (case3)
                     next = ERROR_ST;
                 else if (case6)
