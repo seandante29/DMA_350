@@ -59,6 +59,10 @@ module internal_reg #(parameter WIDTH = 32,
  output  wire [31:0] CH_DESADDR_O,
  output  wire [31:0] CH_FILLVAL_O,
  output  wire IRQ,
+output wire stat_done_reg ,
+output wire stat_disable_reg ,
+output wire stat_stopped_reg ,
+output wire  stat_err_reg ,
  output  wire ch_wr_en_o
  );
  
@@ -76,15 +80,20 @@ module internal_reg #(parameter WIDTH = 32,
                  | TRIGOUTSELERR | AXIRDRESPERR_CMDFSM | AXIRDPOISERR_CMDFSM |  
                  BUSERR_CMDFSM |  LINKHDERR;
  
-   wire stat_disable = IRQ ? data_in [50] : STAT_DISABLED;
-   wire stat_stopped = IRQ ? data_in [51] : STAT_STOPPED;
-   wire stat_done = IRQ ? data_in [48] : STAT_DONE;
-   wire stat_err = IRQ ? data_in [49] : STAT_ERR;
+   wire stat_disable = data_in [50] ?1'b0 : STAT_DISABLED;
+   wire stat_stopped = data_in [51]? 1'b0: STAT_STOPPED;
+  // wire stat_done = IRQ ? data_in [48] : STAT_DONE;
+  wire stat_done = data_in [48] ? 1'b0  : STAT_DONE;
+   wire stat_err = data_in [49] ? 1'b0  : STAT_ERR;
+   assign  stat_done_reg  = data_in [48];
+   assign stat_disable_reg = data_in [50];
+   assign stat_stopped_reg = data_in [51];
+   assign stat_err_reg = data_in [49];
    
    
-   wire stopcmd = IRQ ? STOPCMD : data_in [3];
-   wire disablecmd = IRQ ? DISABLECMD : data_in [2];
-   wire enablecmd = IRQ ? ENABLECMD : data_in [0];
+   wire stopcmd = STOPCMD ? 0 :data_in [3]; //STOPCMD : data_in [3];
+   wire disablecmd = DISABLECMD ? 0 : data_in [2];
+   wire enablecmd =ENABLECMD ?  0 : data_in [0];
    
  reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
  
@@ -95,7 +104,7 @@ module internal_reg #(parameter WIDTH = 32,
  assign INTR_DISABLED = (STAT_DISABLED && intr_mem [8][2]);
  assign INTR_ERR = (STAT_ERR && intr_mem [8][1]);
  assign INTR_DONE = (STAT_DONE && intr_mem [8][0]);
- assign IRQ = (INTR_DISABLED || INTR_STOPPED || INTR_ERR || INTR_DONE);
+ assign IRQ = (INTR_DISABLED | INTR_STOPPED | INTR_ERR | INTR_DONE);
  
  //to reg bank
  assign ch_wr_en_o = IRQ  ? 1: 0;
