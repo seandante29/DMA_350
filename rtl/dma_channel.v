@@ -15,6 +15,14 @@ module dma_channel
      input wire [1:0]RRESP,
      input wire RLAST,
      input wire RVALID,
+     
+     input wire ARREADY_D,
+     input wire RID_D,
+     input wire [DATA_W-1 : 0]RDATA_I_D,
+     input wire [1:0]RRESP_D,
+     input wire RLAST_D,
+     input wire RVALID_D,
+     
      input wire WREADY,
      input wire AWREADY,
      input wire BVALID,
@@ -162,7 +170,7 @@ wire stat_err;
    wire [31:0] RDATA_O;
    wire [31:0] LINK_HEADER;
    wire [5:0] wptr;
-   wire LINKHDRERR;
+   wire LINKHDERR;
    wire CMD_DONE; //done signal to data fsm
    wire AXIRDRESPERR;//address out of range error
    wire AXIRDPOISERR;//corrupted data error
@@ -175,6 +183,7 @@ wire stat_err;
     wire trig_out_req;
     wire des_trigack;
     wire src_trigack;
+    wire stat_done_reg ,stat_disable_reg,stat_stopped_reg ,stat_err_reg ;
 
     internal_reg  #(.WIDTH (32),.DEPTH ( 145)) dut0
   (
@@ -198,9 +207,9 @@ wire stat_err;
   .STAT_DESTRIGINWAIT(STAT_DESTRIGINWAIT),
   .STAT_SRCTRIGINWAIT(STAT_SRCTRIGINWAIT),
   .STAT_RESUMEWAIT(STAT_RESUMEWAIT),
-  .STAT_STOPPED(STAT_STOPPED),
+  .STAT_STOPPED(STAT_STOP),
   .STAT_PAUSED(STAT_PAUSED),
-  .STAT_DISABLED(STAT_DISABLED),
+  .STAT_DISABLED(STAT_DISABLE),
   .STAT_DONE(STAT_DONE),
    .ENABLECMD(ENABLECMD),
    .DISABLECMD(DISABLECMD),
@@ -221,6 +230,10 @@ wire stat_err;
   .CH_SRCADDR_O(CH_SRCADDR_O),
   .CH_DESADDR_O(CH_DESADDR_O),
   .CH_FILLVAL_O(CH_FILLVAL_O),
+  .stat_done_reg(stat_done_reg),
+  .stat_disable_reg(stat_disable_reg),
+  .stat_stopped_reg (stat_stopped_reg ),
+.stat_err_reg (stat_err_reg ),
   .IRQ(IRQ)
   );
   
@@ -295,11 +308,11 @@ wire stat_err;
       .RDATA_O(RDATA_O),
       .LINK_HEADER(LINK_HEADER),
       .wptr(wptr),
-      .LINKHDRERR(LINKHDRERR),
+      .LINKHDRERR(LINKHDERR),
       .CMD_DONE(CMD_DONE),
-      .AXIRDRESPERR(AXIRDRESPERR),
-      .AXIRDPOISERR(AXIRDPOISERR),
-      .BUSERR(BUSERR)
+      .AXIRDRESPERR(AXIRDRESPERR_CMDFSM),
+      .AXIRDPOISERR(AXIRDPOISERR_CMDFSM),
+      .BUSERR(BUSERR_CMDFSM)
       );
       
       mux_logic  #(.WIDTH (32))
@@ -307,6 +320,7 @@ wire stat_err;
        .clk(clk),
        .resetn(resetn),
        .wptr(wptr),
+       .data_done(DONE),
        .link_en(linkaddren),
        .header_in(LINK_HEADER),
        .CH_CTRL(CH_CTRL_O),
@@ -329,8 +343,8 @@ wire stat_err;
     data_fsm dut4(
     .clk(clk),
     .resetn(resetn),
-    .stat_error(stat_err),
-    .stat_done(stat_done),
+    .stat_error(stat_err_reg),
+    .stat_done_reg(stat_done_reg),
     .link_en(linkaddren),
     .enable_cmd(enable_cmd),
     .pause_cmd(pause_cmd),
@@ -353,7 +367,7 @@ wire stat_err;
     .des_trigin_sw_req_type(des_trigin_sw_req_type),
     .src_trigin_sw(src_trigin_sw),
     .des_trigin_sw(des_trigin_sw),
-    .trig_out_ack_sw(trig_out_ack_sw),
+    .trig_out_ack_sw(trigout_ack_sw),
     .src_trigin_req_type(src_trig_req_type),//
     .des_trigin_req_type(des_trig_req_type),//trig mtx
     .src_trigin_ack_type(ch_src_ack_type),//to trig mtx
@@ -377,17 +391,17 @@ wire stat_err;
     .fillval(fillval),
     .src_xaddr_inc(src_xaddr_inc),
     .des_xaddr_inc(des_xaddr_inc),
-    .ARREADY(ARREADY),
+    .ARREADY(ARREADY_D),
     .ARVALID(ARVALID_D),
     .ARADDR(ARADDR_D),
     .ARSIZE(ARSIZE_D),
     .ARBURST(ARBURST_D),
     .ARID(ARID_D),
     .ARLEN(ARLEN_D),
-    .RVALID(RVALID),
-    .RDATA(RDATA_I),
-    .RRESP(RRESP),
-    .RLAST(RLAST),
+    .RVALID(RVALID_D),
+    .RDATA(RDATA_I_D),
+    .RRESP(RRESP_D),
+    .RLAST(RLAST_D),
     .RREADY(RREADY_D),
     .AWREADY(AWREADY),
     .AWVALID(AWVALID_D),
