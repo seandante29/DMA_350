@@ -9,7 +9,7 @@ module data_fsm #(
     input  wire              clk,
     input  wire              resetn,
     input  wire              stat_error,
-    input  wire              stat_done,
+    input  wire              stat_done_reg,
     input  wire              link_en,        // added
     // Control
     input  wire              enable_cmd,
@@ -107,7 +107,7 @@ module data_fsm #(
 
     // Status
     output reg               DONE,
-   // output wire              ERROR,
+   output wire              ERROR,
 
     // Error flags
     output reg               config_error,
@@ -159,7 +159,7 @@ module data_fsm #(
     wire case5 = ((srcxsize > desxsize) && (desxsize != 0));
     wire case6 = ((srcxsize < desxsize) && (srcxsize !=0));
 
-//    assign ERROR    = config_error || ard_error || arpoison_error || awr_error || bus_error;
+  assign ERROR    = config_error || ard_error || arpoison_error || awr_error || bus_error;
  //   assign trig_err = SRCTRIGINSELERR || DESTRIGINSELERR || TRIGOUTSELERR;
 
     always @(posedge clk or negedge resetn) begin
@@ -177,7 +177,7 @@ module data_fsm #(
         end else begin
             case (state)
                 IDLE:
-                    if (enable_cmd && cmd_done && !ERROR && !DONE && !disable_cmd)
+                    if (enable_cmd && cmd_done && !ERROR && !DONE && !STAT_DISABLE && !STAT_DONE && !STAT_STOP)
                         next = CONFIG;
                     else
                         next = IDLE;
@@ -221,7 +221,7 @@ module data_fsm #(
                     if ((RRESP == 2 || RRESP == 3) && RVALID)
                         next = ERROR_ST;
                     else if (RVALID && RREADY && RLAST) begin
-                        if (src_left > 1 || fill_count > 0)
+                        if ((src_left > 1 || fill_count > 0) &&(case6 || case2))
                             next = WRAP_FILL;
                       //  else if (src_left == 0)
                         //    next = AW;
@@ -264,6 +264,7 @@ module data_fsm #(
 
                 DONE_ST:
                     next = IDLE;
+                     //next = STAT_DONE ? DONE_ST : IDLE;
 
                 ERROR_ST:
                     if (stat_error == 0)
@@ -301,14 +302,20 @@ module data_fsm #(
             trig_out_req <= 0;
             src_trigack  <= 0;
             des_trigack  <= 0;
-            {ENABLECMD, DISABLECMD, STOPCMD, STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
-             STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED, STAT_DONE} <= 'b0;
-            
-            if (stop_cmd || disable_cmd) begin
-                ENABLECMD    = 0;
-                STAT_STOP    = stop_cmd ? 1 : 0;
+           {ENABLECMD, DISABLECMD, STOPCMD, STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
+           STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
+            //STAT_DONE <= !stat_done ? 0 :1;
+            if (disable_cmd) begin
+                ENABLECMD    = 1;
+                DISABLECMD = 1;
                 STAT_DISABLE = disable_cmd ? 1 : 0;
             end
+            if (stop_cmd ) begin
+                ENABLECMD    = 1;
+                STAT_STOP    = stop_cmd ? 1 : 0;
+                STOPCMD = 1;
+            end
+            
 
             case (state)
                 IDLE: begin
@@ -320,6 +327,7 @@ module data_fsm #(
                         bus_error      <= 0;
                         regvalerr      <= 0;
                     end
+                    STAT_DONE <= stat_done_reg ? 0:STAT_DONE ;
                     fifo_wptr   <= 0;
                     fifo_rptr   <= 0;
                     wrap_rd_ptr <= 0;
@@ -490,6 +498,8 @@ module data_fsm #(
                 DONE_ST: begin
                     DONE <= 1;
                     STAT_DONE <= !link_en ? 1 : 0;
+                    
+                    
                 end
 
                 PAUSED: begin
