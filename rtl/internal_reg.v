@@ -3,7 +3,10 @@ module internal_reg #(parameter WIDTH = 32,
  (
  input wire clk,resetn,
  //input wire wr_en,
- input wire [(WIDTH * 14) -1:0] data_in,
+ input wire [(WIDTH * 15) -1:0] data_in,
+ 
+
+ 
  
  //error signals from data fsm
  input wire AXIRDRESPERR,
@@ -29,8 +32,12 @@ module internal_reg #(parameter WIDTH = 32,
  input wire STAT_STOPPED,
  input wire STAT_PAUSED,
  input wire STAT_DISABLED,
- input wire STAT_ERR,
  input wire STAT_DONE,
+ 
+ input wire ENABLECMD,
+ input wire DISABLECMD,
+ input wire STOPCMD,
+ 
  
  
  // to reg bank
@@ -51,10 +58,10 @@ module internal_reg #(parameter WIDTH = 32,
  output  wire [31:0] CH_SRCADDR_O,
  output  wire [31:0] CH_DESADDR_O,
  output  wire [31:0] CH_FILLVAL_O,
- output  wire IRQ
- 
- 
+ output  wire IRQ,
+ output  wire ch_wr_en_o
  );
+ 
  integer i;
  wire INTR_TRIGOUTACKWAIT;
  wire INTR_DESTRIGINWAIT;
@@ -64,6 +71,21 @@ module internal_reg #(parameter WIDTH = 32,
  wire INTR_ERR;
  wire INTR_DONE;
  
+ wire STAT_ERR = AXIRDRESPERR| AXIRDPOISERR | AXIWRRESPERR| BUSERR |
+                 config_error| regval_error | SRCTRIGINSELERR| DESTRIGINSELERR 
+                 | TRIGOUTSELERR | AXIRDRESPERR_CMDFSM | AXIRDPOISERR_CMDFSM |  
+                 BUSERR_CMDFSM |  LINKHDERR;
+ 
+   wire stat_disable = IRQ ? data_in [50] : STAT_DISABLED;
+   wire stat_stopped = IRQ ? data_in [51] : STAT_STOPPED;
+   wire stat_done = IRQ ? data_in [48] : STAT_DONE;
+   wire stat_err = IRQ ? data_in [49] : STAT_ERR;
+   
+   
+   wire stopcmd = IRQ ? STOPCMD : data_in [3];
+   wire disablecmd = IRQ ? DISABLECMD : data_in [2];
+   wire enablecmd = IRQ ? ENABLECMD : data_in [0];
+   
  reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
  
  assign INTR_TRIGOUTACKWAIT = (STAT_TRIGOUTACKWAIT && intr_mem[8][10]);
@@ -75,7 +97,9 @@ module internal_reg #(parameter WIDTH = 32,
  assign INTR_DONE = (STAT_DONE && intr_mem [8][0]);
  assign IRQ = (INTR_DISABLED || INTR_STOPPED || INTR_ERR || INTR_DONE);
  
- assign chn_reg_out = {intr_mem[4],intr_mem[144]};// error,status and 
+ //to reg bank
+ assign ch_wr_en_o = IRQ  ? 1: 0;
+ assign chn_reg_out = {intr_mem[4],intr_mem[144]};// error,status 
 
  assign CH_CMD_O = intr_mem [0];
  assign CH_STATUS_O = intr_mem[4];
@@ -106,31 +130,30 @@ module internal_reg #(parameter WIDTH = 32,
    //{intr_mem[0],intr_mem[8],intr_mem[12],intr_mem[16],intr_mem[24],intr_mem[32],intr_mem[40],intr_mem[44],
    //intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120]} <= data_in;
    
-   intr_mem[0] <= data_in [(WIDTH * 1) -1 : 0];
-   intr_mem[8] <= data_in [(WIDTH * 2) -1 : (WIDTH*1)];
-   intr_mem[12] <= data_in [(WIDTH * 3) -1 : (WIDTH*2)];
-   intr_mem[16] <= data_in [(WIDTH * 4) -1 : (WIDTH*3)];
-   intr_mem[24] <= data_in [(WIDTH * 5) -1 : (WIDTH*4)];
-   intr_mem[32] <= data_in [(WIDTH * 6) -1 : (WIDTH*5)];
-   intr_mem[40] <= data_in [(WIDTH * 7) -1 : (WIDTH*6)];
-   intr_mem[44] <= data_in [(WIDTH * 8) -1 : (WIDTH*7)];
-   intr_mem[48] <= data_in [(WIDTH * 9) -1 : (WIDTH*8)];
-   intr_mem[56] <= data_in [(WIDTH * 10) -1 : (WIDTH*9)];
-   intr_mem[76] <= data_in [(WIDTH * 11) -1 : (WIDTH*10)];
-   intr_mem[80] <= data_in [(WIDTH * 12) -1 : (WIDTH*11)];
-   intr_mem[84] <= data_in [(WIDTH * 13) -1 : (WIDTH*12)];
-   intr_mem[120] <= data_in [(WIDTH * 14) -1 : (WIDTH*13)];
+   intr_mem[0] <= {data_in [31:4],stopcmd,disablecmd,data_in[1],enablecmd};
+   intr_mem[8]  <= data_in [(WIDTH * 3) -1 : (WIDTH*2)];
+   intr_mem[12] <= data_in [(WIDTH * 4) -1 : (WIDTH*3)];
+   intr_mem[16] <= data_in [(WIDTH * 5) -1 : (WIDTH*4)];
+   intr_mem[24] <= data_in [(WIDTH * 6) -1 : (WIDTH*5)];
+   intr_mem[32] <= data_in [(WIDTH * 7) -1 : (WIDTH*6)];
+   intr_mem[40] <= data_in [(WIDTH * 8) -1 : (WIDTH*7)];
+   intr_mem[44] <= data_in [(WIDTH * 9) -1 : (WIDTH*8)];
+   intr_mem[48] <= data_in [(WIDTH * 10) -1 : (WIDTH*9)];
+   intr_mem[56] <= data_in [(WIDTH * 11) -1 : (WIDTH*10)];
+   intr_mem[76] <= data_in [(WIDTH * 12) -1 : (WIDTH*11)];
+   intr_mem[80] <= data_in [(WIDTH * 13) -1 : (WIDTH*12)];
+   intr_mem[84] <= data_in [(WIDTH * 14) -1 : (WIDTH*13)];
+   intr_mem[120]<= data_in [(WIDTH * 15) -1 : (WIDTH*14)];
    
    intr_mem[144] <= {6'd0,regval_error,LINKHDERR,6'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},AXIWRRESPERR,11'd0,
          TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,config_error,{BUSERR|BUSERR_CMDFSM}};
    
-   intr_mem[4] <= {5'd0,STAT_TRIGOUTACKWAIT,STAT_DESTRIGINWAIT,STAT_SRCTRIGINWAIT,2'd0,STAT_RESUMEWAIT,STAT_PAUSED,STAT_STOPPED,
-       STAT_DISABLED,STAT_ERR,STAT_DONE,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
+   intr_mem[4] <= {5'd0,STAT_TRIGOUTACKWAIT,STAT_DESTRIGINWAIT,STAT_SRCTRIGINWAIT,2'd0,STAT_RESUMEWAIT,STAT_PAUSED,stat_stopped,
+       stat_disable,stat_err,stat_done,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
        INTR_STOPPED,INTR_DISABLED,INTR_ERR,INTR_DONE};
+    
    
    end
  end
    
-   
-
 endmodule 
