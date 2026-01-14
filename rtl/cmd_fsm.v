@@ -53,6 +53,7 @@ module cmd_fsm (input clk,
       
    reg [3:0] current_state, next_state;
    reg [4:0] count;
+    reg [4:0] count1;
    reg [5:0] i;
    localparam IDLE   = 4'b0001;
    localparam AR     = 4'b0010;
@@ -113,6 +114,16 @@ module cmd_fsm (input clk,
             for( i = 1 ; i < 31 ; i = i + 1) count = count + RDATA_I[i];
    end
    
+   always@(posedge clk or negedge resetn)
+    begin
+    if(!resetn)
+    count1<='d0;
+    else if(count1 == count)
+    count1<=0;
+    else if(current_state == COUNT && count == 0 )
+    count1<=count1+1;
+    end
+   
    // ERROR HANDLING ISSUE 
    always@(posedge clk or negedge resetn)
    begin
@@ -134,7 +145,7 @@ module cmd_fsm (input clk,
    end
    else
    begin
-        CMD_DONE <= 0; // temp fix for deasserting
+        CMD_DONE <= 1; // temp fix for deasserting
         case(current_state)
             IDLE:
             begin
@@ -157,9 +168,11 @@ module cmd_fsm (input clk,
             
             AR: 
             begin
+             CMD_DONE <= 0;
                 if (count == 0) begin
                     ARADDR <= LINKADDR;
                     ARLEN <= 0;
+                   
                end
                else begin
                     ARADDR <= LINKADDR + 4;
@@ -170,6 +183,7 @@ module cmd_fsm (input clk,
             
             R:
             begin
+             CMD_DONE <= 0;
                 RREADY  <= 1;
                 ARVALID <= 0;  //just added
                 if(RREADY && RVALID) begin
@@ -208,6 +222,7 @@ module cmd_fsm (input clk,
             end
             
             COUNT : begin
+             CMD_DONE <= 0;
               //  for( i = 1 ; i < 31 ; i = i + 1) count = count + rdata[i];
             end
             
