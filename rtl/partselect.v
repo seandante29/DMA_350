@@ -28,6 +28,7 @@ module partselect (
     output wire        disable_cmd,
     output wire        pause_cmd,
     output wire        resume_cmd,
+    output wire        stop_cmd,
     output wire        src_trigin_sw,
     output wire [1:0]  src_trigin_sw_type,
     output wire        des_trigin_sw,
@@ -84,6 +85,7 @@ assign src_trigin_sw_type  = CH_CMD[18:17];
 assign src_trigin_sw       = CH_CMD[16];
 assign resume_cmd          = CH_CMD[5];
 assign pause_cmd           = CH_CMD[4];
+assign stop_cmd              = CH_CMD[3];
 assign disable_cmd         = CH_CMD[2];
 assign enable_cmd          = CH_CMD[0];
 // CH_STATUS
