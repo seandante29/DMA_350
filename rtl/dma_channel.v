@@ -15,6 +15,7 @@ module dma_channel
      input wire [1:0]RRESP,
      input wire RLAST,
      input wire RVALID,
+     input wire reg_wr_en,
      
      input wire ARREADY_D,
      input wire RID_D,
@@ -148,6 +149,7 @@ wire [15:0] src_xaddr_inc;
 wire [15:0] des_xaddr_inc;
 wire stat_done;
 wire stat_err;
+wire DONE;
 
 
 // wires to internal reg from data fsm( stat and cmd)
@@ -171,7 +173,7 @@ wire stat_err;
    wire [31:0] LINK_HEADER;
    wire [5:0] wptr;
    wire LINKHDERR;
-   wire CMD_DONE; //done signal to data fsm
+   wire CMD_DONE,STAT_CMD_DONE; //done signal to data fsm
    wire AXIRDRESPERR;//address out of range error
    wire AXIRDPOISERR;//corrupted data error
    wire BUSERR;//any axi error assterts this
@@ -291,7 +293,7 @@ wire stat_err;
       .STAT_ERROR(stat_err),
       .LINKADDR(linkaddr),
       .link_enable(linkaddren),
-      .data_done(data_done),
+      .data_done(DONE),
       .ARREADY(ARREADY),
       .ARID(ARID),
       .ARLEN(ARLEN),
@@ -310,6 +312,7 @@ wire stat_err;
       .wptr(wptr),
       .LINKHDRERR(LINKHDERR),
       .CMD_DONE(CMD_DONE),
+      .STAT_CMD_DONE(STAT_CMD_DONE),
       .AXIRDRESPERR(AXIRDRESPERR_CMDFSM),
       .AXIRDPOISERR(AXIRDPOISERR_CMDFSM),
       .BUSERR(BUSERR_CMDFSM)
@@ -321,6 +324,8 @@ wire stat_err;
        .resetn(resetn),
        .wptr(wptr),
        .data_done(DONE),
+       .cmd_done(STAT_CMD_DONE),
+       .reg_wr_en(reg_wr_en),
        .link_en(linkaddren),
        .header_in(LINK_HEADER),
        .CH_CTRL(CH_CTRL_O),
