@@ -44,7 +44,7 @@ module cmd_fsm (input clk,
       output reg [5:0] wptr,
       // ERROR and STATUS signals
       output reg LINKHDRERR,
-      output reg CMD_DONE, //done signal to data fsm
+      output reg CMD_DONE,STAT_CMD_DONE, //done signal to data fsm
       output reg AXIRDRESPERR,//address out of range error
       output reg AXIRDPOISERR,//corrupted data error
       output reg BUSERR,//any axi error assterts this
@@ -108,7 +108,7 @@ module cmd_fsm (input clk,
    end
    
    always@(*) begin
-        if(current_state == IDLE ) 
+        if(current_state == IDLE  ) 
             count = 0;
         if(current_state == COUNT && count == 0 )
             for( i = 1 ; i < 31 ; i = i + 1) count = count + RDATA_I[i];
@@ -142,13 +142,17 @@ module cmd_fsm (input clk,
         RREADY <= 0;
         RDATA_O <= 0;
         LINKHDRERR <= 0;
+        STAT_CMD_DONE <= 1'b0;
    end
    else
    begin
-        CMD_DONE <= 1; // temp fix for deasserting
+       CMD_DONE <= 1'b1; // temp fix for deasserting
+       
         case(current_state)
             IDLE:
+            
             begin
+            
                 ARADDR <= 0;
                 ARID   <= 0;
                 ARLEN  <= 0;
@@ -163,11 +167,16 @@ module cmd_fsm (input clk,
                   AXIRDRESPERR <= 0;
                   LINKHDRERR <= 0;
                  end
+                 if(data_done) begin
+                    CMD_DONE <= 0; 
+                    STAT_CMD_DONE <= 1'b0;
+                    end
               //  RDATA_O <= 0;
             end
             
             AR: 
             begin
+            STAT_CMD_DONE <= 1'b0;
              CMD_DONE <= 0;
                 if (count == 0) begin
                     ARADDR <= LINKADDR;
@@ -179,6 +188,7 @@ module cmd_fsm (input clk,
                     ARLEN <= count - 1;
                end
                ARVALID <= 1;          
+               RREADY <= 0;
             end
             
             R:
@@ -186,6 +196,7 @@ module cmd_fsm (input clk,
              CMD_DONE <= 0;
                 RREADY  <= 1;
                 ARVALID <= 0;  //just added
+                if(wptr + 1 == count && count != 0) STAT_CMD_DONE <= 1; 
                 if(RREADY && RVALID) begin
                     if(count!=0)begin
                     RDATA_O <= RDATA_I;
@@ -203,7 +214,7 @@ module cmd_fsm (input clk,
                 // if(RRESP == 2'b00 || RRESP == 2'b01)
                     begin
                     if(count!=0)
-                    CMD_DONE <= 1'b1;
+                        CMD_DONE <= 1'b1;
                     end
                 else if(RRESP == 2'b11)    // error handling TBD
                     begin
