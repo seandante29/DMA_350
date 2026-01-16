@@ -5,6 +5,7 @@ module mux_logic #(parameter WIDTH = 32)
 	input wire link_en,data_done,//added data done for mux logic
 	input wire [5:0] wptr,//input from cmd fsm
 	input wire [31:0] header_in,
+	input wire reg_wr_en,
 	//previous data
 	input  wire [31:0] CH_CTRL,
 	input  wire [31:0] CH_INTREN,
@@ -21,7 +22,7 @@ module mux_logic #(parameter WIDTH = 32)
     input  wire [31:0] CH_FILLVAL,
 	//reg bank input
 	input wire [(WIDTH * 15) -1:0] reg_bank_in,
-
+    input wire cmd_done,
 	// internal reg
 	//output wire LINKHDERR,
 	output wire [(WIDTH * 15) -1:0] mux_out_reg
@@ -89,7 +90,11 @@ module mux_logic #(parameter WIDTH = 32)
 	end
 	
 	//assign LINKHDERR = !(|(HEADER_CMD));
-	assign mux_out_reg = (link_en && data_done) ? {concat_cmd,reg_bank_in[63:32],reg_bank_in[31:0]} : reg_bank_in;
+    //	assign mux_out_reg = ((link_en && data_done) || cmd_done  ) ? {concat_cmd,reg_bank_in[63:32],reg_bank_in[31:0]} : reg_bank_in;
+
+	assign mux_out_reg = (reg_wr_en ) ? reg_bank_in 
+	                      :(( link_en && data_done) || cmd_done  ) ?{concat_cmd,reg_bank_in[63:32],reg_bank_in[31:0]} 
+	                     : mux_out_reg;
 	
 	endmodule
 	
