@@ -5,7 +5,7 @@ parameter DATA_W = 128;
      reg clk,resetn;                 
      reg [(WIDTH * 15) -1:0] reg_chn_in;
 
-
+    reg reg_wr_en;
      reg ARREADY;
      reg RID;
      reg [31:0]RDATA_I;
@@ -94,7 +94,7 @@ dma_channel #(
     .reg_chn_in         (reg_chn_in),
     .chn_reg_out        (chn_reg_out),
     .IRQ                (IRQ),
-
+    .reg_wr_en(reg_wr_en),
     // AXI Read Address/Data (General/Descriptor)
     .ARID               (ARID),
     .ARADDR             (ARADDR),
@@ -194,12 +194,16 @@ dma_channel #(
      #20 resetn = 1;
    //  data_done = 1;
     // linkaddren = 1;
+    reg_wr_en = 1;
      reg_chn_in = {32'h0000ABCF,32'h0,32'h0,32'h0,32'h1234,32'h00010001,32'h0,32'h0,32'h00040004,32'h6084,32'h1612,32'h0E001200,32'h70F,32'h0,32'h01110001};
     
+    #30 reg_wr_en = 0;
      #20;
      ARREADY_D = 1;
      #40
      ARREADY_D = 0;
+#10;
+//if(RREADY == 1) begin
      RVALID_D = 1;
      RRESP_D = 'b00;
   
@@ -214,6 +218,7 @@ dma_channel #(
     #10 RLAST_D = 'b0;
     RVALID_D = 'b0;
     #20;
+//    end
 
     AWREADY = 'b1;
     #30 AWREADY = 'b0;
@@ -236,19 +241,20 @@ dma_channel #(
     #10 ARREADY = 1'b0;
      RRESP='b00;
     RID = 'b0;
+    #10
     RVALID =1;
      RDATA_I = 'h40385D5D;
      RLAST = 1;
      #10 RVALID =0; RLAST=0;
     
     ARREADY = 1'b1;
-    #10 ARREADY = 1'b0;
+    #30 ARREADY = 1'b0;
         RVALID =1;
-        RDATA_I = 32'h70F; #10//intren
+       #10 RDATA_I = 32'h70F; #10//intren
         RDATA_I = 32'h0E001200;#10//ctrl
-        RDATA_I = 32'h1612;#10//src addr
-        RDATA_I = 32'h6084;#10//des addr
-        RDATA_I=32'h00040004;#10//xsize
+        RDATA_I = 32'h1234;#10//src addr
+        RDATA_I = 32'h5687;#10//des addr
+        RDATA_I=32'h00060006;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
         RDATA_I=32'h00010001;#10//xaddr inc
@@ -260,7 +266,11 @@ dma_channel #(
         RLAST = 1;
         #10 RLAST= 0;
         RVALID=0;
-     
+     #10 src_trig_req = 1;
+         des_trig_req = 1;
+         #20 
+          src_trig_req = 0;
+         des_trig_req = 0;
           #20;
      ARREADY_D = 1;
      #40
@@ -268,13 +278,13 @@ dma_channel #(
      RVALID_D = 1;
      RRESP_D = 'b00;
   
-     RDATA_I_D = 'hABC0;
+     RDATA_I_D = 'hABC4;
     #10
-    RDATA_I_D = 'hABC1;
+    RDATA_I_D = 'hABC5;
     #10
-    RDATA_I_D = 'hABC2;
+    RDATA_I_D = 'hABC6;
     #10
-    RDATA_I_D = 'hABC3;
+    RDATA_I_D = 'hABC7;
     RLAST_D = 'b1;
     #10 RLAST_D = 'b0;
     RVALID_D = 'b0;
