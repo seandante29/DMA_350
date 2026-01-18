@@ -1,4 +1,4 @@
-dma_channel_tb(   );
+module dma_channel_tb(   );
 parameter WIDTH = 32;
 
      reg clk,resetn;                 
