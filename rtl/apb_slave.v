@@ -1,165 +1,159 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 12/16/2025 01:31:12 PM
-// Design Name: 
-// Module Name: apb_slave
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-module apb_slave #( parameter DATA_WIDTH = 32,
-     parameter ADDR_WIDTH = 8, 
-     parameter STRB_WIDTH = DATA_WIDTH/8
-      )
-       (
-    //APB4 signals
-     input wire PCLK,
-     input wire PRESETn,
-     input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
-     input wire PWRITE,
-     input wire PSEL,
-     input wire PENABLE,
-     input wire [ DATA_WIDTH-1 : 0 ]PWDATA,
-     input wire [ STRB_WIDTH-1 : 0 ] PSTRB,
-     output reg [ DATA_WIDTH-1 : 0 ]PRDATA,
-     output reg PREADY,
-     output reg PSLVERR,
-     
-     //REGISTER BANK signals
-     input wire [ DATA_WIDTH-1 : 0 ]cfg_rdata,
-     output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,
-     output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,
-     output reg cfg_wr_en,cfg_rd_en
-     );
-localparam IDLE   = 3'b001;
-localparam SETUP  = 3'b010;
-localparam ACCESS = 3'b100;
-
- 
- reg [2:0] current_state, next_state;
- 
- reg [ ADDR_WIDTH-1 : 0 ]PADDR_q;
- reg PWRITE_q;
- reg [ DATA_WIDTH-1 : 0 ]PWDATA_q;
- reg [ STRB_WIDTH-1 : 0 ]PSTRB_q;
- 
- wire strobe_error;
- 
-    assign strobe_error = (PWRITE && (PSTRB != {STRB_WIDTH{1'b1}}));
-//assign data_error = (PWRITE && (!((^PWDATA == 1'b0)||(^PWDATA == 1'b1)))); 
- 
- always@(posedge PCLK or negedge PRESETn)
-     begin
-   if(!PRESETn)
-   current_state <= IDLE;
-   else
-   current_state <= next_state;
-  end
-  
- always@(*)
-  begin
-   case(current_state)
-   
-   IDLE:
-    begin
-     next_state = (PSEL && !PENABLE) ? SETUP : IDLE;
-    end
+    `timescale 1ns / 1ps
+    //////////////////////////////////////////////////////////////////////////////////
+    // Company: 
+    // Engineer: 
+    // 
+    // Create Date: 12/16/2025 01:31:12 PM
+    // Design Name: 
+    // Module Name: apb_slave
+    // Project Name: 
+    // Target Devices: 
+    // Tool Versions: 
+    // Description: 
+    // 
+    // Dependencies: 
+    // 
+    // Revision:
+    // Revision 0.01 - File Created
+    // Additional Comments:
+    // 
+    //////////////////////////////////////////////////////////////////////////////////
     
-   SETUP:
-    begin
-     next_state = (PSEL && PENABLE) ? ACCESS : SETUP;
-    end
-   
-   ACCESS:
-    begin
-    /*
-      if(PREADY)  
-          if(PSEL && PENABLE)
-            next_state = ACCESS;
-          else if(PSEL)
-            next_state = SETUP;
+    module apb_slave #( parameter DATA_WIDTH = 32,
+         parameter ADDR_WIDTH = 8, 
+         parameter STRB_WIDTH = DATA_WIDTH/8
+          )
+           (
+        //APB4 signals
+         input wire PCLK,
+         input wire PRESETn,
+         input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
+         input wire PWRITE,
+         input wire PSEL,
+         input wire PENABLE,
+         input wire [ DATA_WIDTH-1 : 0 ]PWDATA,
+         input wire [ STRB_WIDTH-1 : 0 ] PSTRB,
+         output reg [ DATA_WIDTH-1 : 0 ]PRDATA,
+         output reg PREADY,
+         output reg PSLVERR,
+         
+         //REGISTER BANK signals
+         input wire [ DATA_WIDTH-1 : 0 ]cfg_rdata,
+         output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,
+         output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,
+         output reg cfg_wr_en,cfg_rd_en
+         );
+    localparam IDLE   = 3'b001;
+    localparam SETUP  = 3'b010;
+    localparam ACCESS = 3'b100;
+    
+     
+     reg [2:0] current_state, next_state;
+     reg [ ADDR_WIDTH-1 : 0 ]PADDR_q;
+     reg PWRITE_q;
+     reg [ DATA_WIDTH-1 : 0 ]PWDATA_q;
+     reg [ STRB_WIDTH-1 : 0 ]PSTRB_q;
+     
+    wire strobe_error_q;
+    assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
+    
+    // wire strobe_error;
+     
+     //assign strobe_error = (PWRITE && (PSTRB != {STRB_WIDTH{1'b1}}));
+    //assign data_error = (PWRITE && (!((^PWDATA == 1'b0)||(^PWDATA == 1'b1)))); 
+     
+     always@(posedge PCLK or negedge PRESETn)
+         begin
+       if(!PRESETn)
+        current_state <= IDLE;
+       else
+        current_state <= next_state;
+      end
+      
+     always@(*)
+      begin
+       case(current_state)
+       
+       IDLE:
+        begin
+         next_state = (PSEL && !PENABLE) ? SETUP : IDLE;
+        end
+        
+       SETUP:
+        begin
+         next_state = (PSEL && PENABLE) ? ACCESS : SETUP;
+        end
+       
+       ACCESS:
+        begin
+         next_state = (PREADY) ? (PSEL ? SETUP : IDLE) : ACCESS; 
+        end
+        
+       default: 
+       begin
+        next_state = IDLE;
+       end
+       endcase
+      end
+      
+     always@(posedge PCLK or negedge PRESETn)
+      begin
+       if(!PRESETn)
+        begin
+         PADDR_q  <= {ADDR_WIDTH{1'b0}};
+         PWRITE_q <= 1'b0;
+         PWDATA_q <= {DATA_WIDTH{1'b0}};
+         PREADY    <= 'd0;
+         PSLVERR   <= 'd0;
+         PSTRB_q <= {STRB_WIDTH{1'b0}}; //
+         cfg_wr_en <= 1'b0;            //
+         cfg_rd_en <= 1'b0;               //
+         cfg_addr  <= {ADDR_WIDTH{1'b0}};  //
+         cfg_wdata <= {DATA_WIDTH{1'b0}};  //
+        end
+        
+       else
+        begin
+         cfg_wr_en <= 1'b0;
+         PREADY  <= 1'b0;
+         cfg_rd_en <= 1'b0;
+         PSLVERR   <= 1'b0; 
+         case(current_state)
+        SETUP:
+        begin
+        PADDR_q  <= PADDR;
+        PWRITE_q <= PWRITE;
+        PWDATA_q <= PWDATA;
+        PSTRB_q  <= PSTRB;
+        PSLVERR   <= 1'b0;  
+        end
+        ACCESS:
+         begin
+          PSLVERR <= strobe_error_q;
+          PREADY  <= 1'b1;    
+          //  if(PSEL && PENABLE)  //THIS IS DONE BY SEAN
+          // begin
+             cfg_addr <= PADDR_q;
+          if(PWRITE_q)
+           begin
+         cfg_wdata <= PWDATA_q;
+         cfg_wr_en <= 1'b1;
+        end
           else
-          next_state = IDLE;
-          
-          */
-            // next_state = (PSEL && PENABLE && PREADY) ? SETUP : ACCESS;
-     next_state = (PREADY) ? (PSEL ? SETUP : IDLE) : ACCESS; 
-    end
-    
-   default: 
-   begin
-    next_state = IDLE;
-   end
-   endcase
-  end
-  
- always@(posedge PCLK or negedge PRESETn)
-  begin
-   if(!PRESETn)
-    begin
-     PREADY    <= 'd0;
-     PSLVERR   <= 'd0;
-     PSTRB_q <= {STRB_WIDTH{1'b0}}; //
-     cfg_wr_en <= 1'b0;            //
-  cfg_rd_en <= 1'b0;               //
-     cfg_addr  <= {ADDR_WIDTH{1'b0}};  //
-     cfg_wdata <= {DATA_WIDTH{1'b0}};  //
-    end
-    
-   else
-    begin
-     cfg_wr_en <= 1'b0;
-     PREADY  <= 1'b0;
-     case(current_state)
-      SETUP:
-    begin                            //lint comment so that no warning takes place
-     //PADDR_q  <= PADDR;
-     //PWRITE_q <= PWRITE;
-     //PWDATA_q <= PWDATA;
-                                    // PSEL_q   <= PSEL;
-     //PSTRB_q  <= PSTRB;
-    end
-    
-    ACCESS:
-     begin
-      PSLVERR <= strobe_error;
-      PREADY  <= 1'b1;    
-        if(PSEL && PENABLE)  //THIS IS DONE BY SEAN
-       begin
-         cfg_addr <= PADDR;
-      if(PWRITE)
-       begin
-     cfg_wdata <= PWDATA;
-     cfg_wr_en <= 1'b1;
-    end
-      else
-       begin
-        PRDATA    <= cfg_rdata;
-        cfg_rd_en <= 1'b1;
-    end
+           begin
+            PRDATA    <= cfg_rdata;
+            cfg_rd_en <= 1'b1;
+        end
+         // end
+         
+          end
+        default:
+        begin
+         PREADY  <= 1'b0;
+         PSLVERR <= 1'b0;
+        end
+        endcase
+        end
       end
+     endmodule
      
-      end
-    default:
-    begin
-     PREADY  <= 1'b0;
-     PSLVERR <= 1'b0;
-    end
-    endcase
-    end
-  end
-  
- endmodule
- 
