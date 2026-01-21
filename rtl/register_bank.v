@@ -2,12 +2,12 @@ module register_bank #(parameter WIDTH = 32,
       parameter DEPTH = 145)
      (input wire clk,
       input wire resetn,
-      input wire cfg_rd_en,cfg_wr_en,chn_wr_en_i,// write enable from apb to reg, channel
+      input wire cfg_rd_en,cfg_wr_en,reg_wr_en,// write enable from apb to reg, channel
       input wire [ WIDTH-1 : 0] cfg_data_in,//from apb to reg
       input wire [ 7:0 ] addr_in,// from apb
       input wire [(WIDTH*2)-1 : 0] chn_reg_in,// from channel 
       output reg [ WIDTH-1 : 0] cfg_data_out, // to apb
-     // output wire chn_wr_en_o, //to channel
+      output wire chn_wr_en, //to channel
       output wire [(WIDTH * 15) -1 : 0] reg_chn_out); // to  channel
       
       reg [ WIDTH-1:0 ] reg_mem [ 0:DEPTH-1 ];
@@ -17,7 +17,7 @@ module register_bank #(parameter WIDTH = 32,
                              reg_mem[24],reg_mem[16],reg_mem[12],reg_mem[8],reg_mem[4],reg_mem[0]};
           // assign reg_chn_out = { reg_mem[0],reg_mem[4],reg_mem[8],reg_mem[12],reg_mem[16],reg_mem[24],reg_mem[32],reg_mem[40],reg_mem[44],
              //                reg_mem[48],reg_mem[56],reg_mem[76],reg_mem[80],reg_mem[84],reg_mem[120]};
-    //  assign chn_wr_en_o = cfg_wr_en;
+    assign chn_wr_en = cfg_wr_en;
       integer i;
       always @(posedge clk or negedge resetn)
   begin
@@ -29,12 +29,12 @@ module register_bank #(parameter WIDTH = 32,
   else 
    begin
    if(cfg_wr_en)begin
-    if(reg_mem[0][0]) 
-    reg_mem[addr_w] <= reg_mem[addr_w];
-    else
+ if(reg_mem[0][0]) 
+  reg_mem[addr_w] <= reg_mem[addr_w];
+   else
     reg_mem [addr_w] <= cfg_data_in;
     end
-   else if(chn_wr_en_i)
+   else if(reg_wr_en)
     {reg_mem [4] , reg_mem[144]} <= chn_reg_in;
      
    else if(cfg_rd_en)
