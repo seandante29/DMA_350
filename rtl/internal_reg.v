@@ -63,7 +63,7 @@ output wire stat_done_reg ,
 output wire stat_disable_reg ,
 output wire stat_stopped_reg ,
 output wire  stat_err_reg ,
- output  wire ch_wr_en_o
+ output  wire reg_wr_en
  );
  
  integer i;
@@ -88,7 +88,7 @@ output wire  stat_err_reg ,
    assign  stat_done_reg  = data_in [48];
    assign stat_disable_reg = data_in [50];
    assign stat_stopped_reg = data_in [51];
-   assign stat_err_reg = data_in [49];
+   assign stat_err_reg = data_in [49]; //== 1 )? 0 :1 ;//stat_err;
    
    
    wire stopcmd = STOPCMD ? 0 :data_in [3]; //STOPCMD : data_in [3];
@@ -107,7 +107,7 @@ output wire  stat_err_reg ,
  assign IRQ = (INTR_DISABLED | INTR_STOPPED | INTR_ERR | INTR_DONE);
  
  //to reg bank
- assign ch_wr_en_o = IRQ  ? 1: 0;
+ assign reg_wr_en = IRQ  ? 1: 0;
  assign chn_reg_out = {intr_mem[4],intr_mem[144]};// error,status 
 
  assign CH_CMD_O = intr_mem [0];
