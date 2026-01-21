@@ -5,8 +5,9 @@ module mux_logic #(parameter WIDTH = 32)
 	input wire link_en,data_done,//added data done for mux logic
 	input wire [5:0] wptr,//input from cmd fsm
 	input wire [31:0] header_in,
-	input wire chn_wr_en,
+	input wire cmd_done_stop,
 	//previous data
+	input  wire [31:0] CH_STATUS,	
 	input  wire [31:0] CH_CTRL,
 	input  wire [31:0] CH_INTREN,
     input  wire [31:0] CH_XSIZE,
@@ -21,18 +22,49 @@ module mux_logic #(parameter WIDTH = 32)
     input  wire [31:0] CH_DESADDR,
     input  wire [31:0] CH_FILLVAL,
 	//reg bank input
-	input wire [(WIDTH * 15) -1:0] reg_bank_in,
     input wire cmd_done,
+    
+    input wire [WIDTH-1 : 0] cfg_CH_CMD,
+    input wire [WIDTH-1 : 0] cfg_CH_STATUS,
+    input wire [WIDTH-1 : 0] cfg_CH_INTREN,
+    input wire [WIDTH-1 : 0] cfg_CH_CTRL,
+    input wire [WIDTH-1 : 0] cfg_CH_SRCADDR,
+    input wire [WIDTH-1 : 0] cfg_CH_DESADDR,
+    input wire [WIDTH-1 : 0] cfg_CH_XSIZE,
+    input wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_XADDRINC,
+    input wire [WIDTH-1 : 0] cfg_CH_FILLVAL,
+    input wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
+    input wire [WIDTH-1 : 0] cfg_LINKADDR,
+    
+    input wire chn_cmd_wr_en_o,
+    input wire chn_stat_wr_en_o,
+    input wire chn_intren_wr_en_o,
+    input wire chn_ctrl_wr_en_o,
+    input wire chn_srcaddr_wr_en_o,
+    input wire chn_desaddr_wr_en_o,
+    input wire chn_xsize_wr_en_o,
+    input wire chn_srctrans_wr_en_o,
+    input wire chn_destrans_wr_en_o,
+    input wire chn_xaddrinc_wr_en_o,
+    input wire chn_fillval_wr_en_o,
+    input wire chn_srctrigin_wr_en_o,
+    input wire chn_destrigin_wr_en_o,
+    input wire chn_trigout_wr_en_o,
+    input wire chn_linkaddr_wr_en_o,
 	// internal reg
 	//output wire LINKHDERR,
-	output wire [(WIDTH * 15) -1:0] mux_out_reg
+	output reg [(WIDTH * 15) -1:0] mux_out_reg
 	);
 	
 	reg [31:0] cmd_data_mem [0:31];
 
 	reg [1023:0] cmd_data_in;
 	
-	wire [31:0] HEADER_CMD = header_in;
+	wire [31:0] HEADER_CMD =header_in ;
 	wire [31:0] CH_INTREN_CMD = cmd_data_in [(WIDTH*3)-1:(WIDTH*2)];
 	wire [31:0] CH_CTRL_CMD   = cmd_data_in [(WIDTH*4)-1:(WIDTH*3)];
 	wire [31:0] CH_SRCADDR_CMD   = cmd_data_in [(WIDTH*5)-1:(WIDTH*4)];
@@ -47,7 +79,7 @@ module mux_logic #(parameter WIDTH = 32)
 	wire [31:0] CH_TRIGOUTCFG_CMD   = cmd_data_in [(WIDTH*22)-1:(WIDTH*21)];
 	wire [31:0] CH_LINKADDR_CMD = cmd_data_in [(WIDTH*31)-1:(WIDTH*30)];
 	wire [31:0] DEFAULT_VALUE = 32'd0;
-	wire REGCLEAR = header_in[0];
+	wire REGCLEAR = HEADER_CMD[0];
 	
 	wire [(WIDTH * 13) -1:0] concat_cmd;
 	reg [5:0] rd_ptr;
@@ -70,7 +102,13 @@ module mux_logic #(parameter WIDTH = 32)
 	
 	always @(posedge clk or negedge resetn)
 	begin
+	/*if(!resetn) begin
+		HEADER_CMD <=0;
+		end
+		else begin*/
 		cmd_data_mem [wptr] <= cmd_data; 
+//		HEADER_CMD <= (|header_in) ? header_in:HEADER_CMD;
+//		end
 	end
 	
 	always @(*)
@@ -89,12 +127,170 @@ module mux_logic #(parameter WIDTH = 32)
 	
 	end
 	
+	
+	always @(posedge clk or negedge resetn) begin
+    if (!resetn) begin
+        mux_out_reg <= 'd0;
+    end
+    else begin
+        // WORD 0 : CMD
+        if (chn_cmd_wr_en_o)
+            mux_out_reg[(WIDTH*1)-1:0] <= cfg_CH_CMD;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*1)-1:0] <= mux_out_reg[31:0];
+
+        // WORD 1 : STATUS
+        if (chn_stat_wr_en_o)
+            mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <= cfg_CH_STATUS;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <= mux_out_reg[(WIDTH*2)-1:(WIDTH*1)];
+
+        // WORD 2 : INTREN
+        if (chn_intren_wr_en_o)
+            mux_out_reg[(WIDTH*3)-1:(WIDTH*2)] <= cfg_CH_INTREN;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*3)-1:(WIDTH*2)] <= concat_cmd[(WIDTH*1)-1:(WIDTH*0)];
+
+        // WORD 3 : CTRL
+        if (chn_ctrl_wr_en_o)
+            mux_out_reg[(WIDTH*4)-1:(WIDTH*3)] <= cfg_CH_CTRL;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*4)-1:(WIDTH*3)] <= concat_cmd[(WIDTH*2)-1:(WIDTH*1)];
+
+        // WORD 4 : SRCADDR
+        if (chn_srcaddr_wr_en_o)
+            mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= cfg_CH_SRCADDR;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= concat_cmd[(WIDTH*3)-1:(WIDTH*2)];
+
+        // WORD 5 : DESADDR
+        if (chn_desaddr_wr_en_o)
+            mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= cfg_CH_DESADDR;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= concat_cmd[(WIDTH*4)-1:(WIDTH*3)];
+
+        // WORD 6 : XSIZE
+        if (chn_xsize_wr_en_o)
+            mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= cfg_CH_XSIZE;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= concat_cmd[(WIDTH*5)-1:(WIDTH*4)];
+
+        // WORD 7 : SRCTRANS
+        if (chn_srctrans_wr_en_o)
+            mux_out_reg[(WIDTH*8)-1:(WIDTH*7)] <= cfg_CH_SRCTRANSCFG;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*8)-1:(WIDTH*7)] <= concat_cmd[(WIDTH*6)-1:(WIDTH*5)];
+
+        // WORD 8 : DESTRANS
+        if (chn_destrans_wr_en_o)
+            mux_out_reg[(WIDTH*9)-1:(WIDTH*8)] <= cfg_CH_DESTRANSCFG;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*9)-1:(WIDTH*8)] <= concat_cmd[(WIDTH*7)-1:(WIDTH*6)];
+
+        // WORD 9 : XADDRINC
+        if (chn_xaddrinc_wr_en_o)
+            mux_out_reg[(WIDTH*10)-1:(WIDTH*9)] <= cfg_CH_XADDRINC;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*10)-1:(WIDTH*9)] <= concat_cmd[(WIDTH*8)-1:(WIDTH*7)];
+
+        // WORD 10 : FILLVAL
+        if (chn_fillval_wr_en_o)
+            mux_out_reg[(WIDTH*11)-1:(WIDTH*10)] <= cfg_CH_FILLVAL;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*11)-1:(WIDTH*10)] <= concat_cmd[(WIDTH*9)-1:(WIDTH*8)];
+
+        // WORD 11 : SRCTRIGIN
+        if (chn_srctrigin_wr_en_o)
+            mux_out_reg[(WIDTH*12)-1:(WIDTH*11)] <= cfg_CH_SRCTRIGINCFG;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*12)-1:(WIDTH*11)] <= concat_cmd[(WIDTH*10)-1:(WIDTH*9)];
+
+        // WORD 12 : DESTRIGIN
+        if (chn_destrigin_wr_en_o)
+            mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= cfg_CH_DESTRIGINCFG;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= concat_cmd[(WIDTH*11)-1:(WIDTH*10)];
+
+        // WORD 13 : TRIGOUT
+        if (chn_trigout_wr_en_o)
+            mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= cfg_CH_TRIGOUTCFG;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= concat_cmd[(WIDTH*12)-1:(WIDTH*11)];
+
+        // WORD 14 : LINKADDR
+        if (chn_linkaddr_wr_en_o)
+            mux_out_reg[(WIDTH*15)-1:(WIDTH*14)] <= cfg_LINKADDR;
+        else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*15)-1:(WIDTH*14)] <= concat_cmd[(WIDTH*13)-1:(WIDTH*12)];
+    end
+end
+
+	
 	//assign LINKHDERR = !(|(HEADER_CMD));
     //	assign mux_out_reg = ((link_en && data_done) || cmd_done  ) ? {concat_cmd,reg_bank_in[63:32],reg_bank_in[31:0]} : reg_bank_in;
+/*
+	assign mux_out_reg [(WIDTH*1)-1:0] = (chn_cmd_wr_en_o) ? cfg_CH_CMD
+	                                       :(( link_en && data_done) || cmd_done  ) ?mux_out_reg[31:0]
+	                                       : mux_out_reg [(WIDTH*1)-1:0];
+	                                       
+    assign mux_out_reg [(WIDTH*2)-1:(WIDTH*1)] = (chn_stat_wr_en_o) ?  cfg_CH_STATUS
+	                                       :(( link_en && data_done) || cmd_done  ) ? mux_out_reg[(WIDTH*2)-1:(WIDTH*1)]
+	                                       : mux_out_reg[(WIDTH*2)-1:(WIDTH*1)];
 
-	assign mux_out_reg = (chn_wr_en ) ? reg_bank_in 
-	                      :(( link_en && data_done) || cmd_done  ) ?{concat_cmd,mux_out_reg[63:32],reg_bank_in[31:0]} 
-	                     : mux_out_reg;
+    assign mux_out_reg [(WIDTH*3)-1:(WIDTH*2)] = (chn_intren_wr_en_o) ?  cfg_CH_INTREN
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*1)-1:(WIDTH*0)]
+	                                       : mux_out_reg[(WIDTH*3)-1:(WIDTH*2)];
+	                                       	                                       
+    assign mux_out_reg [(WIDTH*4)-1:(WIDTH*3)] = (chn_ctrl_wr_en_o) ?  cfg_CH_CTRL
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*2)-1:(WIDTH*1)]
+	                                       : mux_out_reg[(WIDTH*4)-1:(WIDTH*3)];
+	                                       
+    assign mux_out_reg [(WIDTH*5)-1:(WIDTH*4)] = (chn_srcaddr_wr_en_o) ?  cfg_CH_SRCADDR
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*3)-1:(WIDTH*2)]
+	                                       : mux_out_reg[(WIDTH*5)-1:(WIDTH*4)];	
+	                                       
+    assign mux_out_reg [(WIDTH*6)-1:(WIDTH*5)] = (chn_desaddr_wr_en_o) ?  cfg_CH_DESADDR
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*4)-1:(WIDTH*3)]
+	                                       : mux_out_reg[(WIDTH*6)-1:(WIDTH*5)];	
+
+    assign mux_out_reg [(WIDTH*7)-1:(WIDTH*6)] = (chn_xsize_wr_en_o) ?  cfg_CH_XSIZE
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*5)-1:(WIDTH*4)]
+	                                       : mux_out_reg[(WIDTH*7)-1:(WIDTH*6)];	
+
+    assign mux_out_reg [(WIDTH*8)-1:(WIDTH*7)] = (chn_srctrans_wr_en_o) ?  cfg_CH_SRCTRANSCFG
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*6)-1:(WIDTH*5)]
+	                                       : mux_out_reg[(WIDTH*8)-1:(WIDTH*7)];	
+
+    assign mux_out_reg [(WIDTH*9)-1:(WIDTH*8)] = (chn_destrans_wr_en_o) ?  cfg_CH_DESTRANSCFG
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*7)-1:(WIDTH*6)]
+	                                       : mux_out_reg[(WIDTH*9)-1:(WIDTH*8)];	
+
+    assign mux_out_reg [(WIDTH*10)-1:(WIDTH*9)] = (chn_xaddrinc_wr_en_o) ?  cfg_CH_XADDRINC
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*8)-1:(WIDTH*7)]
+	                                       : mux_out_reg[(WIDTH*10)-1:(WIDTH*9)];	
+
+    assign mux_out_reg [(WIDTH*11)-1:(WIDTH*10)] = (chn_fillval_wr_en_o) ?  cfg_CH_FILLVAL
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*9)-1:(WIDTH*8)]
+	                                       : mux_out_reg[(WIDTH*11)-1:(WIDTH*10)];
+
+    assign mux_out_reg [(WIDTH*12)-1:(WIDTH*11)] = (chn_srctrigin_wr_en_o) ?  cfg_CH_SRCTRIGINCFG
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*10)-1:(WIDTH*9)]
+	                                       : mux_out_reg[(WIDTH*12)-1:(WIDTH*11)];
+
+    assign mux_out_reg [(WIDTH*13)-1:(WIDTH*12)] = (chn_destrigin_wr_en_o) ?  cfg_CH_DESTRIGINCFG
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*11)-1:(WIDTH*10)]
+	                                       : mux_out_reg[(WIDTH*13)-1:(WIDTH*12)];
+
+    assign mux_out_reg [(WIDTH*14)-1:(WIDTH*13)] = (chn_trigout_wr_en_o) ?  cfg_CH_TRIGOUTCFG
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*12)-1:(WIDTH*11)]
+	                                       : mux_out_reg[(WIDTH*14)-1:(WIDTH*13)];
+
+    assign mux_out_reg [(WIDTH*15)-1:(WIDTH*14)] = (chn_linkaddr_wr_en_o) ?  cfg_LINKADDR
+	                                       :(( link_en && data_done) || cmd_done  ) ?concat_cmd[(WIDTH*13)-1:(WIDTH*12)]
+	                                       : mux_out_reg[(WIDTH*15)-1:(WIDTH*14)];
+	                                       
+	                                       
+	                             */          
 	
 	endmodule
 	
