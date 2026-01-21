@@ -117,7 +117,7 @@ module data_fsm #(
     output reg               awr_error,
     output reg               bus_error,
     output reg               regvalerr,
-
+    output wire      cmd_done_stop,
     output reg               ENABLECMD, DISABLECMD, STOPCMD,
     output reg               STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT, 
     output reg               STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, 
@@ -125,6 +125,7 @@ module data_fsm #(
 );
 
     // Internal counters
+    reg cmd_done_reg;
     reg [15:0] src_left, des_left, fill_count;
     reg [15:0] wrap_rd_ptr;
     reg [DATA_W-1:0] wdata_mask;
@@ -134,9 +135,11 @@ module data_fsm #(
     reg [127:0] fifo_mem [0:255];
     reg [7:0]   fifo_wptr;
     reg [7:0]   fifo_rptr;
+    integer j;
 
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
 
+    
     localparam IDLE      = 4'd0,
                CONFIG    = 4'd1,
                WAIT_TRIG = 4'd2,
@@ -149,7 +152,8 @@ module data_fsm #(
                PAUSED    = 4'd9,
                DONE_ST   = 4'd10,
                ERROR_ST  = 4'd11,
-               WRAP_FILL = 4'd12;
+               WRAP_FILL = 4'd12,
+               WAIT = 4'd13;
 
     reg [3:0] state, next;
 
@@ -159,6 +163,7 @@ module data_fsm #(
     wire case4 = (srcxsize == desxsize && srcxsize > 0);
     wire case5 = ((srcxsize > desxsize) && (desxsize != 0));
     wire case6 = ((srcxsize < desxsize) && (srcxsize !=0));
+    assign cmd_done_stop = (state == WAIT) ? 1 : 0;
 
   assign ERROR    = config_error || ard_error || arpoison_error || awr_error || bus_error;
  //   assign trig_err = SRCTRIGINSELERR || DESTRIGINSELERR || TRIGOUTSELERR;
@@ -170,6 +175,7 @@ module data_fsm #(
             state <= next;
     end
 
+        
     // Next State Logic
     always @(*) begin
         next = state;
@@ -181,10 +187,12 @@ module data_fsm #(
             case (state)
                 IDLE:
                     if (enable_cmd && cmd_done && !ERROR && !DONE && !STAT_DISABLE && !STAT_DONE && !STAT_STOP)
-                        next = CONFIG;
+                        next = WAIT;
                     else
                         next = IDLE;
-
+                        
+                WAIT : next = CONFIG;
+                
                 CONFIG: begin
                     if (config_error)
                         next = ERROR_ST;
@@ -200,6 +208,7 @@ module data_fsm #(
                         next = WAIT_TRIG;
                 end
 
+                
                 WAIT_TRIG:
                 if (config_error)
                         next = ERROR_ST;
@@ -286,7 +295,7 @@ module data_fsm #(
         if (!resetn) begin
             {ARVALID, RREADY, AWVALID, WVALID, BREADY,
              DONE, trig_out_req, config_error, ard_error,regvalerr,
-             arpoison_error, awr_error, bus_error} <= 0;
+             arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
             {ENABLECMD, DISABLECMD, STOPCMD, STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
              STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED, STAT_DONE} <= 'b0;
 
@@ -298,6 +307,10 @@ module data_fsm #(
             wrap_rd_ptr <= 0;
             src_trigack <= 0;
             des_trigack <= 0;
+            
+            for(j=0;j<255;j=j+1) begin
+                fifo_mem [j] <= 'd0;end
+                
         end else begin
             ARVALID      <= 0;
             RREADY       <= 0;
@@ -308,6 +321,8 @@ module data_fsm #(
             trig_out_req <= 0;
             src_trigack  <= 0;
             des_trigack  <= 0;
+            cmd_done_reg <= cmd_done;
+         //   cmd_done_stop <= 'd0;
            {ENABLECMD, DISABLECMD, STOPCMD, STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
            STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
             //STAT_DONE <= !stat_done ? 0 :1;
@@ -322,7 +337,7 @@ module data_fsm #(
                 STOPCMD = 1;
             end
             
-
+//data_done <=0;
             case (state)
                 IDLE: begin
                     if (stat_error == 1) begin
@@ -332,7 +347,9 @@ module data_fsm #(
                         awr_error      <= 0;
                         bus_error      <= 0;
                         regvalerr      <= 0;
+                        //data_done <=1; if cpu gives linaddr for reconfig.. then data_done should be high
                     end
+                       
                     STAT_DONE <= stat_done_reg ? 0:STAT_DONE ;
                     fifo_wptr   <= 0;
                     fifo_rptr   <= 0;
@@ -504,9 +521,10 @@ module data_fsm #(
                 DONE_ST: begin
                     DONE <= 1;
                     STAT_DONE <= !link_en ? 1 : 0;
-                    
-                    
-                end
+                 end    
+             //  WAIT : cmd_done_stop <= 1;
+               
+               
 
                 PAUSED: begin
                     STAT_RESUMEWAIT <= !resume_cmd ? 1 : 0;
