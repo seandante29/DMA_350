@@ -6,7 +6,8 @@ module dma_channel
     // reg bank signals
     input wire [(WIDTH * 15) -1:0] reg_chn_in, // from reg bank       
     //inter reg signals    
-    output wire [(WIDTH*2)-1 : 0] chn_reg_out,                       
+    output wire [(WIDTH*2)-1 : 0] chn_reg_out,              
+    output wire reg_wr_en,         
     output  wire IRQ,
     //cmd fsm signal
      input wire ARREADY,
@@ -15,7 +16,7 @@ module dma_channel
      input wire [1:0]RRESP,
      input wire RLAST,
      input wire RVALID,
-     input wire reg_wr_en,
+     input wire chn_wr_en,
      
      input wire ARREADY_D,
      input wire RID_D,
@@ -47,7 +48,7 @@ module dma_channel
 
     output wire        ch_trigout_req,
     
-    
+    output wire stat_err,
      
      
      
@@ -148,7 +149,7 @@ wire [31:0] fillval;
 wire [15:0] src_xaddr_inc;
 wire [15:0] des_xaddr_inc;
 wire stat_done;
-wire stat_err;
+//wire stat_err; // made it as in output wire for trig matrix
 wire DONE;
 
 
@@ -217,6 +218,8 @@ wire DONE;
    .DISABLECMD(DISABLECMD),
    .STOPCMD(STOPCMD),
   .chn_reg_out(chn_reg_out),
+  //.ch_wr_en_o(ch_wr_en_o),
+   .reg_wr_en(reg_wr_en),
   .CH_CTRL_O(CH_CTRL_O),
   .CH_INTREN_O(CH_INTREN_O),
   .CH_XSIZE_O(CH_XSIZE_O),
@@ -325,7 +328,7 @@ wire DONE;
        .wptr(wptr),
        .data_done(DONE),
        .cmd_done(STAT_CMD_DONE),
-       .reg_wr_en(reg_wr_en),
+       .chn_wr_en(chn_wr_en),
        .link_en(linkaddren),
        .header_in(LINK_HEADER),
        .CH_CTRL(CH_CTRL_O),
@@ -443,44 +446,7 @@ wire DONE;
     .STAT_DONE(STAT_DONE));
     
     
-    /*
-    trigger_matrix dut5(
-    .STAT_ERR(stat_err),
-    .trig0_req(trig0_req),
-    .trig0_req_type(trig0_req_type),
-    .trig0_ack(trig0_ack),
-    .trig0_ack_type(trig0_ack_type),
-    .trig1_req(trig1_req),
-    .trig1_req_type(trig1_req_type),
-    .trig1_ack(trig1_ack),
-    .trig1_ack_type(trig1_ack_type),
-    .trig0_out_req(trig0_out_req),
-    .trig0_out_ack(trig0_out_ack),
-    .trig1_out_req(trig1_out_req),
-    .trig1_out_ack(trig1_out_ack),
-    .use_src_trigin(use_src_trigin),
-    .src_trigin_type(src_trigin_type),
-    .src_trigin_sel(src_trigin_sel), 
-    .use_dst_trigin(use_dst_trigin),
-    .dst_trigin_type(dst_trigin_type),   
-    .dst_trigin_sel(dst_trigin_sel),
-    .trigout_type(use_trigout),
-    .trigout_type(trigout_type), 
-    .trigout_sel(trigout_sel),
-    .src_trig_req(src_trig_req),
-    .src_trig_req_type(src_trig_req_type),
-    .dst_trig_req(dst_trig_req),
-    .dst_trig_req_type(dst_trig_req_type),
-    .ch_src_ack(ch_src_ack), 
-    .ch_src_ack_type(ch_dst_ack),
-    .ch_dst_ack(ch_dst_ack),
-    .ch_dst_ack_type(ch_dst_ack_type),
-    .ch_trigout_req(ch_trigout_req),
-    .ch_trigout_ack(ch_trigout_ack),
-    .SRCTRIGINSELERR(SRCTRIGINSELERR), 
-    .DESTRIGINSELERR(DESTRIGINSELERR), 
-    .TRIGOUTSELERR(TRIGOUTSELERR)
-    );*/
+
     
 
 
