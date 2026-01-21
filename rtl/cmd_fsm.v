@@ -65,6 +65,8 @@ module cmd_fsm (input clk,
       input [31:0]LINKADDR,
       input link_enable,
       input data_done,
+      input wire cmd_done_stop,
+      input wire wr_en,
       // AR signals
       input ARREADY,
       output reg [3:0] ARID,
@@ -97,7 +99,6 @@ module cmd_fsm (input clk,
     reg [4:0] count1;
    reg [5:0] i;
    reg data_done_reg;
-   
    reg link_enable_reg;
    reg STAT_ERROR_reg;
    wire cmd_error = !(LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
@@ -201,12 +202,14 @@ module cmd_fsm (input clk,
         RREADY <= 0;
         RDATA_O <= 0;
         LINKHDRERR <= 0;
+        LINK_HEADER <= 0;
         STAT_CMD_DONE <= 1'b0;
    end
    else
    begin
-       CMD_DONE <= 1'b1; // temp fix for deasserting
-       
+     CMD_DONE <= 1'b1; // temp fix for deasserting
+     if(wr_en)         LINK_HEADER <= 0;
+       //CMD_DONE <= (cmd_done_stop) ? 'b0 :  'b1; //
         case(current_state)
             IDLE:
             
