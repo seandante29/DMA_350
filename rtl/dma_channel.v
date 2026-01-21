@@ -275,7 +275,7 @@ wire cmd_done_stop;
   .CH_DESADDR_O(CH_DESADDR_O),
   .CH_FILLVAL_O(CH_FILLVAL_O),
   .stat_done_reg(stat_done_reg),
-  .stat_disable_reg(stat_disable_reg),
+  .stat_disable(stat_disable_reg),
   .stat_stopped_reg (stat_stopped_reg ),
 .stat_err_reg (stat_err_reg ),
   .IRQ(IRQ)
@@ -433,6 +433,7 @@ wire cmd_done_stop;
     .stop_cmd(stop_cmd),
     . resume_cmd( resume_cmd),
     .cmd_done(CMD_DONE),
+    .stat_disable_reg(stat_disable_reg),
     .use_src_trigin(use_src_trigin),
     .src_trigin_type(src_trigin_type),
     .src_trigin_mode(src_trigin_mode),
