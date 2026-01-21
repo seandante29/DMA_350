@@ -402,7 +402,7 @@ top_mod #(
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h0C;
-    PWDATA  = 32'h0E001200;
+    PWDATA  = 32'h0E001202;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
@@ -439,24 +439,12 @@ top_mod #(
      #20;
         PENABLE = 0;  
         
-                //CH_CMD
-        #10;
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h01;
-    PWDATA  = 32'h01110000;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #20;
-        PENABLE = 0;  
+
         
         
- # 10;
+ # 30;
  #10 ARREADY_D = 'b1;
-#30 ARREADY_D = 'b0;
+#60 ARREADY_D = 'b0;
 
 #10 
 RRESP_D = 'b01;
@@ -484,6 +472,8 @@ BRESP = 'b00;
 #20 BVALID = 'b0;
 
 #20;
+
+
 
 // comand descriptor1
   #10;
@@ -562,7 +552,8 @@ BRESP = 'b00;
 
 #20;
 
-// comand descriptor1
+/*
+// comand descriptor2
   #10;
     ARREADY = 1'b1;
     #10 ARREADY = 1'b0;
@@ -636,6 +627,21 @@ BRESP = 'b00;
     trig0_out_ack = 'b1;
     #20 trig0_out_ack = 'b0;
 
+
+       #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h0C;
+    PWDATA  = 32'h0E001202;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;  
+        
+        
        #10;
     PSEL    = 1;
     PWRITE  = 1;
@@ -648,7 +654,7 @@ BRESP = 'b00;
         PENABLE = 1;
      #20;
         PENABLE = 0;  
-
+*/
         #500;
     $finish;
   end
