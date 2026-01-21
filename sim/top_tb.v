@@ -473,8 +473,47 @@ BRESP = 'b00;
 
 #20;
 
+        #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h01110004;//disable cmd
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;  
 
 
+#200;
+        #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h04;
+    PWDATA  = 32'h00040000;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;  
+        
+        
+                #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h00000001;//disable cmd
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;  
 // comand descriptor1
   #10;
     ARREADY = 1'b1;
