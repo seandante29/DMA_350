@@ -19,6 +19,7 @@ module data_fsm #(
     input  wire              disable_cmd,
     input  wire              stop_cmd,
     input  wire              cmd_done,
+    input wire               stat_disable_reg,
 
     // Triggers
     input  wire              use_src_trigin,
@@ -186,7 +187,7 @@ module data_fsm #(
         
             case (state)
                 IDLE:
-                    if (enable_cmd && cmd_done && !ERROR && !DONE && !STAT_DISABLE && !STAT_DONE && !STAT_STOP)
+                    if (enable_cmd && cmd_done && !ERROR && !DONE && !stat_disable_reg && !STAT_DONE && !STAT_STOP)
                         next = WAIT;
                     else
                         next = IDLE;
@@ -323,18 +324,24 @@ module data_fsm #(
             des_trigack  <= 0;
             cmd_done_reg <= cmd_done;
          //   cmd_done_stop <= 'd0;
-           {ENABLECMD, DISABLECMD, STOPCMD, STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
-           STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
+        //   {STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
+           //STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
             //STAT_DONE <= !stat_done ? 0 :1;
+             if( stat_disable_reg == 0)begin
+                         ENABLECMD    <= 0;
+                        STAT_DISABLE  <= 0;
+                         DISABLECMD <= 0;
+                end
+                        
             if (disable_cmd) begin
-                ENABLECMD    = 1;
-                DISABLECMD = 1;
-                STAT_DISABLE = disable_cmd ? 1 : 0;
+                ENABLECMD    <= 1;
+                DISABLECMD <= 1;
+                STAT_DISABLE <= disable_cmd ? 1 : STAT_DISABLE;
             end
             if (stop_cmd ) begin
-                ENABLECMD    = 1;
-                STAT_STOP    = stop_cmd ? 1 : 0;
-                STOPCMD = 1;
+                ENABLECMD    <= 1;
+                STAT_STOP    <= stop_cmd ? 1 : 0;
+                STOPCMD <= 1;
             end
             
 //data_done <=0;
@@ -349,7 +356,8 @@ module data_fsm #(
                         regvalerr      <= 0;
                         //data_done <=1; if cpu gives linaddr for reconfig.. then data_done should be high
                     end
-                       
+                  /*  if( stat_disable_reg == 0)
+                        STAT_DISABLE  <= 0;*/
                     STAT_DONE <= stat_done_reg ? 0:STAT_DONE ;
                     fifo_wptr   <= 0;
                     fifo_rptr   <= 0;
