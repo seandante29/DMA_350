@@ -4,7 +4,41 @@ module dma_channel
 (
     input wire clk,resetn,                 
     // reg bank signals
-    input wire [(WIDTH * 15) -1:0] reg_chn_in, // from reg bank       
+    input wire [WIDTH-1 : 0] cfg_CH_CMD,
+    input wire [WIDTH-1 : 0] cfg_CH_STATUS,
+    input wire [WIDTH-1 : 0] cfg_CH_INTREN,
+    input wire [WIDTH-1 : 0] cfg_CH_CTRL,
+    input wire [WIDTH-1 : 0] cfg_CH_SRCADDR,
+    input wire [WIDTH-1 : 0] cfg_CH_DESADDR,
+    input wire [WIDTH-1 : 0] cfg_CH_XSIZE,
+    input wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_XADDRINC,
+    input wire [WIDTH-1 : 0] cfg_CH_FILLVAL,
+    input wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
+    input wire [WIDTH-1 : 0] cfg_LINKADDR,
+    
+    input wire chn_cmd_wr_en_o,
+    input wire chn_stat_wr_en_o,
+    input wire chn_intren_wr_en_o,
+    input wire chn_ctrl_wr_en_o,
+    input wire chn_srcaddr_wr_en_o,
+    input wire chn_desaddr_wr_en_o,
+    input wire chn_xsize_wr_en_o,
+    input wire chn_srctrans_wr_en_o,
+    input wire chn_destrans_wr_en_o,
+    input wire chn_xaddrinc_wr_en_o,
+    input wire chn_fillval_wr_en_o,
+    input wire chn_srctrigin_wr_en_o,
+    input wire chn_destrigin_wr_en_o,
+    input wire chn_trigout_wr_en_o,
+    input wire chn_linkaddr_wr_en_o,
+
+
+
+
     //inter reg signals    
     output wire [(WIDTH*2)-1 : 0] chn_reg_out,              
     output wire reg_wr_en,         
@@ -16,7 +50,6 @@ module dma_channel
      input wire [1:0]RRESP,
      input wire RLAST,
      input wire RVALID,
-     input wire chn_wr_en,
      
      input wire ARREADY_D,
      input wire RID_D,
@@ -151,7 +184,7 @@ wire [15:0] des_xaddr_inc;
 wire stat_done;
 //wire stat_err; // made it as in output wire for trig matrix
 wire DONE;
-
+wire wr_en;
 
 // wires to internal reg from data fsm( stat and cmd)
   wire STAT_TRIGOUTACKWAIT;
@@ -187,7 +220,13 @@ wire DONE;
     wire des_trigack;
     wire src_trigack;
     wire stat_done_reg ,stat_disable_reg,stat_stopped_reg ,stat_err_reg ;
+assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o || chn_ctrl_wr_en_o || 
+                        chn_srcaddr_wr_en_o || chn_desaddr_wr_en_o || chn_xsize_wr_en_o 
+                        || chn_srctrans_wr_en_o || chn_destrans_wr_en_o || chn_xaddrinc_wr_en_o || 
+                        chn_fillval_wr_en_o || chn_srctrigin_wr_en_o || chn_destrigin_wr_en_o || 
+                        chn_trigout_wr_en_o || chn_linkaddr_wr_en_o;
 
+wire cmd_done_stop;
     internal_reg  #(.WIDTH (32),.DEPTH ( 145)) dut0
   (
   .clk(clk),
@@ -296,6 +335,8 @@ wire DONE;
       .STAT_ERROR(stat_err),
       .LINKADDR(linkaddr),
       .link_enable(linkaddren),
+      .wr_en(wr_en),
+      .cmd_done_stop(cmd_done_stop),
       .data_done(DONE),
       .ARREADY(ARREADY),
       .ARID(ARID),
@@ -328,9 +369,10 @@ wire DONE;
        .wptr(wptr),
        .data_done(DONE),
        .cmd_done(STAT_CMD_DONE),
-       .chn_wr_en(chn_wr_en),
+       .cmd_done_stop(cmd_done_stop),
        .link_en(linkaddren),
        .header_in(LINK_HEADER),
+       .CH_STATUS(CH_STATUS_O),
        .CH_CTRL(CH_CTRL_O),
        .CH_INTREN(CH_INTREN_O),
        .CH_XSIZE(CH_XSIZE_O),
@@ -344,7 +386,38 @@ wire DONE;
        .CH_SRCADDR(CH_SRCADDR_O),
        .CH_DESADDR(CH_DESADDR_O),
        .CH_FILLVAL(CH_FILLVAL_O),
-       .reg_bank_in(reg_chn_in),
+       
+           .cfg_CH_CMD            (cfg_CH_CMD),
+    .cfg_CH_STATUS         (cfg_CH_STATUS),
+    .cfg_CH_INTREN         (cfg_CH_INTREN),
+    .cfg_CH_CTRL           (cfg_CH_CTRL),
+    .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
+    .cfg_CH_DESADDR        (cfg_CH_DESADDR),
+    .cfg_CH_XSIZE          (cfg_CH_XSIZE),
+    .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
+    .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
+    .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
+    .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
+    .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
+    .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
+    .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
+    .cfg_LINKADDR          (cfg_LINKADDR),
+
+    .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
+    .chn_stat_wr_en_o      (chn_stat_wr_en_o),
+    .chn_intren_wr_en_o    (chn_intren_wr_en_o),
+    .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
+    .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
+    .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
+    .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+    .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
+    .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
+    .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
+    .chn_fillval_wr_en_o   (chn_fillval_wr_en_o),
+    .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
+    .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
+    .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
+    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
        .mux_out_reg(mux_logic_in)
        );               
       
@@ -443,6 +516,7 @@ wire DONE;
     .STAT_SRCTRIGINWAIT(STAT_SRCTRIGINWAIT),
     .STAT_DESTRIGINWAIT(STAT_DESTRIGINWAIT),
     .STAT_PAUSED(STAT_PAUSED),
+    .cmd_done_stop(cmd_done_stop),
     .STAT_DONE(STAT_DONE));
     
     
