@@ -9,6 +9,7 @@ module data_fsm #(
     input  wire              clk,
     input  wire              resetn,
     input  wire              stat_error,
+    input wire stat_error_partsel,
     input  wire              stat_done_reg,
     input  wire              link_en,        // added
     // Control
@@ -175,6 +176,8 @@ module data_fsm #(
         if (stop_cmd) begin
             next = IDLE;
         end else begin
+        
+        
             case (state)
                 IDLE:
                     if (enable_cmd && cmd_done && !ERROR && !DONE && !STAT_DISABLE && !STAT_DONE && !STAT_STOP)
@@ -198,13 +201,16 @@ module data_fsm #(
                 end
 
                 WAIT_TRIG:
-                    if (pause_cmd)
+                if (config_error)
+                        next = ERROR_ST;
+                    else if (pause_cmd)
                         next = PAUSED;
                     else if (use_src_trigin && use_des_trigin) begin  
+                    
                         if ((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))
-                            next = AR; 
+                            next = (case2 && x_type == 'd3) ? WRAP_FILL : AR; 
                         else if ((src_trigin_type == 2'b10 && src_trigin) && (des_trigin_type == 2'b10 && des_trigin))
-                            next = AR; 
+                            next = (case2 && x_type == 'd3) ? WRAP_FILL : AR;  
                     end
                     else if (!use_src_trigin && !use_des_trigin)
                         next = AR;
@@ -221,10 +227,10 @@ module data_fsm #(
                     if ((RRESP == 2 || RRESP == 3) && RVALID)
                         next = ERROR_ST;
                     else if (RVALID && RREADY && RLAST) begin
-                        if ((src_left > 1 || fill_count > 0) &&(case6 || case2))
+                        if ((src_left > 0 || fill_count > 1) &&(case6 || case2))
                             next = WRAP_FILL;
-                      //  else if (src_left == 0)
-                        //    next = AW;
+                      // else if (src_left == 0)
+                          //next = AW;
                         else
                             next = AW;
                     end else
@@ -267,7 +273,7 @@ module data_fsm #(
                      //next = STAT_DONE ? DONE_ST : IDLE;
 
                 ERROR_ST:
-                    if (stat_error == 0)
+                    //if (stat_error_partsel ==0)// (stat_error == 1)
                         next = IDLE;
 
                 default: next = IDLE;
@@ -279,7 +285,7 @@ module data_fsm #(
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin
             {ARVALID, RREADY, AWVALID, WVALID, BREADY,
-             DONE, trig_out_req, config_error, ard_error,
+             DONE, trig_out_req, config_error, ard_error,regvalerr,
              arpoison_error, awr_error, bus_error} <= 0;
             {ENABLECMD, DISABLECMD, STOPCMD, STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
              STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED, STAT_DONE} <= 'b0;
@@ -319,7 +325,7 @@ module data_fsm #(
 
             case (state)
                 IDLE: begin
-                    if (stat_error == 0) begin
+                    if (stat_error == 1) begin
                         config_error   <= 0;
                         ard_error      <= 0;
                         arpoison_error <= 0;
@@ -484,12 +490,12 @@ module data_fsm #(
                 end
 
                 TRIG_OUT: begin
-                    if (use_trigout && trigout_type == 'b01)
+                    if (use_trigout && trigout_type == 'b10)
                         trig_out_req <= 1;
                     
                     if (use_trigout && !trig_out_ack_sw && trigout_type == 'b00)
                         STAT_TRIGOUTACKWAIT <= 1'b1;
-                    else if (use_trigout && !trig_out_ack && trigout_type == 'b01)
+                    else if (use_trigout && !trig_out_ack && trigout_type == 'b10)
                         STAT_TRIGOUTACKWAIT <= 1'b1;
                     else 
                         STAT_TRIGOUTACKWAIT <= 1'b0;
