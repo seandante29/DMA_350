@@ -19,6 +19,47 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 01/08/2026 12:16:27 PM
+// Design Name: 
+// Module Name: cmd_fsm
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 01/08/2026 12:16:27 PM
+// Design Name: 
+// Module Name: cmd_fsm
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
 module cmd_fsm (input clk, 
       input resetn,
       input [31:0]LINKADDR,
@@ -55,11 +96,29 @@ module cmd_fsm (input clk,
    reg [4:0] count;
     reg [4:0] count1;
    reg [5:0] i;
+   reg data_done_reg;
+   
+   reg link_enable_reg;
+   reg STAT_ERROR_reg;
+   wire cmd_error = !(LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
    localparam IDLE   = 4'b0001;
    localparam AR     = 4'b0010;
    localparam R      = 4'b0100;  
    localparam COUNT  = 4'b1000;
-   
+   //temp fix
+   always @(posedge clk or negedge resetn)
+   begin
+   if(!resetn) begin
+   data_done_reg <= 'd0;
+   link_enable_reg <= 'd0;
+   STAT_ERROR_reg <= 'd0;
+   end
+   else begin
+   data_done_reg <= data_done;
+   link_enable_reg <= link_enable;
+   STAT_ERROR_reg <= STAT_ERROR;
+   end
+   end
    
    always@(posedge clk or negedge resetn)
    begin
@@ -75,7 +134,7 @@ module cmd_fsm (input clk,
    begin
        case(current_state)
        IDLE:
-        if(link_enable && data_done && !STAT_ERROR)
+        if(link_enable_reg && data_done && cmd_error)
          next_state = AR;
         else
          next_state = IDLE;
