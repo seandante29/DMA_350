@@ -34,7 +34,7 @@
          input wire [ DATA_WIDTH-1 : 0 ]PWDATA,
          input wire [ STRB_WIDTH-1 : 0 ] PSTRB,
          output reg [ DATA_WIDTH-1 : 0 ]PRDATA,
-         output reg PREADY,
+         output wire PREADY,
          output reg PSLVERR,
          
          //REGISTER BANK signals
@@ -56,6 +56,7 @@
      
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
+    assign PREADY = (current_state == ACCESS)? 1 : 0;
     
     // wire strobe_error;
      
@@ -103,7 +104,7 @@
          PADDR_q  <= {ADDR_WIDTH{1'b0}};
          PWRITE_q <= 1'b0;
          PWDATA_q <= {DATA_WIDTH{1'b0}};
-         PREADY    <= 'd0;
+      //   PREADY    <= 'd0;
          PSLVERR   <= 'd0;
          PSTRB_q <= {STRB_WIDTH{1'b0}}; //
          cfg_wr_en <= 1'b0;            //
@@ -115,25 +116,27 @@
        else
         begin
          cfg_wr_en <= 1'b0;
-         PREADY  <= 1'b0;
+       //  PREADY  <= 1'b0;
          cfg_rd_en <= 1'b0;
          PSLVERR   <= 1'b0; 
          case(current_state)
         SETUP:
         begin
-        PADDR_q  <= PADDR;
+        cfg_addr <= PADDR;
         PWRITE_q <= PWRITE;
         PWDATA_q <= PWDATA;
         PSTRB_q  <= PSTRB;
         PSLVERR   <= 1'b0;  
+       cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
+     
         end
         ACCESS:
          begin
           PSLVERR <= strobe_error_q;
-          PREADY  <= 1'b1;    
+       //   PREADY  <= 1'b1;    
           //  if(PSEL && PENABLE)  //THIS IS DONE BY SEAN
           // begin
-             cfg_addr <= PADDR_q;
+            
           if(PWRITE_q)
            begin
          cfg_wdata <= PWDATA_q;
@@ -142,14 +145,14 @@
           else
            begin
             PRDATA    <= cfg_rdata;
-            cfg_rd_en <= 1'b1;
+            //cfg_rd_en <= 1'b1;
         end
          // end
          
           end
         default:
         begin
-         PREADY  <= 1'b0;
+        // PREADY  <= 1'b0;
          PSLVERR <= 1'b0;
         end
         endcase
