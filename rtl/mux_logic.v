@@ -126,21 +126,22 @@ module mux_logic #(parameter WIDTH = 32)
 		rd_ptr = rd_ptr;
 	
 	end
-	
+	reg chn_cmd_wr_en_reg,chn_stat_wr_en_reg;
 	
 	always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
         mux_out_reg <= 'd0;
     end
     else begin
+        chn_cmd_wr_en_reg<=chn_cmd_wr_en_o;
+        chn_stat_wr_en_reg <=chn_stat_wr_en_o;
         // WORD 0 : CMD
-        if (chn_cmd_wr_en_o)
+        if (chn_cmd_wr_en_reg)
             mux_out_reg[(WIDTH*1)-1:0] <= cfg_CH_CMD;
-        else if ((link_en && data_done) || cmd_done)
-            mux_out_reg[(WIDTH*1)-1:0] <= mux_out_reg[31:0];
-
+        else 
+            mux_out_reg[5:0] <= 0;
         // WORD 1 : STATUS
-        if (chn_stat_wr_en_o)
+        if (chn_stat_wr_en_reg)
             mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <= cfg_CH_STATUS;
         else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <= mux_out_reg[(WIDTH*2)-1:(WIDTH*1)];
