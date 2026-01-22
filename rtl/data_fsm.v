@@ -1,3 +1,4 @@
+
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -20,6 +21,7 @@ module data_fsm #(
     input  wire              stop_cmd,
     input  wire              cmd_done,
     input wire               stat_disable_reg,
+    input wire               stat_stop_reg,
 
     // Triggers
     input  wire              use_src_trigin,
@@ -332,15 +334,19 @@ module data_fsm #(
                         STAT_DISABLE  <= 0;
                          DISABLECMD <= 0;
                 end
-                        
+            if(stat_stop_reg == 0) begin
+                 ENABLECMD    <= 0;
+                STAT_STOP    <= 0;
+                STOPCMD <= 0;
+            end
             if (disable_cmd) begin
                 ENABLECMD    <= 1;
                 DISABLECMD <= 1;
-                STAT_DISABLE <= disable_cmd ? 1 : STAT_DISABLE;
+                STAT_DISABLE <= 1;
             end
             if (stop_cmd ) begin
                 ENABLECMD    <= 1;
-                STAT_STOP    <= stop_cmd ? 1 : 0;
+                STAT_STOP    <= 1;
                 STOPCMD <= 1;
             end
             
