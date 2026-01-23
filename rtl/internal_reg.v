@@ -5,9 +5,6 @@ module internal_reg #(parameter WIDTH = 32,
  //input wire wr_en,
  input wire [(WIDTH * 15) -1:0] data_in,
  
-
- 
- 
  //error signals from data fsm
  input wire AXIRDRESPERR,
  input wire AXIRDPOISERR,
@@ -25,18 +22,18 @@ module internal_reg #(parameter WIDTH = 32,
  input wire BUSERR_CMDFSM,
  input wire LINKHDERR,
  
- input wire STAT_TRIGOUTACKWAIT,
- input wire STAT_DESTRIGINWAIT,
- input wire STAT_SRCTRIGINWAIT,
- input wire STAT_RESUMEWAIT,
- input wire STAT_STOPPED,
- input wire STAT_PAUSED,
- input wire STAT_DISABLED,
- input wire STAT_DONE,
+ input wire STAT_TRIGOUTACKWAIT_DATA,
+ input wire STAT_DESTRIGINWAIT_DATA,
+ input wire STAT_SRCTRIGINWAIT_DATA,
+ input wire STAT_RESUMEWAIT_DATA,
+ input wire STAT_STOPPED_DATA,
+ input wire STAT_PAUSED_DATA,
+ input wire STAT_DISABLED_DATA,
+ input wire STAT_DONE_DATA,
  
- input wire ENABLECMD,
- input wire DISABLECMD,
- input wire STOPCMD,
+ input wire ENABLECMD_DATA,
+ input wire DISABLECMD_DATA,
+ input wire STOPCMD_DATA,
  
  
  
@@ -59,10 +56,10 @@ module internal_reg #(parameter WIDTH = 32,
  output  wire [31:0] CH_DESADDR_O,
  output  wire [31:0] CH_FILLVAL_O,
  output  wire IRQ,
-output wire stat_done,
-output wire stat_disable ,
-output wire stat_stopped ,
-output wire  stat_err,
+output wire stat_done_intr_reg,//data fsm
+output wire stat_disable_intr_reg ,
+output wire stat_stopped_intr_reg ,
+output wire  stat_err_intr_reg,
  output  wire reg_wr_en
  );
  
@@ -80,30 +77,32 @@ output wire  stat_err,
                  | TRIGOUTSELERR | AXIRDRESPERR_CMDFSM | AXIRDPOISERR_CMDFSM |  
                  BUSERR_CMDFSM |  LINKHDERR;
  
-   assign stat_disable = data_in [50] ?1'b0 : STAT_DISABLED;
-   assign stat_stopped = data_in [51]? 1'b0: STAT_STOPPED;
+   assign stat_disable_intr_reg = data_in [50] ?1'b0 : STAT_DISABLED_DATA;
+   assign stat_stopped_intr_reg = data_in [51]? 1'b0: STAT_STOPPED_DATA;
   // wire stat_done = IRQ ? data_in [48] : STAT_DONE;
-  assign stat_done = data_in [48] ? 1'b0  : STAT_DONE;
-  assign stat_err = data_in [49] ? 1'b0  : STAT_ERR;
-   wire  stat_done_reg  = data_in [48];
+  assign stat_done_intr_reg = data_in [48] ? 1'b0  : STAT_DONE_DATA;//?1:stat_done;
+  assign stat_err_intr_reg = data_in [49] ? 1'b0  : STAT_ERR;
+  // wire  stat_done_reg  = data_in [48];
    //assign stat_disable_reg = data_in [50];
-   wire stat_stopped_reg = data_in [51];
-   wire stat_err_reg = data_in [49]; //== 1 )? 0 :1 ;//stat_err;
+ //  wire stat_stopped_reg = data_in [51];
+ //  wire stat_err_reg = data_in [49]; //== 1 )? 0 :1 ;//stat_err;
    
    
-   wire stopcmd = STOPCMD ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
-   wire disablecmd = DISABLECMD ? 0 : data_in [2]? 1: disablecmd;
-   wire enablecmd =ENABLECMD ?  0 : data_in [0] ?1: enablecmd;
+   wire stopcmd = STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
+   wire disablecmd = DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
+   wire enablecmd =ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
+   wire pausecmd =  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
+   wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    
  reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
  
- assign INTR_TRIGOUTACKWAIT = (STAT_TRIGOUTACKWAIT && intr_mem[8][10]);
- assign INTR_DESTRIGINWAIT = (STAT_DESTRIGINWAIT && intr_mem [8][9]);
- assign INTR_SRCTRIGINWAIT = (STAT_SRCTRIGINWAIT && intr_mem [8][8]);
- assign INTR_STOPPED = (STAT_STOPPED && intr_mem [8][3]);
- assign INTR_DISABLED = (STAT_DISABLED && intr_mem [8][2]);
- assign INTR_ERR = (STAT_ERR && intr_mem [8][1]);
- assign INTR_DONE = (STAT_DONE && intr_mem [8][0]);
+ assign INTR_TRIGOUTACKWAIT = (STAT_TRIGOUTACKWAIT_DATA && intr_mem[8][10]);
+ assign INTR_DESTRIGINWAIT = (STAT_DESTRIGINWAIT_DATA && intr_mem [8][9]);
+ assign INTR_SRCTRIGINWAIT = (STAT_SRCTRIGINWAIT_DATA && intr_mem [8][8]);
+ assign INTR_STOPPED = (stat_stopped_intr_reg && intr_mem [8][3]);
+ assign INTR_DISABLED = (stat_disable_intr_reg && intr_mem [8][2]);
+ assign INTR_ERR = (stat_err_intr_reg && intr_mem [8][1]);
+ assign INTR_DONE = (stat_done_intr_reg && intr_mem [8][0]);
  assign IRQ = (INTR_DISABLED | INTR_STOPPED | INTR_ERR | INTR_DONE);
  
  //to reg bank
@@ -139,7 +138,7 @@ output wire  stat_err,
    //{intr_mem[0],intr_mem[8],intr_mem[12],intr_mem[16],intr_mem[24],intr_mem[32],intr_mem[40],intr_mem[44],
    //intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120]} <= data_in;
    
-   intr_mem[0] <= {data_in [31:4],stopcmd,disablecmd,data_in[1],enablecmd};
+   intr_mem[0] <= {data_in [31:6],resumecmd,pausecmd,stopcmd,disablecmd,data_in[1],enablecmd};
    intr_mem[8]  <= data_in [(WIDTH * 3) -1 : (WIDTH*2)];
    intr_mem[12] <= data_in [(WIDTH * 4) -1 : (WIDTH*3)];
    intr_mem[16] <= data_in [(WIDTH * 5) -1 : (WIDTH*4)];
@@ -157,8 +156,8 @@ output wire  stat_err,
    intr_mem[144] <= {6'd0,regval_error,LINKHDERR,6'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},AXIWRRESPERR,11'd0,
          TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,config_error,{BUSERR|BUSERR_CMDFSM}};
    
-   intr_mem[4] <= {5'd0,STAT_TRIGOUTACKWAIT,STAT_DESTRIGINWAIT,STAT_SRCTRIGINWAIT,2'd0,STAT_RESUMEWAIT,STAT_PAUSED,stat_stopped,
-       stat_disable,stat_err,stat_done,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
+   intr_mem[4] <= {5'd0,STAT_TRIGOUTACKWAIT_DATA,STAT_DESTRIGINWAIT_DATA,STAT_SRCTRIGINWAIT_DATA,2'd0,STAT_RESUMEWAIT_DATA,STAT_PAUSED_DATA,stat_stopped_intr_reg,
+       stat_disable_intr_reg,stat_err_intr_reg,stat_done_intr_reg,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
        INTR_STOPPED,INTR_DISABLED,INTR_ERR,INTR_DONE};
     
    
