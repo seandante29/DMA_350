@@ -188,18 +188,18 @@ wire DONE;
 wire wr_en;
 
 // wires to internal reg from data fsm( stat and cmd)
-  wire STAT_TRIGOUTACKWAIT;
-  wire STAT_DESTRIGINWAIT;
-  wire STAT_SRCTRIGINWAIT;
-  wire STAT_RESUMEWAIT;
-  wire STAT_STOPPED;
-  wire STAT_PAUSED;
-  wire STAT_DISABLED;
-  wire STAT_DONE;
+  wire STAT_TRIGOUTACKWAIT_DATA;
+  wire STAT_DESTRIGINWAIT_DATA;
+  wire STAT_SRCTRIGINWAIT_DATA;
+  wire STAT_RESUMEWAIT_DATA;
+  wire STAT_STOPPED_DATA;
+  wire STAT_PAUSED_DATA;
+  wire STAT_DISABLED_DATA;
+  wire STAT_DONE_DATA;
  
-  wire ENABLECMD;
-  wire DISABLECMD;
-  wire STOPCMD;
+  wire ENABLECMD_DATA;
+  wire DISABLECMD_DATA;
+  wire STOPCMD_DATA;
 
 // wires to cmd fsm
   //  wire [31:0]LINKADDR;
@@ -220,7 +220,7 @@ wire wr_en;
     wire trig_out_req;
     wire des_trigack;
     wire src_trigack;
-    wire stat_done_reg ,stat_disable_reg,stat_stopped_reg ,stat_err_reg ;
+    wire stat_done_intr_reg ,stat_disable_intr_reg,stat_stopped_intr_reg ,stat_err_intr_reg ;
 assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o || chn_ctrl_wr_en_o || 
                         chn_srcaddr_wr_en_o || chn_desaddr_wr_en_o || chn_xsize_wr_en_o 
                         || chn_srctrans_wr_en_o || chn_destrans_wr_en_o || chn_xaddrinc_wr_en_o || 
@@ -246,17 +246,17 @@ wire cmd_done_stop;
   .AXIRDPOISERR_CMDFSM(AXIRDPOISERR_CMDFSM),
   .BUSERR_CMDFSM(BUSERR_CMDFSM),
   .LINKHDERR(LINKHDERR),
-  .STAT_TRIGOUTACKWAIT(STAT_TRIGOUTACKWAIT),
-  .STAT_DESTRIGINWAIT(STAT_DESTRIGINWAIT),
-  .STAT_SRCTRIGINWAIT(STAT_SRCTRIGINWAIT),
-  .STAT_RESUMEWAIT(STAT_RESUMEWAIT),
-  .STAT_STOPPED(STAT_STOP),
-  .STAT_PAUSED(STAT_PAUSED),
-  .STAT_DISABLED(STAT_DISABLE),
-  .STAT_DONE(STAT_DONE),
-   .ENABLECMD(ENABLECMD),
-   .DISABLECMD(DISABLECMD),
-   .STOPCMD(STOPCMD),
+  .STAT_TRIGOUTACKWAIT_DATA(STAT_TRIGOUTACKWAIT_DATA),
+  .STAT_DESTRIGINWAIT_DATA(STAT_DESTRIGINWAIT_DATA),
+  .STAT_SRCTRIGINWAIT_DATA(STAT_SRCTRIGINWAIT_DATA),
+  .STAT_RESUMEWAIT_DATA(STAT_RESUMEWAIT_DATA),
+  .STAT_STOPPED_DATA(STAT_STOP_DATA),
+  .STAT_PAUSED_DATA(STAT_PAUSED_DATA),
+  .STAT_DISABLED_DATA(STAT_DISABLE_DATA),
+  .STAT_DONE_DATA(STAT_DONE_DATA),
+   .ENABLECMD_DATA(ENABLECMD_DATA),
+   .DISABLECMD_DATA(DISABLECMD_DATA),
+   .STOPCMD_DATA(STOPCMD_DATA),
   .chn_reg_out(chn_reg_out),
   //.ch_wr_en_o(ch_wr_en_o),
    .reg_wr_en(reg_wr_en),
@@ -275,10 +275,10 @@ wire cmd_done_stop;
   .CH_SRCADDR_O(CH_SRCADDR_O),
   .CH_DESADDR_O(CH_DESADDR_O),
   .CH_FILLVAL_O(CH_FILLVAL_O),
-  .stat_done_intr_reg(stat_done_reg),
-  .stat_disable_intr_reg(stat_disable_reg),
-  .stat_stopped_intr_reg (stat_stopped_reg ),
-.stat_err_intr_reg (stat_err_reg ),
+  .stat_done_intr_reg(stat_done_intr_reg),
+  .stat_disable_intr_reg(stat_disable_intr_reg),
+  .stat_stopped_intr_reg (stat_stopped_intr_reg ),
+  .stat_err_intr_reg (stat_err_intr_reg ),
   .IRQ(IRQ)
   );
   
@@ -333,7 +333,7 @@ wire cmd_done_stop;
 
  cmd_fsm dut2(.clk(clk), 
       .resetn(resetn),
-      .STAT_ERROR(stat_err),
+      .STAT_ERROR_PARTSEL(stat_err_partsel),
       .LINKADDR(linkaddr),
       .link_enable(linkaddren),
       .wr_en(wr_en),
@@ -389,54 +389,54 @@ wire cmd_done_stop;
        .CH_DESADDR(CH_DESADDR_O),
        .CH_FILLVAL(CH_FILLVAL_O),
        
-           .cfg_CH_CMD            (cfg_CH_CMD),
-    .cfg_CH_STATUS         (cfg_CH_STATUS),
-    .cfg_CH_INTREN         (cfg_CH_INTREN),
-    .cfg_CH_CTRL           (cfg_CH_CTRL),
-    .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
-    .cfg_CH_DESADDR        (cfg_CH_DESADDR),
-    .cfg_CH_XSIZE          (cfg_CH_XSIZE),
-    .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
-    .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
-    .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
-    .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
-    .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
-    .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
-    .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
-    .cfg_LINKADDR          (cfg_LINKADDR),
-
-    .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
-    .chn_stat_wr_en_o      (chn_stat_wr_en_o),
-    .chn_intren_wr_en_o    (chn_intren_wr_en_o),
-    .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
-    .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
-    .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
-    .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
-    .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
-    .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
-    .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
-    .chn_fillval_wr_en_o   (chn_fillval_wr_en_o),
-    .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
-    .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
-    .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
-    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
-       .mux_out_reg(mux_logic_in)
+        .cfg_CH_CMD            (cfg_CH_CMD),
+        .cfg_CH_STATUS         (cfg_CH_STATUS),
+        .cfg_CH_INTREN         (cfg_CH_INTREN),
+        .cfg_CH_CTRL           (cfg_CH_CTRL),
+        .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
+        .cfg_CH_DESADDR        (cfg_CH_DESADDR),
+        .cfg_CH_XSIZE          (cfg_CH_XSIZE),
+        .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
+        .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
+        .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
+        .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
+        .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
+        .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
+        .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
+        .cfg_LINKADDR          (cfg_LINKADDR),
+        
+        .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
+        .chn_stat_wr_en_o      (chn_stat_wr_en_o),
+        .chn_intren_wr_en_o    (chn_intren_wr_en_o),
+        .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
+        .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
+        .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
+        .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+        .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
+        .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
+        .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
+        .chn_fillval_wr_en_o   (chn_fillval_wr_en_o),
+        .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
+        .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
+        .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
+        .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+        .mux_out_reg(mux_logic_in)
        );               
       
     data_fsm dut4(
     .clk(clk),
     .resetn(resetn),
-    .stat_error(stat_err_reg),
-    .stat_done_reg(stat_done_reg),
+    .stat_error_intr_reg(stat_err_intr_reg),
+    .stat_done_intr_reg(stat_done_intr_reg),
     .link_en(linkaddren),
-    .enable_cmd(enable_cmd),
-    .pause_cmd(pause_cmd),
-    .disable_cmd(disable_cmd),
-    .stop_cmd(stop_cmd),
-    . resume_cmd( resume_cmd),
+    .enable_cmd_partsel(enable_cmd),
+    .pause_cmd_partsel(pause_cmd),
+    .disable_cmd_partsel(disable_cmd),
+    .stop_cmd_partsel(stop_cmd),
+    . resume_cmd_partsel(resume_cmd),
     .cmd_done(CMD_DONE),
-    .stat_disable_reg(stat_disable_reg),
-    .stat_stop_reg(stat_stopped_reg),
+    .stat_disable_intr_reg(stat_disable_intr_reg),
+    .stat_stop_intr_reg(stat_stopped_intr_reg),
     .use_src_trigin(use_src_trigin),
     .src_trigin_type(src_trigin_type),
     .src_trigin_mode(src_trigin_mode),
@@ -510,18 +510,18 @@ wire cmd_done_stop;
     .awr_error(AXIWRRESPERR),
     .bus_error(BUSERR),
     .regvalerr(regval_error),
-    .ENABLECMD(ENABLECMD),
-    .DISABLECMD(DISABLECMD),
-    .STOPCMD(STOPCMD),
-    .STAT_STOP(STAT_STOP),
-    .STAT_DISABLE(STAT_DISABLE),
-    .STAT_RESUMEWAIT(STAT_RESUMEWAIT),
-    .STAT_TRIGOUTACKWAIT(STAT_TRIGOUTACKWAIT),
-    .STAT_SRCTRIGINWAIT(STAT_SRCTRIGINWAIT),
-    .STAT_DESTRIGINWAIT(STAT_DESTRIGINWAIT),
-    .STAT_PAUSED(STAT_PAUSED),
+    .ENABLECMD_DATA(ENABLECMD_DATA),
+    .DISABLECMD_DATA(DISABLECMD_DATA),
+    .STOPCMD_DATA(STOPCMD_DATA),
+    .STAT_STOP_DATA(STAT_STOP_DATA),
+    .STAT_DISABLE_DATA(STAT_DISABLE_DATA),
+    .STAT_RESUMEWAIT_DATA(STAT_RESUMEWAIT_DATA),
+    .STAT_TRIGOUTACKWAIT_DATA(STAT_TRIGOUTACKWAIT_DATA),
+    .STAT_SRCTRIGINWAIT_DATA(STAT_SRCTRIGINWAIT_DATA),
+    .STAT_DESTRIGINWAIT_DATA(STAT_DESTRIGINWAIT_DATA),
+    .STAT_PAUSED_DATA(STAT_PAUSED_DATA),
     .cmd_done_stop(cmd_done_stop),
-    .STAT_DONE(STAT_DONE));
+    .STAT_DONE_DATA(STAT_DONE_DATA));
     
     
 
