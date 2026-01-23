@@ -85,25 +85,26 @@ module cmd_fsm (input clk,
       output reg [31:0]RDATA_O,
       output reg [31:0] LINK_HEADER,
       output reg [5:0] wptr,
-      output reg cmd_done_1,
       // ERROR and STATUS signals
+      output  reg cmd_done_1,// to mux_logic as select ( 1cycle pulse)
       output reg LINKHDRERR,
-      output reg CMD_DONE,STAT_CMD_DONE, //done signal to data fsm
+      output reg CMD_DONE,//done signal to data fsm
+      output reg STAT_CMD_DONE, //done signal to muxlogic
       output reg AXIRDRESPERR,//address out of range error
       output reg AXIRDPOISERR,//corrupted data error
       output reg BUSERR,//any axi error assterts this
-      input wire STAT_ERROR
+      input wire STAT_ERROR_PARTSEL
       );
-      
-      reg wr_en_reg;
-   reg [3:0] current_state, next_state;
-   reg [4:0] count;
-    reg [4:0] count1;
-   reg [5:0] i;
-   reg data_done_reg;
-   reg link_enable_reg;
-   reg STAT_ERROR_reg;
-   wire cmd_error = !(LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
+    //reg cmd_done_1;// to mux_logic as select ( 1cycle pulse)
+    reg wr_en_reg;
+    reg [3:0] current_state, next_state;
+    reg [4:0] count;
+   // reg [4:0] count1;
+    reg [5:0] i;
+    reg data_done_reg;
+    reg link_enable_reg;
+    reg STAT_ERROR_reg;
+    wire cmd_error = !(LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
    localparam IDLE   = 4'b0001;
    localparam AR     = 4'b0010;
    localparam R      = 4'b0100;  
@@ -119,7 +120,7 @@ module cmd_fsm (input clk,
    else begin
    data_done_reg <= data_done;
    link_enable_reg <= link_enable;
-   STAT_ERROR_reg <= STAT_ERROR;
+   STAT_ERROR_reg <= STAT_ERROR_PARTSEL;
    end
    end
    
@@ -151,7 +152,7 @@ module cmd_fsm (input clk,
        R:
         //if((RVALID && RREADY && RLAST && count == 0) )//|| (|RDATA_I != 1))///RDATAI/ rdatao?
           //  next_state = IDLE;
-          if(STAT_ERROR)
+          if(STAT_ERROR_PARTSEL)
         next_state = IDLE;
        else if(RVALID && RREADY && RLAST && count == 0)
         //if(RRESP==2'b00 || RRESP==2'b01)
@@ -176,7 +177,7 @@ module cmd_fsm (input clk,
             for( i = 1 ; i < 31 ; i = i + 1) count = count + RDATA_I[i];
    end
    
-   always@(posedge clk or negedge resetn)
+  /* always@(posedge clk or negedge resetn)
     begin
     if(!resetn)
     count1<='d0;
@@ -184,7 +185,7 @@ module cmd_fsm (input clk,
     count1<=0;
     else if(current_state == COUNT && count == 0 )
     count1<=count1+1;
-    end
+    end*/
    
      always@(posedge clk or negedge resetn)
     begin
@@ -234,7 +235,7 @@ module cmd_fsm (input clk,
                 ARBURST <=0;
                 ARVALID <=0;
                 RREADY <= 0;
-                if(~STAT_ERROR)
+                if(~STAT_ERROR_PARTSEL)
                  begin
                   BUSERR <= 0;
                   AXIRDPOISERR <= 0;
