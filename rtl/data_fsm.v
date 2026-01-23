@@ -9,20 +9,19 @@ module data_fsm #(
 )(
     input  wire              clk,
     input  wire              resetn,
-    input  wire              stat_error,
-    input wire stat_error_partsel,
-    input  wire              stat_done_reg,
-    input  wire              link_en,        // added
+    input  wire              stat_error_intr_reg,// from internal reg
+    input wire               stat_error_partsel,
+    input  wire              stat_done_intr_reg,// from internal reg
+    input  wire              link_en,        // from part select
     // Control
-    input  wire              enable_cmd,
-    input  wire              pause_cmd,
-    input  wire              resume_cmd,
-    input  wire              disable_cmd,
-    input  wire              stop_cmd,
+    input  wire              enable_cmd_partsel,
+    input  wire              pause_cmd_partsel,
+    input  wire              resume_cmd_partsel,
+    input  wire              disable_cmd_partsel,
+    input  wire              stop_cmd_partsel,      // from internal reg
+    input wire               stat_disable_intr_reg,
+    input wire               stat_stop_intr_reg,
     input  wire              cmd_done,
-    input wire               stat_disable_reg,
-    input wire               stat_stop_reg,
-
     // Triggers
     input  wire              use_src_trigin,
     input  wire [1:0]        src_trigin_type,
@@ -64,7 +63,7 @@ module data_fsm #(
     output reg               trig_out_req,
     input  wire              trig_out_ack,
 
-    // Config
+    // Config// from part select
     input  wire [ADDR_W-1:0] SRC_ADDR,
     input  wire [ADDR_W-1:0] des_ADDR,
     input  wire [2:0]        transize,
@@ -120,11 +119,11 @@ module data_fsm #(
     output reg               awr_error,
     output reg               bus_error,
     output reg               regvalerr,
-    output wire      cmd_done_stop,
-    output reg               ENABLECMD, DISABLECMD, STOPCMD,
-    output reg               STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT, 
-    output reg               STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, 
-    output reg               STAT_DESTRIGINWAIT, STAT_PAUSED, STAT_DONE
+    output wire             cmd_done_stop,
+    output reg               ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA,// FROM DATA FSM TO INTERNAL REGISTER 
+    output reg               STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA, 
+    output reg               STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, 
+    output reg               STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA
 );
 
     // Internal counters
@@ -182,14 +181,14 @@ module data_fsm #(
     // Next State Logic
     always @(*) begin
         next = state;
-        if (stop_cmd) begin
+        if (stop_cmd_partsel) begin
             next = IDLE;
         end else begin
         
         
             case (state)
                 IDLE:
-                    if (enable_cmd && cmd_done && !stat_error && !DONE && !stat_disable_reg && !stat_done_reg && !STAT_STOP)
+                    if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA)
                         next = WAIT;
                     else
                         next = IDLE;
@@ -215,7 +214,7 @@ module data_fsm #(
                 WAIT_TRIG:
                 if (config_error)
                         next = ERROR_ST;
-                    else if (pause_cmd)
+                    else if (pause_cmd_partsel)
                         next = PAUSED;
                     else if (use_src_trigin && use_des_trigin) begin  
                     
@@ -277,7 +276,7 @@ module data_fsm #(
                     end
 
                 PAUSED:
-                    if (resume_cmd)
+                    if (resume_cmd_partsel)
                         next = WAIT_TRIG;
 
                 DONE_ST:
@@ -299,8 +298,8 @@ module data_fsm #(
             {ARVALID, RREADY, AWVALID, WVALID, BREADY,
              DONE, trig_out_req, config_error, ard_error,regvalerr,
              arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
-            {ENABLECMD, DISABLECMD, STOPCMD, STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
-             STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED, STAT_DONE} <= 'b0;
+            {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
+             STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
 
             fifo_wptr   <= 0;
             fifo_rptr   <= 0;
@@ -329,33 +328,33 @@ module data_fsm #(
         //   {STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
            //STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
             //STAT_DONE <= !stat_done ? 0 :1;
-            STAT_RESUMEWAIT <= 'd0;
-            STAT_PAUSED <= 'd0;
-             if( stat_disable_reg == 0)begin
-                         ENABLECMD    <= 0;
-                        STAT_DISABLE  <= 0;
-                         DISABLECMD <= 0;
+            STAT_RESUMEWAIT_DATA <= 'd0;
+            STAT_PAUSED_DATA <= 'd0;
+             if( stat_disable_intr_reg == 0)begin
+                         ENABLECMD_DATA    <= 0;
+                        STAT_DISABLE_DATA  <= 0;
+                         DISABLECMD_DATA <= 0;
                 end
-            if(stat_stop_reg == 0) begin
-                 ENABLECMD    <= 0;
-                STAT_STOP    <= 0;
-                STOPCMD <= 0;
+            if(stat_stop_intr_reg == 0) begin
+                 ENABLECMD_DATA    <= 0;
+                STAT_STOP_DATA    <= 0;
+                STOPCMD_DATA <= 0;
             end
-            if (disable_cmd) begin
-                ENABLECMD    <= 1;
-                DISABLECMD <= 1;
-                STAT_DISABLE <= 1;
+            if (disable_cmd_partsel) begin
+                ENABLECMD_DATA    <= 1;
+                DISABLECMD_DATA <= 1;
+                STAT_DISABLE_DATA <= 1;
             end
-            if (stop_cmd ) begin
-                ENABLECMD    <= 1;
-                STAT_STOP    <= 1;
-                STOPCMD <= 1;
+            if (stop_cmd_partsel) begin
+                ENABLECMD_DATA    <= 1;
+                STAT_STOP_DATA    <= 1;
+                STOPCMD_DATA <= 1;
             end
-            STAT_DONE <= stat_done_reg ? STAT_DONE:0 ;
+            STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA:0 ;
 //data_done <=0;
             case (state)
                 IDLE: begin
-                    if (stat_error == 0) begin
+                    if (stat_error_intr_reg == 0) begin
                         config_error   <= 0;
                         ard_error      <= 0;
                         arpoison_error <= 0;
@@ -455,8 +454,8 @@ module data_fsm #(
                             des_trigin_ack_type <= (des_trigin_req_type == 0 || des_trigin_req_type == 2) ? 0 : 1;					
                         end else begin
                          if (!((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))) begin
-                            STAT_SRCTRIGINWAIT <= 1'b1;
-                            STAT_DESTRIGINWAIT <= 1'b1;				
+                            STAT_SRCTRIGINWAIT_DATA <= 1'b1;
+                            STAT_DESTRIGINWAIT_DATA <= 1'b1;				
                             end	
                         end
                     end
@@ -529,24 +528,24 @@ module data_fsm #(
                         trig_out_req <= 1;
                     
                     if (use_trigout && !trig_out_ack_sw && trigout_type == 'b00)
-                        STAT_TRIGOUTACKWAIT <= 1'b1;
+                        STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
                     else if (use_trigout && !trig_out_ack && trigout_type == 'b10)
-                        STAT_TRIGOUTACKWAIT <= 1'b1;
+                        STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
                     else 
-                        STAT_TRIGOUTACKWAIT <= 1'b0;
+                        STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
                 end
 
                 DONE_ST: begin
                     DONE <= 1;
-                    STAT_DONE <= !link_en ? 1 : 0;
+                    STAT_DONE_DATA <= !link_en ? 1 : 0;
                  end    
              //  WAIT : cmd_done_stop <= 1;
                
                
 
                 PAUSED: begin
-                    STAT_RESUMEWAIT <= !resume_cmd ? 1 : 0;
-                    STAT_PAUSED <= 1;
+                    STAT_RESUMEWAIT_DATA <= !resume_cmd_partsel ? 1 : 0;
+                    STAT_PAUSED_DATA <= 1;
                 end
             endcase
         end
