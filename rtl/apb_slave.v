@@ -38,10 +38,10 @@
          output reg PSLVERR,
          
          //REGISTER BANK signals
-         input wire [ DATA_WIDTH-1 : 0 ]cfg_rdata,
-         output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,
-         output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,
-         output reg cfg_wr_en,cfg_rd_en
+         input wire [ DATA_WIDTH-1 : 0 ]cfg_rdata,//from reg to apb
+         output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,// to reg bank
+         output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,// to reg bank
+         output reg cfg_wr_en,cfg_rd_en// to reg bank
          );
     localparam IDLE   = 3'b001;
     localparam SETUP  = 3'b010;
