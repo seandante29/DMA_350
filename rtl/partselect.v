@@ -53,7 +53,10 @@ module partselect (
     output wire [15:0] des_xaddr_inc,
 // STATUS / ERROR
     output wire        stat_done,
-    output wire        stat_err /*,
+    output wire        stat_err 
+//    output wire        stat_disable_part,
+//    output wire         stat_stop_part
+    /*,
     output wire        cfgconflerr,
     output wire        regvalerr,
     output wire        linkderr,
@@ -92,6 +95,9 @@ assign enable_cmd          = CH_CMD[0];
 // CH_STATUS
 assign stat_err  = CH_STATUS[17];
 assign stat_done = CH_STATUS[16];
+//assign stat_disable_part = CH_STATUS [18];
+//assign stat_stop_part = CH_STATUS [19];
+
 // CH_XADDRINC
 assign des_xaddr_inc = CH_XADDRINC[31:16];
 assign src_xaddr_inc = CH_XADDRINC[15:0];
