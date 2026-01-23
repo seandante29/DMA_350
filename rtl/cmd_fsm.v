@@ -62,11 +62,11 @@
 
 module cmd_fsm (input clk, 
       input resetn,
-      input [31:0]LINKADDR,
-      input link_enable,
-      input data_done,
-      input wire cmd_done_stop,
-      input wire wr_en,
+      input [31:0]LINKADDR,// fro intern reg
+      input link_enable,// fro intern reg
+      input data_done,// fro intern reg
+      input wire cmd_done_stop,//not used
+      input wire wr_en,//or of every write enable 
       // AR signals
       input ARREADY,
       output reg [3:0] ARID,
@@ -85,6 +85,7 @@ module cmd_fsm (input clk,
       output reg [31:0]RDATA_O,
       output reg [31:0] LINK_HEADER,
       output reg [5:0] wptr,
+      output reg cmd_done_1,
       // ERROR and STATUS signals
       output reg LINKHDRERR,
       output reg CMD_DONE,STAT_CMD_DONE, //done signal to data fsm
@@ -94,6 +95,7 @@ module cmd_fsm (input clk,
       input wire STAT_ERROR
       );
       
+      reg wr_en_reg;
    reg [3:0] current_state, next_state;
    reg [4:0] count;
     reg [4:0] count1;
@@ -184,6 +186,13 @@ module cmd_fsm (input clk,
     count1<=count1+1;
     end
    
+     always@(posedge clk or negedge resetn)
+    begin
+    if(!resetn)
+    wr_en_reg <= 'd0;
+    else
+    wr_en_reg <= wr_en;
+    end
    // ERROR HANDLING ISSUE 
    always@(posedge clk or negedge resetn)
    begin
@@ -204,11 +213,14 @@ module cmd_fsm (input clk,
         LINKHDRERR <= 0;
         LINK_HEADER <= 0;
         STAT_CMD_DONE <= 1'b0;
+        cmd_done_1 <= 1'b0;
    end
    else
    begin
      CMD_DONE <= 1'b1; // temp fix for deasserting
-     if(wr_en)         LINK_HEADER <= 0;
+     cmd_done_1 <= 1'b0;
+     STAT_CMD_DONE <= cmd_done_1; 
+     if(wr_en_reg)         LINK_HEADER <= 0;
        //CMD_DONE <= (cmd_done_stop) ? 'b0 :  'b1; //
         case(current_state)
             IDLE:
@@ -229,16 +241,17 @@ module cmd_fsm (input clk,
                   AXIRDRESPERR <= 0;
                   LINKHDRERR <= 0;
                  end
+                 //STAT_CMD_DONE <= 1'b0;
                  if(data_done) begin
                     CMD_DONE <= 0; 
-                    STAT_CMD_DONE <= 1'b0;
+                   /// STAT_CMD_DONE <= 1'b0;
                     end
               //  RDATA_O <= 0;
             end
             
             AR: 
             begin
-            STAT_CMD_DONE <= 1'b0;
+           
              CMD_DONE <= 0;
                 if (count == 0) begin
                     ARADDR <= LINKADDR;
@@ -258,7 +271,7 @@ module cmd_fsm (input clk,
              CMD_DONE <= 0;
                 RREADY  <= 1;
                 ARVALID <= 0;  //just added
-                if(wptr + 1 == count && count != 0) STAT_CMD_DONE <= 1; 
+               // if(wptr + 1 == count && count != 0) //STAT_CMD_DONE <= 1; 
                 if(RREADY && RVALID) begin
                     if(count!=0)begin
                     RDATA_O <= RDATA_I;
@@ -270,26 +283,29 @@ module cmd_fsm (input clk,
                         LINK_HEADER <= RDATA_I;
                         wptr <= 0;
                         end
-                 end
+                 
                         
-                if((RRESP == 2'b00 || RRESP == 2'b01) && RLAST) 
-                // if(RRESP == 2'b00 || RRESP == 2'b01)
-                    begin
-                    if(count!=0)
-                        CMD_DONE <= 1'b1;
-                    end
-                else if(RRESP == 2'b11)    // error handling TBD
-                    begin
-                        if(RLAST)begin
-                        BUSERR <= 1'b1;
-                        AXIRDRESPERR <=1'b1;
+                    if((RRESP == 2'b00 || RRESP == 2'b01) && RLAST) 
+                    // if(RRESP == 2'b00 || RRESP == 2'b01)
+                        begin
+                        if(count!=0) begin
+                            CMD_DONE <= 1'b1;
+                            cmd_done_1 <= 1'b1;
+                            end
                         end
-                    end
-                else if(RRESP == 2'b10)
-                    begin
-                        if(RLAST)begin
-                        BUSERR <=1'b1;
-                        AXIRDPOISERR <= 1'b1;
+                    else if(RRESP == 2'b11)    // error handling TBD
+                        begin
+                            if(RLAST)begin
+                            BUSERR <= 1'b1;
+                            AXIRDRESPERR <=1'b1;
+                            end
+                        end
+                    else if(RRESP == 2'b10)
+                        begin
+                            if(RLAST)begin
+                            BUSERR <=1'b1;
+                            AXIRDPOISERR <= 1'b1;
+                            end
                         end
                     end
             end
