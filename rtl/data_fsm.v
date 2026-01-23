@@ -72,8 +72,8 @@ module data_fsm #(
     input  wire [15:0]       desxsize,
     input  wire [2:0]        x_type,
     input  wire [127:0]      fillval,
-    input  wire              src_xaddr_inc,
-    input  wire              des_xaddr_inc,
+    input  wire  [15:0]            src_xaddr_inc,
+    input  wire   [15:0]           des_xaddr_inc,
 
     // AXI READ
     input  wire              ARREADY,
@@ -189,7 +189,7 @@ module data_fsm #(
         
             case (state)
                 IDLE:
-                    if (enable_cmd && cmd_done && !ERROR && !DONE && !stat_disable_reg && !STAT_DONE && !STAT_STOP)
+                    if (enable_cmd && cmd_done && !stat_error && !DONE && !stat_disable_reg && !stat_done_reg && !STAT_STOP)
                         next = WAIT;
                     else
                         next = IDLE;
@@ -329,6 +329,8 @@ module data_fsm #(
         //   {STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
            //STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
             //STAT_DONE <= !stat_done ? 0 :1;
+            STAT_RESUMEWAIT <= 'd0;
+            STAT_PAUSED <= 'd0;
              if( stat_disable_reg == 0)begin
                          ENABLECMD    <= 0;
                         STAT_DISABLE  <= 0;
@@ -349,11 +351,11 @@ module data_fsm #(
                 STAT_STOP    <= 1;
                 STOPCMD <= 1;
             end
-            
+            STAT_DONE <= stat_done_reg ? STAT_DONE:0 ;
 //data_done <=0;
             case (state)
                 IDLE: begin
-                    if (stat_error == 1) begin
+                    if (stat_error == 0) begin
                         config_error   <= 0;
                         ard_error      <= 0;
                         arpoison_error <= 0;
@@ -364,7 +366,7 @@ module data_fsm #(
                     end
                   /*  if( stat_disable_reg == 0)
                         STAT_DISABLE  <= 0;*/
-                    STAT_DONE <= stat_done_reg ? 0:STAT_DONE ;
+                   // STAT_DONE <= stat_done_reg ? 0:STAT_DONE ;
                     fifo_wptr   <= 0;
                     fifo_rptr   <= 0;
                     wrap_rd_ptr <= 0;
@@ -413,7 +415,7 @@ module data_fsm #(
                         end
                     end
 
-                    config_error <= (config_error | (x_type > 3) ? 1 : 0);
+                    config_error <= (config_error | (x_type > 3) |(src_xaddr_inc>1| (des_xaddr_inc>1))? 1 : 0);
 
                     if (case1) begin
                         src_left <= 0;
@@ -452,8 +454,10 @@ module data_fsm #(
                             des_trigack <= 1;
                             des_trigin_ack_type <= (des_trigin_req_type == 0 || des_trigin_req_type == 2) ? 0 : 1;					
                         end else begin
+                         if (!((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))) begin
                             STAT_SRCTRIGINWAIT <= 1'b1;
-                            STAT_DESTRIGINWAIT <= 1'b1;					
+                            STAT_DESTRIGINWAIT <= 1'b1;				
+                            end	
                         end
                     end
                 end
