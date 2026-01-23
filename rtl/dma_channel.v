@@ -127,6 +127,7 @@ module dma_channel
                        
 );
 
+wire cmd_done_1;
 wire [(WIDTH * 15) -1:0]  mux_logic_in;
 
 // wires to part select
@@ -274,10 +275,10 @@ wire cmd_done_stop;
   .CH_SRCADDR_O(CH_SRCADDR_O),
   .CH_DESADDR_O(CH_DESADDR_O),
   .CH_FILLVAL_O(CH_FILLVAL_O),
-  .stat_done(stat_done_reg),
-  .stat_disable(stat_disable_reg),
-  .stat_stopped (stat_stopped_reg ),
-.stat_err (stat_err_reg ),
+  .stat_done_intr_reg(stat_done_reg),
+  .stat_disable_intr_reg(stat_disable_reg),
+  .stat_stopped_intr_reg (stat_stopped_reg ),
+.stat_err_intr_reg (stat_err_reg ),
   .IRQ(IRQ)
   );
   
@@ -359,7 +360,8 @@ wire cmd_done_stop;
       .STAT_CMD_DONE(STAT_CMD_DONE),
       .AXIRDRESPERR(AXIRDRESPERR_CMDFSM),
       .AXIRDPOISERR(AXIRDPOISERR_CMDFSM),
-      .BUSERR(BUSERR_CMDFSM)
+      .BUSERR(BUSERR_CMDFSM),
+      .cmd_done_1(cmd_done_1)
       );
       
       mux_logic  #(.WIDTH (32))
@@ -369,7 +371,7 @@ wire cmd_done_stop;
        .wptr(wptr),
        .data_done(DONE),
        .cmd_done(STAT_CMD_DONE),
-       .cmd_done_stop(cmd_done_stop),
+      // .cmd_done_stop(cmd_done_stop),
        .link_en(linkaddren),
        .header_in(LINK_HEADER),
        .CH_STATUS(CH_STATUS_O),
