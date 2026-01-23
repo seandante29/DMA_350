@@ -425,6 +425,9 @@ top_mod #(
      #20;
         PENABLE = 0;  
         
+  
+        
+        
         //CH_CMD
         #10;
     PSEL    = 1;
@@ -473,7 +476,7 @@ BRESP = 'b00;
 
 #20;
 
-        #10;
+/*        #10;
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h00;
@@ -513,11 +516,26 @@ BRESP = 'b00;
     #10;
         PENABLE = 1;
      #20;
-        PENABLE = 0;  
+        PENABLE = 0;  */
 // comand descriptor1
   #10;
     ARREADY = 1'b1;
     #10 ARREADY = 1'b0;
+    
+  /*    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h00000011;//pause cmd
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0; 
+          #30;*/
+          
+          
      RRESP='b00;
     RID = 'b0;
      #10
@@ -536,7 +554,7 @@ BRESP = 'b00;
         RDATA_I=32'h00060006;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
-        RDATA_I=32'h00010001;#10//xaddr inc
+        RDATA_I=32'h00010005;#10//xaddr inc
         RDATA_I=32'h1234;#10//fill val
         RDATA_I = 32'h00000201 ;#10//srctrig
         RDATA_I = 32'h00000200;#10//destrig
@@ -547,10 +565,70 @@ BRESP = 'b00;
         RVALID=0;
      
           #30;
+          #50;
+        //xaddrinc 
+             #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h30;
+    PWDATA  = 32'h00010001;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;    
+        
+         
+                  #10;
+                    PSEL    = 1;
+                    PWRITE  = 1;
+                    PADDR   = 32'h04;
+                    PWDATA  = 32'h00020000;
+                    PSTRB   = 4'b1111;
+                    PENABLE = 0;
+                    
+                    #10;
+                        PENABLE = 1;
+                     #20;
+                        PENABLE = 0;  
           
+ /*       //  #200;
+          
+                  #10;
+    PSEL    = 1;
+    PWRITE  = 0;
+    PADDR   = 32'h04;
+    //PWDATA  = 32'h00040000;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+       #40;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0; 
+          #30;
+    
+    
+          PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h00000021;//resume cmd
+    PSTRB   = 4'b1111;
+    PENABLE = 0;*/
+    
+ /*   #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0; 
+          #30;
+          */
         trig0_req = 1;
         trig1_req = 1;
         #10;
+        
+        
      ARREADY_D = 1;
      #40
      ARREADY_D = 0;
