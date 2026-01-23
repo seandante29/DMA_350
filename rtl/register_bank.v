@@ -2,13 +2,13 @@ module register_bank #(parameter WIDTH = 32,
       parameter DEPTH = 145)
      (input wire clk,
       input wire resetn,
-      input wire cfg_rd_en,cfg_wr_en,reg_wr_en,// write enable from apb to reg, channel
+      input wire cfg_rd_en,cfg_wr_en,//reg_wr_en,// write enable from apb to reg, 
       input wire [ WIDTH-1 : 0] cfg_data_in,//from apb to reg
       input wire [ 7:0 ] addr_in,// from apb
       input wire [(WIDTH*2)-1 : 0] chn_reg_in,// from channel 
       output wire [ WIDTH-1 : 0] cfg_data_out, // to apb
       output wire chn_wr_en, //to channel
-	  output wire [WIDTH-1 : 0] cfg_CH_CMD,
+	  output wire [WIDTH-1 : 0] cfg_CH_CMD,// to mux logic
 	  output wire [WIDTH-1 : 0] cfg_CH_STATUS,
 	  output wire [WIDTH-1 : 0] cfg_CH_INTREN,
 	  output wire [WIDTH-1 : 0] cfg_CH_CTRL,
@@ -22,11 +22,11 @@ module register_bank #(parameter WIDTH = 32,
 	  output wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
 	  output wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
 	  output wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
-	  output wire [WIDTH-1 : 0] cfg_LINKADDR,
+	  output wire [WIDTH-1 : 0] cfg_LINKADDR,// to mux logic
 	  output wire chn_cmd_wr_en_o, chn_stat_wr_en_o, chn_intren_wr_en_o,
       chn_ctrl_wr_en_o,chn_srcaddr_wr_en_o, chn_desaddr_wr_en_o, chn_xsize_wr_en_o, chn_srctrans_wr_en_o,
       chn_destrans_wr_en_o,chn_xaddrinc_wr_en_o,chn_fillval_wr_en_o,chn_srctrigin_wr_en_o,chn_destrigin_wr_en_o,
-      chn_trigout_wr_en_o,chn_linkaddr_wr_en_o//to channel   
+      chn_trigout_wr_en_o,chn_linkaddr_wr_en_o//to channel   ,// to mux logic
 	  
 	  );
       //output wire [(WIDTH * 15) -1 : 0] reg_chn_out); // to  channel
@@ -74,7 +74,7 @@ module register_bank #(parameter WIDTH = 32,
 	assign chn_linkaddr_wr_en_o = cfg_wr_en && ( addr_w == 8'h78);
 
     //assign chn_wr_en = cfg_wr_en;
-     assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_w] : 'd0 ;
+     assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_w] : cfg_data_out ;//'d0
       always @(posedge clk or negedge resetn)
 	  begin
 		  if(!resetn) begin
@@ -89,7 +89,7 @@ module register_bank #(parameter WIDTH = 32,
 		   begin
 			reg_mem [addr_w] <= cfg_data_in;
 		   end
-		   else if(reg_wr_en)
+		   else// if(reg_wr_en)
 			{reg_mem [4] , reg_mem[144]} <= chn_reg_in;
 		 /*  else if(cfg_rd_en)
 			cfg_data_out <= reg_mem [addr_w];*/
