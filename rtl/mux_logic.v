@@ -23,6 +23,12 @@ module mux_logic #(parameter WIDTH = 32)
     input  wire [31:0] CH_FILLVAL,
 	//reg bank input
     input wire cmd_done,// from cmd fsm after rlast and count!=0 and only for a cycle(+1cyc delay)
+     
+     // 
+    input wire [31:0] SRCADDR_UPDATED,
+    input wire [31:0]  DESADDR_UPDATED,
+    input wire [31:0]  XSIZE_UPDATED,
+    input wire  wr_en_for_updated,
         
     input wire [WIDTH-1 : 0] cfg_CH_CMD,// cmd fsm values
     input wire [WIDTH-1 : 0] cfg_CH_STATUS,
@@ -214,18 +220,21 @@ end
         // WORD 4 : SRCADDR
         if (chn_srcaddr_wr_en_reg)
             mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= cfg_CH_SRCADDR;
+        else if (wr_en_for_updated)  mux_out_reg[(WIDTH*5)-1:(WIDTH*4)]  <= SRCADDR_UPDATED;
         else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= concat_cmd[(WIDTH*3)-1:(WIDTH*2)];
 
         // WORD 5 : DESADDR
         if (chn_desaddr_wr_en_reg)
             mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= cfg_CH_DESADDR;
+        else if (wr_en_for_updated)  mux_out_reg[(WIDTH*6)-1:(WIDTH*5)]  <= DESADDR_UPDATED;
         else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= concat_cmd[(WIDTH*4)-1:(WIDTH*3)];
 
         // WORD 6 : XSIZE
         if (chn_xsize_wr_en_reg)
             mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= cfg_CH_XSIZE;
+        else if (wr_en_for_updated)  mux_out_reg[(WIDTH*7)-1:(WIDTH*6)]  <= XSIZE_UPDATED;
         else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= concat_cmd[(WIDTH*5)-1:(WIDTH*4)];
 
