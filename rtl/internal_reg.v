@@ -5,6 +5,13 @@ module internal_reg #(parameter WIDTH = 32,
  //input wire wr_en,
  input wire [(WIDTH * 15) -1:0] data_in,
  
+ //
+     input wire [31:0] SRCADDR_UPDATED,
+    input wire [31:0]  DESADDR_UPDATED,
+    input wire [31:0]  XSIZE_UPDATED,
+    input wire  wr_en_for_updated,
+    input wire STAT_CMD_DONE,
+    
  //error signals from data fsm
  input wire AXIRDRESPERR,
  input wire AXIRDPOISERR,
@@ -141,9 +148,13 @@ output wire  stat_err_intr_reg,
    intr_mem[0] <= {data_in [31:6],resumecmd,pausecmd,stopcmd,disablecmd,data_in[1],enablecmd};
    intr_mem[8]  <= data_in [(WIDTH * 3) -1 : (WIDTH*2)];
    intr_mem[12] <= data_in [(WIDTH * 4) -1 : (WIDTH*3)];
-   intr_mem[16] <= data_in [(WIDTH * 5) -1 : (WIDTH*4)];
-   intr_mem[24] <= data_in [(WIDTH * 6) -1 : (WIDTH*5)];
-   intr_mem[32] <= data_in [(WIDTH * 7) -1 : (WIDTH*6)];
+   intr_mem[16] <=data_in [(WIDTH * 5) -1 : (WIDTH*4)];
+    intr_mem[24] <=  data_in [(WIDTH * 6) -1 : (WIDTH*5)];//
+   //intr_mem[16] <= wr_en_for_updated ? SRCADDR_UPDATED : data_in [(WIDTH * 5) -1 : (WIDTH*4)];//
+  // intr_mem[24] <=  wr_en_for_updated ? DESADDR_UPDATED : data_in [(WIDTH * 6) -1 : (WIDTH*5)];//
+  //  intr_mem[32] <=  wr_en_for_updated ? XSIZE_UPDATED :  data_in [(WIDTH * 7) -1 : (WIDTH*6)];//
+   //intr_mem[32] <=  wr_en_for_updated ? XSIZE_UPDATED : STAT_CMD_DONE? data_in [(WIDTH * 7) -1 : (WIDTH*6)]:intr_mem[32] ;//
+   intr_mem[32] <=data_in [(WIDTH * 7) -1 : (WIDTH*6)];
    intr_mem[40] <= data_in [(WIDTH * 8) -1 : (WIDTH*7)];
    intr_mem[44] <= data_in [(WIDTH * 9) -1 : (WIDTH*8)];
    intr_mem[48] <= data_in [(WIDTH * 10) -1 : (WIDTH*9)];
