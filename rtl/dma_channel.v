@@ -147,7 +147,11 @@ wire [(WIDTH * 15) -1:0]  mux_logic_in;
  wire [31:0] CH_SRCADDR_O;
  wire [31:0] CH_DESADDR_O;
  wire [31:0] CH_FILLVAL_O;
- 
+ ///
+    wire [31:0] SRCADDR_UPDATED;
+    wire [31:0]  DESADDR_UPDATED;
+    wire [31:0]  XSIZE_UPDATED;
+    wire  wr_en_for_updated;
  //wires to data fsm
  
 //wire use_trigout;
@@ -221,7 +225,7 @@ wire wr_en;
     wire des_trigack;
     wire src_trigack;
     wire stat_done_intr_reg ,stat_disable_intr_reg,stat_stopped_intr_reg ,stat_err_intr_reg ;
-assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o || chn_ctrl_wr_en_o || 
+assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o  || 
                         chn_srcaddr_wr_en_o || chn_desaddr_wr_en_o || chn_xsize_wr_en_o 
                         || chn_srctrans_wr_en_o || chn_destrans_wr_en_o || chn_xaddrinc_wr_en_o || 
                         chn_fillval_wr_en_o || chn_srctrigin_wr_en_o || chn_destrigin_wr_en_o || 
@@ -233,6 +237,11 @@ wire cmd_done_stop;
   .clk(clk),
   .resetn(resetn),
   .data_in(mux_logic_in),
+  .STAT_CMD_DONE(CMD_DONE),
+  .SRCADDR_UPDATED(SRCADDR_UPDATED),
+  .DESADDR_UPDATED(DESADDR_UPDATED),
+  .XSIZE_UPDATED(XSIZE_UPDATED),
+  .wr_en_for_updated(wr_en_for_updated),
   .AXIRDRESPERR(AXIRDRESPERR),
   .AXIRDPOISERR(AXIRDPOISERR),
   .AXIWRRESPERR(AXIWRRESPERR),
@@ -368,6 +377,10 @@ wire cmd_done_stop;
       dut3  (.cmd_data(RDATA_O),
        .clk(clk),
        .resetn(resetn),
+        .SRCADDR_UPDATED(SRCADDR_UPDATED),
+    .DESADDR_UPDATED(DESADDR_UPDATED),
+    .XSIZE_UPDATED(XSIZE_UPDATED),
+    .wr_en_for_updated(wr_en_for_updated),
        .wptr(wptr),
        .data_done(DONE),
        .cmd_done(STAT_CMD_DONE),
@@ -426,6 +439,10 @@ wire cmd_done_stop;
     data_fsm dut4(
     .clk(clk),
     .resetn(resetn),
+    .SRCADDR_UPDATED(SRCADDR_UPDATED),
+    .DESADDR_UPDATED(DESADDR_UPDATED),
+    .XSIZE_UPDATED(XSIZE_UPDATED),
+    .wr_en_for_updated(wr_en_for_updated),
     .stat_error_intr_reg(stat_err_intr_reg),
     .stat_done_intr_reg(stat_done_intr_reg),
     .link_en(linkaddren),
