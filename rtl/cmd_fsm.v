@@ -19,46 +19,6 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 01/08/2026 12:16:27 PM
-// Design Name: 
-// Module Name: cmd_fsm
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 01/08/2026 12:16:27 PM
-// Design Name: 
-// Module Name: cmd_fsm
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module cmd_fsm (input clk, 
       input resetn,
@@ -67,6 +27,7 @@ module cmd_fsm (input clk,
       input data_done,// fro intern reg
       input wire cmd_done_stop,//not used
       input wire wr_en,//or of every write enable 
+      input wire STAT_DISABLE_DATA,
       // AR signals
       input ARREADY,
       output reg [3:0] ARID,
@@ -221,7 +182,7 @@ module cmd_fsm (input clk,
      CMD_DONE <= 1'b1; // temp fix for deasserting
      cmd_done_1 <= 1'b0;
      STAT_CMD_DONE <= cmd_done_1; 
-     if(wr_en_reg)         LINK_HEADER <= 0;
+      if(wr_en_reg)         LINK_HEADER <= 0;
        //CMD_DONE <= (cmd_done_stop) ? 'b0 :  'b1; //
         case(current_state)
             IDLE:
