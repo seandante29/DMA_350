@@ -112,6 +112,12 @@ module data_fsm #(
     output reg               DONE,
    output wire              ERROR,
 
+//
+    output reg [31:0] SRCADDR_UPDATED,
+    output reg [31:0]  DESADDR_UPDATED,
+    output reg [31:0]  XSIZE_UPDATED,
+    output reg wr_en_for_updated,
+    
     // Error flags
     output reg               config_error,
     output reg               ard_error,
@@ -159,16 +165,72 @@ module data_fsm #(
 
     reg [3:0] state, next;
 
-    wire case1 = (srcxsize == 0 && desxsize == 0);
-    wire case2 = (srcxsize == 0 && desxsize > 0);
-    wire case3 = (srcxsize > 0 && desxsize == 0);
-    wire case4 = (srcxsize == desxsize && srcxsize > 0);
-    wire case5 = ((srcxsize > desxsize) && (desxsize != 0));
-    wire case6 = ((srcxsize < desxsize) && (srcxsize !=0));
+    reg case1,case2,case3,case4,case5,case6;
+//    wire case1 = (srcxsize == 0 && desxsize == 0);
+//    wire case2 = (srcxsize == 0 && desxsize > 0);
+//    wire case3 = (srcxsize > 0 && desxsize == 0);
+//    wire case4 = (srcxsize == desxsize && srcxsize > 0);
+//    wire case5 = ((srcxsize > desxsize) && (desxsize != 0));
+//    wire case6 = ((srcxsize < desxsize) && (srcxsize !=0));
     assign cmd_done_stop = (state == WAIT) ? 1 : 0;
 
   assign ERROR    = config_error || ard_error || arpoison_error || awr_error || bus_error;
  //   assign trig_err = SRCTRIGINSELERR || DESTRIGINSELERR || TRIGOUTSELERR;
+
+always @(*)
+begin
+ wr_en_for_updated =(state > CONFIG && state < TRIG_OUT);
+ SRCADDR_UPDATED = SRCADDR_UPDATED;
+DESADDR_UPDATED = DESADDR_UPDATED;
+XSIZE_UPDATED = {des_left,src_left};
+ if(state == CONFIG)
+ begin
+SRCADDR_UPDATED = src_addr_reg;
+DESADDR_UPDATED = des_addr_reg;
+//XSIZE_UPDATED = {desxsize,srcxsize};
+XSIZE_UPDATED = {des_left,src_left};
+end
+
+else if(state == R) begin
+   // wr_en_for_updated = 1;
+    XSIZE_UPDATED = {des_left,src_left};
+  // XSIZE_UPDATED[15:0] = src_left;
+    if(src_xaddr_inc == 0)
+        SRCADDR_UPDATED = src_addr_reg;
+     else if(src_xaddr_inc == 1)
+     begin
+        SRCADDR_UPDATED = src_addr_reg + ((ARLEN - src_left) * transize);
+     end
+     else
+         SRCADDR_UPDATED =  SRCADDR_UPDATED ;
+ end
+      
+ else if(state == WRAP_FILL) begin
+ XSIZE_UPDATED = {des_left,src_left};
+    //wr_en_for_updated =1;
+    SRCADDR_UPDATED = src_addr_reg + ((wrap_rd_ptr) * transize);
+ end
+ else if(state == W) begin
+  //wr_en_for_updated =1;
+  XSIZE_UPDATED = {des_left,src_left};
+   // XSIZE_UPDATED[31:16] = des_left;
+    if(des_xaddr_inc == 0)
+        DESADDR_UPDATED = des_addr_reg;
+     else if(des_xaddr_inc == 1)
+     begin
+        DESADDR_UPDATED = des_addr_reg + ((AWLEN - des_left) * transize);
+     end
+     else
+         DESADDR_UPDATED =  DESADDR_UPDATED ;
+         end
+  //else
+   //wr_en_for_updated =0;
+ end
+
+
+
+
+
 
     always @(posedge clk or negedge resetn) begin
         if (!resetn)
@@ -349,6 +411,8 @@ module data_fsm #(
                 ENABLECMD_DATA    <= 1;
                 STAT_STOP_DATA    <= 1;
                 STOPCMD_DATA <= 1;
+                DONE <= 1;// after stop cmd the current command will not excuted and goes for next command after stat_stop is cleared 
+                
             end
             STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA:0 ;
 //data_done <=0;
@@ -372,7 +436,15 @@ module data_fsm #(
                     fill_count  <= 0;
                     ARLEN       <= 0;
                 end
-
+            WAIT : begin
+                case1 <= (srcxsize == 0 && desxsize == 0);
+                case2 <= (srcxsize == 0 && desxsize > 0);
+                case3 <= (srcxsize > 0 && desxsize == 0);
+                case4 <= (srcxsize == desxsize && srcxsize > 0);
+                case5 <= ((srcxsize > desxsize) && (desxsize != 0));
+                case6 <= ((srcxsize < desxsize) && (srcxsize !=0));
+                
+                end
                 CONFIG: begin
                     wdata_mask <= {DATA_W{1'b0}};
                     for (i = 0; i < DATA_W; i = i + 1) begin
@@ -508,7 +580,7 @@ module data_fsm #(
                 W: begin
                     WVALID <= 1;
                     WLAST  <= (des_left == 1);
-                    if (WREADY && des_left > 0) begin
+                    if (WREADY && des_left > 0 && WVALID) begin
                         WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
                         des_left  <= des_left - 1;
                         fifo_rptr <= fifo_rptr + 1;
