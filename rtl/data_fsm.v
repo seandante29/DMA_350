@@ -191,7 +191,7 @@ DESADDR_UPDATED = des_addr_reg;
 XSIZE_UPDATED = {des_left,src_left};
 end
 
-else if(state == R) begin
+else if(state ==  R && src_left !=0) begin
    // wr_en_for_updated = 1;
     XSIZE_UPDATED = {des_left,src_left};
   // XSIZE_UPDATED[15:0] = src_left;
@@ -205,12 +205,12 @@ else if(state == R) begin
          SRCADDR_UPDATED =  SRCADDR_UPDATED ;
  end
       
- else if(state == WRAP_FILL) begin
+ else if(state == WRAP_FILL && src_left !=0) begin
  XSIZE_UPDATED = {des_left,src_left};
     //wr_en_for_updated =1;
     SRCADDR_UPDATED = src_addr_reg + ((wrap_rd_ptr) * transize);
  end
- else if(state == W) begin
+ else if(state == W  && des_left !=0) begin
   //wr_en_for_updated =1;
   XSIZE_UPDATED = {des_left,src_left};
    // XSIZE_UPDATED[31:16] = des_left;
