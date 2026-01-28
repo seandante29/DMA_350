@@ -85,6 +85,7 @@ module cmd_fsm (input clk,
    end
    end
    
+   
    always@(posedge clk or negedge resetn)
    begin
        if(!resetn)
@@ -181,7 +182,7 @@ module cmd_fsm (input clk,
    begin
      CMD_DONE <= 1'b1; // temp fix for deasserting
      cmd_done_1 <= 1'b0;
-     STAT_CMD_DONE <= cmd_done_1; 
+     STAT_CMD_DONE <= cmd_done_1 ; 
       if(wr_en_reg)         LINK_HEADER <= 0;
        //CMD_DONE <= (cmd_done_stop) ? 'b0 :  'b1; //
         case(current_state)
@@ -252,7 +253,8 @@ module cmd_fsm (input clk,
                         begin
                         if(count!=0) begin
                             CMD_DONE <= 1'b1;
-                            cmd_done_1 <= 1'b1;
+                           cmd_done_1 <= 1'b1;
+                          // STAT_CMD_DONE <= 1; 
                             end
                         end
                     else if(RRESP == 2'b11)    // error handling TBD
@@ -292,7 +294,4 @@ module cmd_fsm (input clk,
    end
    end
    
-endmodule
- 
- 
- 
+endmodule   
