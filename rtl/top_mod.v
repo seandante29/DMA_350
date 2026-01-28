@@ -110,7 +110,7 @@ module top_mod#(
       output wire BREADY_D,
       output  wire IRQ
     );
-    
+    wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
     wire reg_wr_en;
       wire  [(WIDTH * 15) -1:0] reg_chn_out;
       wire [(WIDTH*2)-1 : 0] chn_reg_out;
@@ -157,6 +157,7 @@ wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG;
 wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG;
 wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG;
 wire [WIDTH-1 : 0] cfg_LINKADDR;
+wire [WIDTH-1:0] wrkregval_rd;
 
 wire chn_cmd_wr_en_o;
 wire chn_stat_wr_en_o;
@@ -174,7 +175,7 @@ wire chn_destrigin_wr_en_o;
 wire chn_trigout_wr_en_o;
 wire chn_linkaddr_wr_en_o;
 
-
+wire [31:0] cfg_WRKREGPTR;
     
     
     dma_channel #(
@@ -302,7 +303,10 @@ wire chn_linkaddr_wr_en_o;
     .ch_trigout_ack     (ch_trigout_ack),
     .use_trigout        (use_trigout),
     .trigout_type       (trigout_type),
-    .trigout_sel        (trigout_sel) );
+    .trigout_sel        (trigout_sel),
+    .src_des_xsize_updated(src_des_xsize_updated),
+    .wrkregval_rd(wrkregval_rd),
+    .cfg_WRKREGPTR(cfg_WRKREGPTR) );
     
     
         trigger_matrix dut1(
@@ -395,7 +399,10 @@ wire chn_linkaddr_wr_en_o;
     .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
     .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
     .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
-    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o)
+    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+    .src_des_xsize_updated(src_des_xsize_updated),
+    .wrkregval_rd(wrkregval_rd),
+    .cfg_WRKREGPTR(cfg_WRKREGPTR)
   );
     
     
