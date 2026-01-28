@@ -67,7 +67,15 @@ output wire stat_done_intr_reg,//data fsm
 output wire stat_disable_intr_reg ,
 output wire stat_stopped_intr_reg ,
 output wire  stat_err_intr_reg,
- output  wire reg_wr_en
+output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
+ 
+ output  wire reg_wr_en,
+ output wire [31:0] wrkregval_rd,
+ input wire [31:0] cfg_WRKREGPTR,
+ input wire [31:0] SRCADDR_INITIAL,
+ input wire [31:0] DESADDR_INITIAL,
+ input wire [31:0] SRCXSIZE_INITIAL,
+ input wire [31:0] DESXSIZE_INITIAL//inputs from data fsm
  );
  
  integer i;
@@ -78,6 +86,8 @@ output wire  stat_err_intr_reg,
  wire INTR_DISABLED;
  wire INTR_ERR;
  wire INTR_DONE;
+ 
+ reg [31:0] WRKREGVAL_temp;
  
  wire STAT_ERR = AXIRDRESPERR| AXIRDPOISERR | AXIWRRESPERR| BUSERR |
                  config_error| regval_error | SRCTRIGINSELERR| DESTRIGINSELERR 
@@ -102,6 +112,8 @@ output wire  stat_err_intr_reg,
    wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    
  reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
+ //reg [31:0 ] intr_mem_regval [ 0:15 ]; //wrkregval
+
  
  assign INTR_TRIGOUTACKWAIT = (STAT_TRIGOUTACKWAIT_DATA && intr_mem[8][10]);
  assign INTR_DESTRIGINWAIT = (STAT_DESTRIGINWAIT_DATA && intr_mem [8][9]);
@@ -115,7 +127,9 @@ output wire  stat_err_intr_reg,
  //to reg bank
  assign reg_wr_en = IRQ  ? 1: 0;
  assign chn_reg_out = {intr_mem[4],intr_mem[144]};// error,status 
-
+assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
+ assign wrkregval_rd = intr_mem[140];
+ 
  assign CH_CMD_O = intr_mem [0];
  assign CH_STATUS_O = intr_mem[4];
  assign CH_INTREN_O = intr_mem [8];
@@ -133,6 +147,16 @@ output wire  stat_err_intr_reg,
  assign CH_LINKADDR_O = intr_mem [120];
 
  
+ always @(*)
+ begin
+ case(cfg_WRKREGPTR)
+ 'd1:WRKREGVAL_temp = SRCADDR_INITIAL;
+ 'd3:WRKREGVAL_temp = DESADDR_INITIAL;
+ 'd5:WRKREGVAL_temp = SRCXSIZE_INITIAL;
+ 'd6:WRKREGVAL_temp = DESXSIZE_INITIAL;
+ default:WRKREGVAL_temp = 'd0;
+ endcase
+ end
  
  always @(posedge clk or negedge resetn) 
  begin
@@ -170,6 +194,9 @@ output wire  stat_err_intr_reg,
    intr_mem[4] <= {5'd0,STAT_TRIGOUTACKWAIT_DATA,STAT_DESTRIGINWAIT_DATA,STAT_SRCTRIGINWAIT_DATA,2'd0,STAT_RESUMEWAIT_DATA,STAT_PAUSED_DATA,stat_stopped_intr_reg,
        stat_disable_intr_reg,stat_err_intr_reg,stat_done_intr_reg,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
        INTR_STOPPED,INTR_DISABLED,INTR_ERR,INTR_DONE};
+       
+       intr_mem[136] <= cfg_WRKREGPTR;
+       intr_mem[140] <= WRKREGVAL_temp;
     
    
    end
