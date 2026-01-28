@@ -19,6 +19,7 @@ module dma_channel
     input wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
     input wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
     input wire [WIDTH-1 : 0] cfg_LINKADDR,
+    input wire [WIDTH-1 : 0] cfg_WRKREGPTR,
     
     input wire chn_cmd_wr_en_o,
     input wire chn_stat_wr_en_o,
@@ -121,12 +122,17 @@ module dma_channel
         output wire [5:0]  trigout_sel,
     output wire        use_trigout,
     output wire        use_des_trigin,
-    output wire        use_src_trigin
-        
+    output wire        use_src_trigin,
+     output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
+     output wire [WIDTH -1:0]wrkregval_rd   
       
                        
 );
 
+wire [31:0] SRCADDR_INITIAL;
+wire [31:0] DESADDR_INITIAL;
+wire [31:0] SRCXSIZE_INITIAL;
+wire [31:0] DESXSIZE_INITIAL;
 wire cmd_done_1;
 wire [(WIDTH * 15) -1:0]  mux_logic_in;
 
@@ -232,6 +238,10 @@ assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o  ||
                         chn_trigout_wr_en_o || chn_linkaddr_wr_en_o;
 
 wire cmd_done_stop;
+
+
+
+
     internal_reg  #(.WIDTH (32),.DEPTH ( 145)) dut0
   (
   .clk(clk),
@@ -288,7 +298,14 @@ wire cmd_done_stop;
   .stat_disable_intr_reg(stat_disable_intr_reg),
   .stat_stopped_intr_reg (stat_stopped_intr_reg ),
   .stat_err_intr_reg (stat_err_intr_reg ),
-  .IRQ(IRQ)
+  .IRQ(IRQ),
+    .src_des_xsize_updated(src_des_xsize_updated),
+        .SRCADDR_INITIAL(SRCADDR_INITIAL),
+     .DESADDR_INITIAL(DESADDR_INITIAL),
+     .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
+     .DESXSIZE_INITIAL(DESXSIZE_INITIAL),
+     .wrkregval_rd(wrkregval_rd),
+     .cfg_WRKREGPTR(cfg_WRKREGPTR)
   );
   
   partselect dut1(
@@ -401,6 +418,10 @@ wire cmd_done_stop;
        .CH_SRCADDR(CH_SRCADDR_O),
        .CH_DESADDR(CH_DESADDR_O),
        .CH_FILLVAL(CH_FILLVAL_O),
+               .SRCADDR_INITIAL(SRCADDR_INITIAL),
+     .DESADDR_INITIAL(DESADDR_INITIAL),
+     .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
+     .DESXSIZE_INITIAL(DESXSIZE_INITIAL),
        
         .cfg_CH_CMD            (cfg_CH_CMD),
         .cfg_CH_STATUS         (cfg_CH_STATUS),
@@ -538,7 +559,12 @@ wire cmd_done_stop;
     .STAT_DESTRIGINWAIT_DATA(STAT_DESTRIGINWAIT_DATA),
     .STAT_PAUSED_DATA(STAT_PAUSED_DATA),
     .cmd_done_stop(cmd_done_stop),
-    .STAT_DONE_DATA(STAT_DONE_DATA));
+    .STAT_DONE_DATA(STAT_DONE_DATA),
+    .SRCADDR_INITIAL(SRCADDR_INITIAL),
+     .DESADDR_INITIAL(DESADDR_INITIAL),
+     .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
+     .DESXSIZE_INITIAL(DESXSIZE_INITIAL)
+     );
     
     
 
