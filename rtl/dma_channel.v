@@ -364,6 +364,7 @@ wire cmd_done_stop;
       .link_enable(linkaddren),
       .wr_en(wr_en),
       .cmd_done_stop(cmd_done_stop),
+      .stat_disable_intr_reg(stat_disable_intr_reg),
       .data_done(DONE),
       .ARREADY(ARREADY),
       .ARID(ARID),
