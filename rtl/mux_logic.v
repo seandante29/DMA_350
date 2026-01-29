@@ -23,6 +23,16 @@ module mux_logic #(parameter WIDTH = 32)
     input  wire [31:0] CH_FILLVAL,
 	//reg bank input
     input wire cmd_done,// from cmd fsm after rlast and count!=0 and only for a cycle(+1cyc delay)
+     
+     // 
+    input wire [31:0] SRCADDR_UPDATED,
+    input wire [31:0]  DESADDR_UPDATED,
+    input wire [31:0]  XSIZE_UPDATED,
+    input wire  wr_en_for_updated,
+     input wire [31:0] SRCADDR_INITIAL,
+     input wire [31:0] DESADDR_INITIAL,
+     input wire [31:0] SRCXSIZE_INITIAL,
+     input wire [31:0] DESXSIZE_INITIAL,//inputs from data fsm
         
     input wire [WIDTH-1 : 0] cfg_CH_CMD,// cmd fsm values
     input wire [WIDTH-1 : 0] cfg_CH_STATUS,
@@ -103,9 +113,9 @@ reg chn_linkaddr_wr_en_reg;
 	
 	mux m0 (CH_CTRL,DEFAULT_VALUE,CH_CTRL_CMD,REGCLEAR,HEADER_CMD[3],concat_cmd[(WIDTH*2)-1:(WIDTH*1)]);
 	mux m1 (CH_INTREN,DEFAULT_VALUE,CH_INTREN_CMD,REGCLEAR,HEADER_CMD[2],concat_cmd[(WIDTH*1)-1:0]);
-	mux m2 (CH_SRCADDR,DEFAULT_VALUE,CH_SRCADDR_CMD,REGCLEAR,HEADER_CMD[4],concat_cmd[(WIDTH*3)-1:(WIDTH*2)]);
-	mux m3 (CH_DESADDR,DEFAULT_VALUE,CH_DESADDR_CMD,REGCLEAR,HEADER_CMD[6],concat_cmd[(WIDTH*4)-1:(WIDTH*3)]);
-	mux m4 (CH_XSIZE,DEFAULT_VALUE,CH_XSIZE_CMD,REGCLEAR,HEADER_CMD[8],concat_cmd[(WIDTH*5)-1:(WIDTH*4)]);
+	mux m2 (SRCADDR_INITIAL,DEFAULT_VALUE,CH_SRCADDR_CMD,REGCLEAR,HEADER_CMD[4],concat_cmd[(WIDTH*3)-1:(WIDTH*2)]);
+	mux m3 (DESADDR_INITIAL,DEFAULT_VALUE,CH_DESADDR_CMD,REGCLEAR,HEADER_CMD[6],concat_cmd[(WIDTH*4)-1:(WIDTH*3)]);
+	mux m4 ({DESXSIZE_INITIAL[15:0],SRCXSIZE_INITIAL[15:0]},DEFAULT_VALUE,CH_XSIZE_CMD,REGCLEAR,HEADER_CMD[8],concat_cmd[(WIDTH*5)-1:(WIDTH*4)]);
 	mux m5 (CH_SRCTRANSCFG,DEFAULT_VALUE,CH_SRCTRANSCFG_CMD,REGCLEAR,HEADER_CMD[10],concat_cmd[(WIDTH*6)-1:(WIDTH*5)]);
 	mux m6 (CH_DESTRANSCFG,DEFAULT_VALUE,CH_DESTRANSCFG_CMD,REGCLEAR,HEADER_CMD[11],concat_cmd[(WIDTH*7)-1:(WIDTH*6)]);
 	mux m7 (CH_XADDRINC,DEFAULT_VALUE,CH_XADDRINC_CMD,REGCLEAR,HEADER_CMD[12],concat_cmd[(WIDTH*8)-1:(WIDTH*7)]);
@@ -192,6 +202,7 @@ end
             mux_out_reg[(WIDTH*1)-1:0] <= cfg_CH_CMD;
         else
             mux_out_reg[5:0] <= 0  ;
+          // mux_out_reg[(WIDTH*1)-1:0] <= mux_out_reg[(WIDTH*1)-1:0];
 
         // WORD 1 : STATUS
         if (chn_stat_wr_en_reg)
@@ -214,18 +225,21 @@ end
         // WORD 4 : SRCADDR
         if (chn_srcaddr_wr_en_reg)
             mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= cfg_CH_SRCADDR;
+        else if (wr_en_for_updated)  mux_out_reg[(WIDTH*5)-1:(WIDTH*4)]  <= SRCADDR_UPDATED;
         else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= concat_cmd[(WIDTH*3)-1:(WIDTH*2)];
 
         // WORD 5 : DESADDR
         if (chn_desaddr_wr_en_reg)
             mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= cfg_CH_DESADDR;
+        else if (wr_en_for_updated)  mux_out_reg[(WIDTH*6)-1:(WIDTH*5)]  <= DESADDR_UPDATED;
         else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= concat_cmd[(WIDTH*4)-1:(WIDTH*3)];
 
         // WORD 6 : XSIZE
         if (chn_xsize_wr_en_reg)
             mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= cfg_CH_XSIZE;
+        else if (wr_en_for_updated)  mux_out_reg[(WIDTH*7)-1:(WIDTH*6)]  <= XSIZE_UPDATED;
         else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= concat_cmd[(WIDTH*5)-1:(WIDTH*4)];
 
