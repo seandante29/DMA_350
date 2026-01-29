@@ -45,7 +45,7 @@ module internal_reg #(parameter WIDTH = 32,
  
  
  // to reg bank
- output wire [(WIDTH*2)-1 : 0] chn_reg_out,
+ output wire [(WIDTH*11)-1 : 0] chn_reg_out,
  // to partselect module
  output  wire [31:0] CH_CTRL_O,
  output  wire [31:0] CH_INTREN_O,
@@ -103,11 +103,11 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
    //assign stat_disable_reg = data_in [50];
  //  wire stat_stopped_reg = data_in [51];
  //  wire stat_err_reg = data_in [49]; //== 1 )? 0 :1 ;//stat_err;
-   wire enablecmd_1 = data_in[0] ? 1 : enablecmd_1;
+   
    
    wire stopcmd = STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
    wire disablecmd = DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
-   wire enablecmd =ENABLECMD_DATA ?  0 : data_in [0] ?1:enablecmd_1;
+   wire enablecmd =ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
    wire pausecmd =  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
    wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    
@@ -126,7 +126,7 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  
  //to reg bank
  assign reg_wr_en = IRQ  ? 1: 0;
- assign chn_reg_out = {intr_mem[4],intr_mem[144]};// error,status 
+ assign chn_reg_out = {intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120],intr_mem[144]};// error,status 
 assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign wrkregval_rd = intr_mem[140];
  
