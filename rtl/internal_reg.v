@@ -103,11 +103,11 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
    //assign stat_disable_reg = data_in [50];
  //  wire stat_stopped_reg = data_in [51];
  //  wire stat_err_reg = data_in [49]; //== 1 )? 0 :1 ;//stat_err;
-   
+   wire enablecmd_1 = data_in[0] ? 1 : enablecmd_1;
    
    wire stopcmd = STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
    wire disablecmd = DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
-   wire enablecmd =ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
+   wire enablecmd =ENABLECMD_DATA ?  0 : data_in [0] ?1:enablecmd_1;
    wire pausecmd =  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
    wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    
