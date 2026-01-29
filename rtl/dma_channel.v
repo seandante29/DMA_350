@@ -41,7 +41,7 @@ module dma_channel
 
 
     //inter reg signals    
-    output wire [(WIDTH*2)-1 : 0] chn_reg_out,              
+    output wire [(WIDTH*11)-1 : 0] chn_reg_out,              
     output wire reg_wr_en,         
     output  wire IRQ,
     //cmd fsm signal
