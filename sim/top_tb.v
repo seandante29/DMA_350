@@ -427,19 +427,19 @@ top_mod #(
      #20;
         PENABLE = 0;  
         
-      //wrk reg ptr
-        #10;
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h88;
-    PWDATA  = 32'h1;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
+//      //wrk reg ptr
+//        #10;
+//    PSEL    = 1;
+//    PWRITE  = 1;
+//    PADDR   = 32'h88;
+//    PWDATA  = 32'h1;
+//    PSTRB   = 4'b1111;
+//    PENABLE = 0;
     
-    #10;
-        PENABLE = 1;
-     #20;
-        PENABLE = 0;  
+//    #10;
+//        PENABLE = 1;
+//     #20;
+//        PENABLE = 0;  
         
         
         //CH_CMD
@@ -545,7 +545,8 @@ BRESP = 'b00;
      RDATA_I = 'h40385D5D;
      RLAST = 1;
      #10 RVALID =0; RLAST=0;
-   
+
+        
     ARREADY = 1'b1;
     #30 ARREADY = 1'b0;
         RVALID =1;
@@ -553,7 +554,7 @@ BRESP = 'b00;
         RDATA_I = 32'h0E001200;#10//ctrl
         RDATA_I = 32'h1234;#10//src addr
         RDATA_I = 32'h5687;#10//des addr
-        RDATA_I=32'h00060006;#10//xsize
+        RDATA_I=32'h0006000C;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
         RDATA_I=32'h00010001;#10//xaddr inc
@@ -576,7 +577,8 @@ BRESP = 'b00;
      ARREADY_D = 1;
      #40
      ARREADY_D = 0;
-     
+        
+ 
      
      RVALID_D = 1;
      RRESP_D = 'b00;
@@ -587,11 +589,25 @@ BRESP = 'b00;
     #10
     RDATA_I_D = 'hABC6;
     #10
+        #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h01110001;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;  
+     
     RDATA_I_D = 'hABC7;
     #10
     RDATA_I_D = 'hABC8;
     #10
     RDATA_I_D = 'hABC9;
+    #40;
     RLAST_D = 'b1;
     #10 RLAST_D = 'b0;
     RVALID_D = 'b0;
@@ -610,8 +626,6 @@ BRESP = 'b00;
     trig0_out_ack = 'b1;
     #20 trig0_out_ack = 'b0;
 
-
-#20;
 
 
 
@@ -633,10 +647,10 @@ BRESP = 'b00;
     #30;
         RVALID =1;
         RDATA_I = 32'h70F; #10//intren
-        RDATA_I = 32'h0E001200;#10//ctrl
+        RDATA_I = 32'h0E001400;#10//ctrl
         //RDATA_I = 32'h3f3f;#10//src addr
        // RDATA_I = 32'h4f4f;#10//des addr
-        RDATA_I=32'h00050005;#10//xsize
+        RDATA_I=32'h00050003;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
         RDATA_I=32'h00010001;#10//xaddr inc
