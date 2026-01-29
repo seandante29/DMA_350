@@ -408,6 +408,9 @@ else if(state ==  R && src_left !=0) begin
             //STAT_DONE <= !stat_done ? 0 :1;
             STAT_RESUMEWAIT_DATA <= 'd0;
             STAT_PAUSED_DATA <= 'd0;
+            STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
+            STAT_SRCTRIGINWAIT_DATA <= 1'b0;
+            STAT_DESTRIGINWAIT_DATA <= 1'b0;
              if( stat_disable_intr_reg == 0)begin
                          ENABLECMD_DATA    <= 0;
                         STAT_DISABLE_DATA  <= 0;
