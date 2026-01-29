@@ -113,7 +113,7 @@ module top_mod#(
     wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
     wire reg_wr_en;
       wire  [(WIDTH * 15) -1:0] reg_chn_out;
-      wire [(WIDTH*2)-1 : 0] chn_reg_out;
+      wire [(WIDTH*11)-1 : 0] chn_reg_out;
      // wire ch_wr_en_o;
       // from channel to trigger matrix
    wire        use_src_trigin;
