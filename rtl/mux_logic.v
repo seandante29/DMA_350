@@ -202,6 +202,7 @@ end
             mux_out_reg[(WIDTH*1)-1:0] <= cfg_CH_CMD;
         else
             mux_out_reg[5:0] <= 0  ;
+          // mux_out_reg[(WIDTH*1)-1:0] <= mux_out_reg[(WIDTH*1)-1:0];
 
         // WORD 1 : STATUS
         if (chn_stat_wr_en_reg)
