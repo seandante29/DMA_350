@@ -27,7 +27,7 @@ module cmd_fsm (input clk,
       input data_done,// fro intern reg
       input wire cmd_done_stop,//not used
       input wire wr_en,//or of every write enable 
-      input wire STAT_DISABLE_DATA,
+      input wire stat_disable_intr_reg,
       // AR signals
       input ARREADY,
       output reg [3:0] ARID,
@@ -100,7 +100,7 @@ module cmd_fsm (input clk,
    begin
        case(current_state)
        IDLE:
-        if(link_enable_reg && data_done && cmd_error)
+        if(link_enable_reg && data_done && cmd_error && !stat_disable_intr_reg)
          next_state = AR;
         else
          next_state = IDLE;
