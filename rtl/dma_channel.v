@@ -52,12 +52,12 @@ module dma_channel
      input wire RLAST,
      input wire RVALID,
      
-     input wire ARREADY_D,
-     input wire RID_D,
-     input wire [DATA_W-1 : 0]RDATA_I_D,
-     input wire [1:0]RRESP_D,
-     input wire RLAST_D,
-     input wire RVALID_D,
+//     input wire ARREADY_D,
+//     input wire RID_D,
+//     input wire [DATA_W-1 : 0]RDATA_I_D,
+//     input wire [1:0]RRESP_D,
+//     input wire RLAST_D,
+//     input wire RVALID_D,
      
      input wire WREADY,
      input wire AWREADY,
@@ -95,13 +95,13 @@ module dma_channel
       output wire [31:0]ARADDR,
       output wire RREADY,      
       
-      output wire [3:0] ARID_D,
-      output wire [3:0] ARLEN_D,
-      output wire[2:0] ARSIZE_D,
-      output wire [1:0] ARBURST_D,
-      output wire ARVALID_D,
-      output wire [31:0]ARADDR_D,
-      output wire RREADY_D ,
+//      output wire [3:0] ARID_D,
+//      output wire [3:0] ARLEN_D,
+//      output wire[2:0] ARSIZE_D,
+//      output wire [1:0] ARBURST_D,
+//      output wire ARVALID_D,
+//      output wire [31:0]ARADDR_D,
+//      output wire RREADY_D ,
       
       output wire [3:0] AWID_D,
       output wire [3:0] AWLEN_D,
@@ -167,7 +167,7 @@ wire [2:0] x_type;
 wire [2:0] transize;
 wire [15:0] srcxsize;
 wire [15:0] desxsize;
-wire [29:0] linkaddr;
+wire [31:0] linkaddr;
 wire linkaddren;
 wire stop_cmd;
 wire enable_cmd;
@@ -515,18 +515,18 @@ wire cmd_done_stop;
     .fillval(fillval),
     .src_xaddr_inc(src_xaddr_inc),
     .des_xaddr_inc(des_xaddr_inc),
-    .ARREADY(ARREADY_D),
-    .ARVALID(ARVALID_D),
-    .ARADDR(ARADDR_D),
-    .ARSIZE(ARSIZE_D),
-    .ARBURST(ARBURST_D),
-    .ARID(ARID_D),
-    .ARLEN(ARLEN_D),
-    .RVALID(RVALID_D),
-    .RDATA(RDATA_I_D),
-    .RRESP(RRESP_D),
-    .RLAST(RLAST_D),
-    .RREADY(RREADY_D),
+    .ARREADY(ARREADY),
+    .ARVALID(ARVALID),
+    .ARADDR(ARADDR),
+    .ARSIZE(ARSIZE),
+    .ARBURST(ARBURST),
+    .ARID(ARID),
+    .ARLEN(ARLEN),
+    .RVALID(RVALID),
+    .RDATA(RDATA_I),
+    .RRESP(RRESP),
+    .RLAST(RLAST),
+    .RREADY(RREADY),
     .AWREADY(AWREADY),
     .AWVALID(AWVALID_D),
     .AWADDR(AWADDR_D),
