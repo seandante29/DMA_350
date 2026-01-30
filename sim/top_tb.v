@@ -224,7 +224,6 @@ top_mod #(
     .IRQ            (IRQ)
 );
 
-
   // ------------- Clock -------------
   always #5 clk = ~clk;
 
@@ -249,20 +248,21 @@ top_mod #(
 
     // -------- APB WRITE --------
     // link addr
-    PSEL    = 1;
-    PWRITE  = 1;
+    #10;
     PADDR   = 32'h78;
+    PWRITE  = 1;
+    PSEL    = 1;
     PWDATA  = 32'h0000ABCF;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
 #10;
     PENABLE = 1;
- #20;
+ #10;
     PENABLE = 0;
     
     // CH_TRIGOUT CFG
-    #10;
+
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h54;
@@ -272,11 +272,11 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;
         
       // CH_DESTRIGINCFG 
-    #10;
+
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h50;
@@ -286,10 +286,10 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;
     //CH_SRCTIRGINCFG
-        #10;
+
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h4C;
@@ -298,11 +298,11 @@ top_mod #(
     PENABLE = 0;
         #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;
         
     //FILLVAL
-        #10;
+        
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h38;
@@ -312,11 +312,11 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;
         
        //XADDRINC 
-     #10;
+   
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h30;
@@ -326,11 +326,11 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;      
         
     //CH_DESTRANSCFG
-        #10;
+  
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h2C;
@@ -340,11 +340,10 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;
      //CH_SRCTRANSCFG
-        
-        #10;
+      
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h28;
@@ -354,11 +353,11 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;
         
      //XSIZE   
-      #10;
+    
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h20;
@@ -368,10 +367,10 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;      
     //DESADDR    
-        #10;
+      
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h18;
@@ -381,11 +380,11 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;    
         
         //SRCADDR
-            #10;
+       
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h10;
@@ -395,12 +394,12 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;
         
        
         //CH_CTRL
-        #10;
+     
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h0C;
@@ -410,11 +409,11 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;    
         
     //CH_INTREN
-        #10;
+      
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h08;
@@ -424,7 +423,7 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;  
         
 //      //wrk reg ptr
@@ -443,7 +442,7 @@ top_mod #(
         
         
         //CH_CMD
-        #10;
+     
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h00;
@@ -453,15 +452,15 @@ top_mod #(
     
     #10;
         PENABLE = 1;
-     #20;
+     #10;
         PENABLE = 0;  
         
 
         
         
- # 30;
+ # 80;
  #10 ARREADY_D = 'b1;
-#70 ARREADY_D = 'b0;
+#30 ARREADY_D = 'b0;
 
 #10 
 RRESP_D = 'b01;
@@ -533,7 +532,7 @@ BRESP = 'b00;
         PENABLE = 0;  */
         
 // comand descriptor1
-
+/*
   #10;
     ARREADY = 1'b1;
     #10 ARREADY = 1'b0;
@@ -545,8 +544,7 @@ BRESP = 'b00;
      RDATA_I = 'h40385D5D;
      RLAST = 1;
      #10 RVALID =0; RLAST=0;
-
-        
+   
     ARREADY = 1'b1;
     #30 ARREADY = 1'b0;
         RVALID =1;
@@ -554,10 +552,10 @@ BRESP = 'b00;
         RDATA_I = 32'h0E001200;#10//ctrl
         RDATA_I = 32'h1234;#10//src addr
         RDATA_I = 32'h5687;#10//des addr
-        RDATA_I=32'h0006000C;#10//xsize
+        RDATA_I=32'h00060006;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
-        RDATA_I=32'h00010001;#10//xaddr inc
+        RDATA_I=32'h00010002;#10//xaddr inc
         RDATA_I=32'h1234;#10//fill val
         RDATA_I = 32'h00000201 ;#10//srctrig
         RDATA_I = 32'h00000200;#10//destrig
@@ -577,8 +575,7 @@ BRESP = 'b00;
      ARREADY_D = 1;
      #40
      ARREADY_D = 0;
-        
- 
+     
      
      RVALID_D = 1;
      RRESP_D = 'b00;
@@ -589,25 +586,23 @@ BRESP = 'b00;
     #10
     RDATA_I_D = 'hABC6;
     #10
-        #10;
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h00;
-    PWDATA  = 32'h01110001;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #20;
-        PENABLE = 0;  
-     
     RDATA_I_D = 'hABC7;
     #10
+//                    #10;
+//    PSEL    = 1;
+//    PWRITE  = 1;
+//    PADDR   = 32'h00;
+//    PWDATA  = 32'h00000004;//stop cmd
+//    PSTRB   = 4'b1111;
+//    PENABLE = 0;
+    
+//    #10;
+//        PENABLE = 1;
+//     #20;
+//        PENABLE = 0;  
     RDATA_I_D = 'hABC8;
     #10
     RDATA_I_D = 'hABC9;
-    #40;
     RLAST_D = 'b1;
     #10 RLAST_D = 'b0;
     RVALID_D = 'b0;
@@ -624,12 +619,40 @@ BRESP = 'b00;
     #20 BVALID = 'b0;
     
     trig0_out_ack = 'b1;
-    #20 trig0_out_ack = 'b0;
+    #20 trig0_out_ack = 'b0;*/
 
+ /*      //XADDRINC 
+     #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h30;
+    PWDATA  = 32'h00010001;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;      
+        
+        
+        #10;
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h04;
+    PWDATA  = 32'h00020000;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #20;
+        PENABLE = 0;  
+#20;
 
+*/
 
-
-// comand descriptor2
+/*// comand descriptor2
   #10;
     ARREADY = 1'b1;
     #10 ARREADY = 1'b0;
@@ -647,10 +670,10 @@ BRESP = 'b00;
     #30;
         RVALID =1;
         RDATA_I = 32'h70F; #10//intren
-        RDATA_I = 32'h0E001400;#10//ctrl
+        RDATA_I = 32'h0E001200;#10//ctrl
         //RDATA_I = 32'h3f3f;#10//src addr
        // RDATA_I = 32'h4f4f;#10//des addr
-        RDATA_I=32'h00050003;#10//xsize
+        RDATA_I=32'h00050005;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
         RDATA_I=32'h00010001;#10//xaddr inc
@@ -707,8 +730,7 @@ BRESP = 'b00;
     #20 trig0_out_ack = 'b0;
 
 
-#20;
-
+#20;*/
 
 /*
 // comand descriptor2
