@@ -109,7 +109,7 @@ reg chn_destrigin_wr_en_reg;
 reg chn_trigout_wr_en_reg;
 reg chn_linkaddr_wr_en_reg;
 
-	integer i;
+	integer i,j;
 	
 	mux m0 (CH_CTRL,DEFAULT_VALUE,CH_CTRL_CMD,REGCLEAR,HEADER_CMD[3],concat_cmd[(WIDTH*2)-1:(WIDTH*1)]);
 	mux m1 (CH_INTREN,DEFAULT_VALUE,CH_INTREN_CMD,REGCLEAR,HEADER_CMD[2],concat_cmd[(WIDTH*1)-1:0]);
@@ -165,14 +165,15 @@ end
     
 	always @(posedge clk or negedge resetn)
 	begin
-	/*if(!resetn) begin
-		HEADER_CMD <=0;
+	if(!resetn) begin
+	for(j=0;j<32;j=j+1)
+		cmd_data_mem [j] <= 'd0;
 		end
-		else begin*/
+		else begin
 		cmd_data_mem [wptr] <= cmd_data; 
 	
 //		HEADER_CMD <= (|header_in) ? header_in:HEADER_CMD;
-//		end
+	end
 	end
 	
 	always @(*)
@@ -202,7 +203,6 @@ end
             mux_out_reg[(WIDTH*1)-1:0] <= cfg_CH_CMD;
         else
             mux_out_reg[5:0] <= 0  ;
-          // mux_out_reg[(WIDTH*1)-1:0] <= mux_out_reg[(WIDTH*1)-1:0];
 
         // WORD 1 : STATUS
         if (chn_stat_wr_en_reg)
