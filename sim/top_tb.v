@@ -361,7 +361,7 @@ top_mod #(
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h20;
-    PWDATA  = 32'h00040004;
+    PWDATA  = 32'h00070005;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
@@ -403,7 +403,7 @@ top_mod #(
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h0C;
-    PWDATA  = 32'h0E001202;
+    PWDATA  = 32'h0E001402;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
@@ -425,20 +425,6 @@ top_mod #(
         PENABLE = 1;
      #10;
         PENABLE = 0;  
-        
-//      //wrk reg ptr
-//        #10;
-//    PSEL    = 1;
-//    PWRITE  = 1;
-//    PADDR   = 32'h88;
-//    PWDATA  = 32'h1;
-//    PSTRB   = 4'b1111;
-//    PENABLE = 0;
-    
-//    #10;
-//        PENABLE = 1;
-//     #20;
-//        PENABLE = 0;  
         
         
         //CH_CMD
@@ -472,16 +458,18 @@ RDATA_I = 'hABC1;
 RDATA_I = 'hABC2;
 #10
 RDATA_I = 'hABC3;
+#10
+RDATA_I = 'hABC4;
 RLAST = 'b1;
 #10 RLAST = 'b0;
 RVALID = 'b0;
-//#20;
+#20;
 
 AWREADY = 'b1;
 #30 AWREADY = 'b0;
 
 WREADY = 'b1;
-#50;
+#100;
 WREADY = 'b0;
 BVALID = 1'b1;
 BRESP = 'b00;
@@ -496,22 +484,23 @@ BRESP = 'b00;
     ARREADY = 1'b1;
     #20 ARREADY = 1'b0;
           
-     RRESP='b00;
-    RID = 'b0;
+
      #10
+          RRESP='b00;
+    RID = 'b0;
     RVALID =1;
      RDATA_I = 'h40385D5D;
      RLAST = 1;
-     #30 RVALID =0; RLAST=0;
-   //#30;
+     #10 RVALID =0; RLAST=0;
+     #30;
     ARREADY = 1'b1;
     #30 ARREADY = 1'b0;
         RVALID =1;
         RDATA_I = 32'h70F; #10//intren
-        RDATA_I = 32'h0E001200;#10//ctrl
+        RDATA_I = 32'h0E001600;#10//ctrl
         RDATA_I = 32'h1234;#10//src addr
         RDATA_I = 32'h5687;#10//des addr
-        RDATA_I=32'h00060006;#10//xsize
+        RDATA_I=32'h000a0007;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
         RDATA_I=32'h00010001;#10//xaddr inc
@@ -525,13 +514,14 @@ BRESP = 'b00;
         RVALID=0;
      
 #100;
+//#50;
 
         trig0_req = 1;
         trig1_req = 1;
         #10;
         
      ARREADY = 1;
-     #40
+     #30
      ARREADY = 0;
      
      
@@ -549,17 +539,19 @@ BRESP = 'b00;
     RDATA_I = 'hABC8;
     #10
     RDATA_I = 'hABC9;
+     #10
+    RDATA_I = 'hABCa;
     RLAST = 'b1;
     #10 RLAST = 'b0;
     RVALID = 'b0;
     #20;
 
     AWREADY = 'b1;
-    #30 AWREADY = 'b0;
+    #40 AWREADY = 'b0;
     
     WREADY = 'b1;
-    #80;
-    
+    #120;
+   WREADY = 'b0;    
     BVALID = 1'b1;
     BRESP = 'b00;
     #20 BVALID = 'b0;
