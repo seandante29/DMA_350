@@ -1,26 +1,6 @@
-    `timescale 1ns / 1ps
-    //////////////////////////////////////////////////////////////////////////////////
-    // Company: 
-    // Engineer: 
-    // 
-    // Create Date: 12/16/2025 01:31:12 PM
-    // Design Name: 
-    // Module Name: apb_slave
-    // Project Name: 
-    // Target Devices: 
-    // Tool Versions: 
-    // Description: 
-    // 
-    // Dependencies: 
-    // 
-    // Revision:
-    // Revision 0.01 - File Created
-    // Additional Comments:
-    // 
-    //////////////////////////////////////////////////////////////////////////////////
     
     module apb_slave #( parameter DATA_WIDTH = 32,
-         parameter ADDR_WIDTH = 8, 
+         parameter ADDR_WIDTH = 32, 
          parameter STRB_WIDTH = DATA_WIDTH/8
           )
            (
@@ -49,7 +29,8 @@
     
      
      reg [2:0] current_state, next_state;
-     reg [ ADDR_WIDTH-1 : 0 ]PADDR_q;
+ //    reg [ ADDR_WIDTH-1 : 0 ]PADDR_q;// not being used addr is directly
+ //    assigned
      reg PWRITE_q;
      reg [ DATA_WIDTH-1 : 0 ]PWDATA_q;
      reg [ STRB_WIDTH-1 : 0 ]PSTRB_q;
@@ -101,7 +82,7 @@
       begin
        if(!PRESETn)
         begin
-         PADDR_q  <= {ADDR_WIDTH{1'b0}};
+        // PADDR_q  <= {ADDR_WIDTH{1'b0}};
          PWRITE_q <= 1'b0;
          PWDATA_q <= {DATA_WIDTH{1'b0}};
       //   PREADY    <= 'd0;
