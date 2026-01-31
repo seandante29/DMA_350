@@ -4,11 +4,11 @@ module register_bank #(parameter WIDTH = 32,
       input wire resetn,
       input wire cfg_rd_en,cfg_wr_en,//reg_wr_en,// write enable from apb to reg, 
       input wire [ WIDTH-1 : 0] cfg_data_in,//from apb to reg
-      input wire [ 7:0 ] addr_in,// from apb
+      input wire [ WIDTH-1 : 0 ] addr_in,// from apb
       input wire [(WIDTH*11)-1 : 0] chn_reg_in,// from channel
       input wire [WIDTH-1 : 0] wrkregval_rd,
       output wire [ WIDTH-1 : 0] cfg_data_out, // to apb
-      output wire chn_wr_en, //to channel
+   //   output wire chn_wr_en, //to channel   not being used
 	  output wire [WIDTH-1 : 0] cfg_CH_CMD,// to mux logic
 	  output wire [WIDTH-1 : 0] cfg_CH_STATUS,
 	  output wire [WIDTH-1 : 0] cfg_CH_INTREN,
@@ -42,7 +42,7 @@ module register_bank #(parameter WIDTH = 32,
       //assign reg_chn_out = { reg_mem[120],reg_mem[84],reg_mem[80],reg_mem[76],reg_mem[56],reg_mem[48],reg_mem[44],reg_mem[40],reg_mem[32],
      //                        reg_mem[24],reg_mem[16],reg_mem[12],reg_mem[8],reg_mem[4],reg_mem[0]};
 
-	assign addr_w = addr_in & 8'b11111100;
+	assign addr_w = addr_in & 32'hFFFFFFFC;
 	assign cfg_CH_CMD = reg_mem[0];
 	assign cfg_CH_STATUS = reg_mem[4];
 	assign cfg_CH_INTREN = reg_mem[8];
