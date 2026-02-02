@@ -444,7 +444,7 @@ top_mod #(
 
         
         
-// # 100;
+ # 100;
 // ARREADY = 'b1;
 //#30 ARREADY = 'b0;
 
@@ -545,7 +545,7 @@ top_mod #(
 //    #10 RLAST = 'b0;
 //    RVALID = 'b0;
 //    #20;
- 
+ #100;
     AWREADY = 'b1;
     #40 AWREADY = 'b0;
     
@@ -798,7 +798,7 @@ top_mod #(
     #40 AWREADY = 'b0;
     
     WREADY = 'b1;
-    #120;
+    #150;
    WREADY = 'b0;    
     BVALID = 1'b1;
     BRESP = 'b00;
@@ -880,7 +880,7 @@ top_mod #(
     #40 AWREADY = 'b0;
     
     WREADY = 'b1;
-    #120;
+    #150;
    WREADY = 'b0;    
     BVALID = 1'b1;
     BRESP = 'b00;
