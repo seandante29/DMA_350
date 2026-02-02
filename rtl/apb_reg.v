@@ -38,7 +38,8 @@ module apb_reg #(parameter DATA_WIDTH = 32,
 	  output wire chn_cmd_wr_en_o, chn_stat_wr_en_o, chn_intren_wr_en_o,
       chn_ctrl_wr_en_o,chn_srcaddr_wr_en_o, chn_desaddr_wr_en_o, chn_xsize_wr_en_o, chn_srctrans_wr_en_o,
       chn_destrans_wr_en_o,chn_xaddrinc_wr_en_o,chn_fillval_wr_en_o,chn_srctrigin_wr_en_o,chn_destrigin_wr_en_o,
-      chn_trigout_wr_en_o,chn_linkaddr_wr_en_o,chn_wrkregptr_wr_en_o,
+      chn_trigout_wr_en_o,chn_linkaddr_wr_en_o,
+//chn_wrkregptr_wr_en_o,
         input wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
         input wire [WIDTH -1:0] wrkregval_rd,
         output wire [WIDTH-1:0] cfg_WRKREGPTR
@@ -112,7 +113,7 @@ module apb_reg #(parameter DATA_WIDTH = 32,
         .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
         .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
         .src_des_xsize_updated(src_des_xsize_updated),
-        .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
+      //  .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
 	.wrkregval_rd(wrkregval_rd),
         .cfg_WRKREGPTR(cfg_WRKREGPTR)
          );
