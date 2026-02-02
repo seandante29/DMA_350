@@ -1,23 +1,4 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 01/05/2026 02:46:58 PM
-// Design Name: 
-// Module Name: top_mod
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+
 module top_mod#( 
     parameter WIDTH = 32,
     parameter DATA_W = 128,
@@ -62,7 +43,7 @@ module top_mod#(
       
      //AXI signals 
     input wire ARREADY,
-     input wire RID,
+     input wire [3:0] RID,
      input wire [DATA_W-1 : 0]RDATA_I,
      input wire [1:0]RRESP,
      input wire RLAST,
@@ -111,7 +92,7 @@ module top_mod#(
       output  wire IRQ
     );
     wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
-    wire reg_wr_en;
+    //wire reg_wr_en;
       wire  [(WIDTH * 15) -1:0] reg_chn_out;
       wire [(WIDTH*11)-1 : 0] chn_reg_out;
      // wire ch_wr_en_o;
@@ -124,7 +105,7 @@ module top_mod#(
    wire [7:0]  des_trigin_sel;   // 0 = trig0, 1 = trig1
    wire        use_trigout;
    wire [1:0]  trigout_type;    // 2'b10 = HW
-   wire [7:0]  trigout_sel;      // 0 = trig0, 1 = trig1
+   wire [5:0]  trigout_sel;      // 0 = trig0, 1 = trig1
    
        // To DMA Channel (REQ view)
     wire src_trig_req;
@@ -174,6 +155,7 @@ wire chn_srctrigin_wr_en_o;
 wire chn_destrigin_wr_en_o;
 wire chn_trigout_wr_en_o;
 wire chn_linkaddr_wr_en_o;
+//wire chn_wrkregptr_wr_en_o;
 
 wire [31:0] cfg_WRKREGPTR;
     
@@ -188,7 +170,7 @@ wire [31:0] cfg_WRKREGPTR;
 
     // Configuration Interface
     .chn_reg_out        (chn_reg_out),
-    .reg_wr_en (reg_wr_en),
+  //  .reg_wr_en (reg_wr_en),
     .IRQ                (IRQ),
     .stat_err (stat_err),
     .cfg_CH_CMD            (cfg_CH_CMD),
@@ -222,6 +204,7 @@ wire [31:0] cfg_WRKREGPTR;
     .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
     .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
     .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+  //  .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
 
     // AXI Read Address/Data (General/Descriptor)
     .ARID               (ARID),
@@ -368,7 +351,7 @@ wire [31:0] cfg_WRKREGPTR;
     .PREADY     (PREADY),
     .PSLVERR    (PSLVERR),
     .chn_reg_in (chn_reg_out),
-   .reg_wr_en (reg_wr_en),
+  // .reg_wr_en (reg_wr_en),
       .cfg_CH_CMD            (cfg_CH_CMD),
     .cfg_CH_STATUS         (cfg_CH_STATUS),
     .cfg_CH_INTREN         (cfg_CH_INTREN),
@@ -401,6 +384,7 @@ wire [31:0] cfg_WRKREGPTR;
     .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
     .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
     .src_des_xsize_updated(src_des_xsize_updated),
+  //  .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
     .wrkregval_rd(wrkregval_rd),
     .cfg_WRKREGPTR(cfg_WRKREGPTR)
   );
