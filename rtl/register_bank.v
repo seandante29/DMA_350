@@ -29,7 +29,8 @@ module register_bank #(parameter WIDTH = 32,
 	  output wire chn_cmd_wr_en_o, chn_stat_wr_en_o, chn_intren_wr_en_o,
       chn_ctrl_wr_en_o,chn_srcaddr_wr_en_o, chn_desaddr_wr_en_o, chn_xsize_wr_en_o, chn_srctrans_wr_en_o,
       chn_destrans_wr_en_o,chn_xaddrinc_wr_en_o,chn_fillval_wr_en_o,chn_srctrigin_wr_en_o,chn_destrigin_wr_en_o,
-      chn_trigout_wr_en_o,chn_linkaddr_wr_en_o,chn_wrkregptr_wr_en_o,//to channel   ,// to mux logic
+      chn_trigout_wr_en_o,chn_linkaddr_wr_en_o,
+//chn_wrkregptr_wr_en_o,//to channel   ,// to mux logic
 	  input wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated
 	  );
       //output wire [(WIDTH * 15) -1 : 0] reg_chn_out); // to  channel
@@ -75,9 +76,9 @@ module register_bank #(parameter WIDTH = 32,
 	assign chn_destrigin_wr_en_o = cfg_wr_en &&( addr_w == 8'h50) ;
 	assign chn_trigout_wr_en_o = cfg_wr_en && ( addr_w == 8'h54);
 	assign chn_linkaddr_wr_en_o = cfg_wr_en && ( addr_w == 8'h78);
-    assign chn_wrkregptr_wr_en_o =  cfg_wr_en && ( addr_w == 8'h8C);
+   // assign chn_wrkregptr_wr_en_o =  cfg_wr_en && ( addr_w == 8'h8C);
     //assign chn_wr_en = cfg_wr_en;
-     assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_w] : cfg_data_out ;//'d0
+     assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_w] : 'd0;//cfg_data_out ;//'d0
       always @(posedge clk or negedge resetn)
 	  begin
 		  if(!resetn) begin
