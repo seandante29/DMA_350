@@ -1,23 +1,4 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 01/08/2026 12:16:27 PM
-// Design Name: 
-// Module Name: cmd_fsm
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+
 
 
 module cmd_fsm (input clk, 
@@ -37,15 +18,15 @@ module cmd_fsm (input clk,
       output reg ARVALID,
       output reg [31:0]ARADDR,
       // R signals
-      input RID,
-      input [31:0]RDATA_I,
+      input [3:0]RID,
+      input [127:0]RDATA_I,//32
       input [1:0]RRESP,
       input RLAST,
       input RVALID,
       output reg RREADY,
-      output reg [31:0]RDATA_O,
+      output reg [31:0]RDATA_O,//32
       output reg [31:0] LINK_HEADER,
-      output reg [5:0] wptr,
+      output reg [4:0] wptr,
       // ERROR and STATUS signals
       output  reg cmd_done_1,// to mux_logic as select ( 1cycle pulse)
       output reg LINKHDRERR,
@@ -59,9 +40,11 @@ module cmd_fsm (input clk,
     //reg cmd_done_1;// to mux_logic as select ( 1cycle pulse)
     reg wr_en_reg;
     reg [3:0] current_state, next_state;
-    reg [4:0] count;
-   // reg [4:0] count1;
-    reg [5:0] i;
+    reg [3:0] count;//
+    //reg stop_count;
+   reg [3:0] count1;
+    //reg [5:0] i;
+	integer i;
     reg data_done_reg;
     reg link_enable_reg;
     reg STAT_ERROR_reg;
@@ -133,11 +116,24 @@ module cmd_fsm (input clk,
    end
    
    always@(*) begin
+	count1 = count;
         if(current_state == IDLE  ) 
-            count = 0;
-        if(current_state == COUNT && count == 0 )
-            for( i = 1 ; i < 31 ; i = i + 1) count = count + RDATA_I[i];
+            count1 = 0; 
+	else if(current_state == COUNT)begin
+		count1 = 0;
+		for( i = 1 ; i < 31 ; i = i + 1) 
+			count1 = count1 + RDATA_I[i];
+	end	
    end
+
+	always @(posedge clk or negedge resetn)
+	begin
+	if(!resetn)
+	count<='d0;
+	else
+	count <= count1;
+
+	end
    
   /* always@(posedge clk or negedge resetn)
     begin
@@ -168,7 +164,7 @@ module cmd_fsm (input clk,
         ARADDR <= 0;
         ARID   <= 0;
         ARLEN  <= 0;
-        ARSIZE <= 4'b1111;
+        ARSIZE <= 3'b111;
         ARBURST <=0;
         ARVALID <=0;
         RREADY <= 0;
@@ -177,13 +173,14 @@ module cmd_fsm (input clk,
         LINK_HEADER <= 0;
         STAT_CMD_DONE <= 1'b0;
         cmd_done_1 <= 1'b0;
+        wptr <= 0;
    end
    else
    begin
      CMD_DONE <= 1'b1; // temp fix for deasserting
      cmd_done_1 <= 1'b0;
      STAT_CMD_DONE <= cmd_done_1 ; 
-      if(wr_en_reg)         LINK_HEADER <= 0;
+      //if(wr_en_reg)         LINK_HEADER <= 0;
        //CMD_DONE <= (cmd_done_stop) ? 'b0 :  'b1; //
         case(current_state)
             IDLE:
@@ -193,7 +190,7 @@ module cmd_fsm (input clk,
                 ARADDR <= 0;
                 ARID   <= 0;
                 ARLEN  <= 0;
-                ARSIZE <= 4'b1111;
+                ARSIZE <= 3'b111;
                 ARBURST <=0;
                 ARVALID <=0;
                 RREADY <= 0;
@@ -210,11 +207,13 @@ module cmd_fsm (input clk,
                    /// STAT_CMD_DONE <= 1'b0;
                     end
               //  RDATA_O <= 0;
+		if(wr_en_reg)         LINK_HEADER <= 0;
             end
             
             AR: 
             begin
-           
+           //stop_count <= 1;
+		ARSIZE <= 'd2;
              CMD_DONE <= 0;
                 if (count == 0) begin
                     ARADDR <= LINKADDR;
@@ -232,18 +231,19 @@ module cmd_fsm (input clk,
             R:
             begin
              CMD_DONE <= 0;
+		//stop_count <= 0;
                 RREADY  <= 1;
                 ARVALID <= 0;  //just added
                // if(wptr + 1 == count && count != 0) //STAT_CMD_DONE <= 1; 
                 if(RREADY && RVALID) begin
                     if(count!=0)begin
-                    RDATA_O <= RDATA_I;
+                    RDATA_O <= RDATA_I [31:0];
                     wptr <= wptr + 1; 
                     end
-                    if(RLAST  && !(|RDATA_I))
+                    else if(RLAST  && !(|RDATA_I[31:0]))
                         LINKHDRERR <= 1;
-                    if(RLAST  && (|RDATA_I) && count ==0)begin //count==0
-                        LINK_HEADER <= RDATA_I;
+                    else if(RLAST  && (|RDATA_I[31:0]) && count ==0)begin //count==0
+                        LINK_HEADER <= RDATA_I[31:0];
                         wptr <= 0;
                         end
                  
@@ -284,7 +284,7 @@ module cmd_fsm (input clk,
                 ARADDR <= 0;
                 ARID   <= 0;
                 ARLEN  <= 0;
-                ARSIZE <= 4'b1111;
+                ARSIZE <= 3'b111;
                 ARBURST <=0;
                 ARVALID <=0;
                 RREADY <= 0;
