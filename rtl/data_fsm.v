@@ -410,7 +410,7 @@ end
             AWVALID      <= 0;
             WVALID       <= 0;
             BREADY       <= 0;
-            DONE         <= STAT_STOP_DATA ? 1: 0;
+            DONE         <= stop_cmd_partsel? 1: 0;
             trig_out_req <= 0;
             src_trigack  <= 0;
             des_trigack  <= 0;
@@ -558,7 +558,7 @@ end
                         endcase
                     end
 
-                    fill_count <= ((srcxsize < desxsize) && x_type == 3 && (case2 || case6)) ? (desxsize - srcxsize) : 0;
+                    fill_count <= ((srcxsize < desxsize) && x_type == 3 && (case2 || case6)) ? ((desxsize - srcxsize) & 16'hFFFF) : 0;
                 end
 
                 WAIT_TRIG: begin
