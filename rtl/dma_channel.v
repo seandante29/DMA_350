@@ -36,17 +36,18 @@ module dma_channel
     input wire chn_destrigin_wr_en_o,
     input wire chn_trigout_wr_en_o,
     input wire chn_linkaddr_wr_en_o,
+//	input wire     chn_wrkregptr_wr_en_o,
 
 
 
 
     //inter reg signals    
     output wire [(WIDTH*11)-1 : 0] chn_reg_out,              
-    output wire reg_wr_en,         
+   // output wire reg_wr_en,         
     output  wire IRQ,
     //cmd fsm signal
      input wire ARREADY,
-     input wire RID,
+     input wire [3:0]RID,
      input wire [DATA_W-1 : 0]RDATA_I,
      input wire [1:0]RRESP,
      input wire RLAST,
@@ -216,7 +217,7 @@ wire wr_en;
  // wire data_done;
    wire [31:0] RDATA_O;
    wire [31:0] LINK_HEADER;
-   wire [5:0] wptr;
+   wire [4:0] wptr;
    wire LINKHDERR;
    wire CMD_DONE,STAT_CMD_DONE; //done signal to data fsm
    wire AXIRDRESPERR;//address out of range error
@@ -239,8 +240,28 @@ assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o  ||
 
 wire cmd_done_stop;
 
+wire [1:0]src_trigin_sw_type;
+wire [1:0]des_trigin_sw_type;
 
+wire [3:0] ARID_D;
+ wire [3:0] ARLEN_D;
+ wire[2:0] ARSIZE_D;
+ wire [1:0] ARBURST_D;
+ wire ARVALID_D;
+ wire [31:0]ARADDR_D;
+ wire RREADY_D ;
 
+wire [3:0] ARID_CMD;
+ wire [3:0] ARLEN_CMD;
+ wire[2:0] ARSIZE_CMD;
+ wire [1:0] ARBURST_CMD;
+ wire ARVALID_CMD;
+ wire [31:0]ARADDR_CMD;
+ wire RREADY_CMD ;
+ 
+ wire [46 : 0] AR_D   = {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D};
+ wire [46 : 0] AR_CMD = {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD};
+ assign {ARVALID, ARADDR, ARSIZE, ARBURST, ARID, ARLEN,RREADY} = CMD_DONE?AR_D:AR_CMD;
 
     internal_reg  #(.WIDTH (32),.DEPTH ( 145)) dut0
   (
@@ -278,7 +299,7 @@ wire cmd_done_stop;
    .STOPCMD_DATA(STOPCMD_DATA),
   .chn_reg_out(chn_reg_out),
   //.ch_wr_en_o(ch_wr_en_o),
-   .reg_wr_en(reg_wr_en),
+  // .reg_wr_en(reg_wr_en),
   .CH_CTRL_O(CH_CTRL_O),
   .CH_INTREN_O(CH_INTREN_O),
   .CH_XSIZE_O(CH_XSIZE_O),
@@ -336,9 +357,9 @@ wire cmd_done_stop;
     .resume_cmd(resume_cmd),
     .stop_cmd(stop_cmd),
     .src_trigin_sw(src_trigin_sw),
-    .src_trigin_sw_type(src_trigin_sw_type),
+    .src_trigin_sw_type(src_trigin_sw_req_type),
     .des_trigin_sw(des_trigin_sw),
-    .des_trigin_sw_type(des_trigin_sw_type),
+    .des_trigin_sw_type(des_trigin_sw_req_type),
     .trigout_ack_sw(trigout_ack_sw),
     .src_trigin_mode(src_trigin_mode),
     .src_trigin_type(src_trigin_type),
@@ -359,7 +380,7 @@ wire cmd_done_stop;
 
  cmd_fsm dut2(.clk(clk), 
       .resetn(resetn),
-      .STAT_ERROR_PARTSEL(stat_err_partsel),
+      .STAT_ERROR_PARTSEL(stat_err),
       .LINKADDR(linkaddr),
       .link_enable(linkaddren),
       .wr_en(wr_en),
@@ -367,18 +388,18 @@ wire cmd_done_stop;
       .stat_disable_intr_reg(stat_disable_intr_reg),
       .data_done(DONE),
       .ARREADY(ARREADY),
-      .ARID(ARID),
-      .ARLEN(ARLEN),
-      .ARSIZE(ARSIZE),
-      .ARBURST(ARBURST),
-      .ARVALID(ARVALID),
-      .ARADDR(ARADDR),
+      .ARID(ARID_CMD),
+      .ARLEN(ARLEN_CMD),
+      .ARSIZE(ARSIZE_CMD),
+      .ARBURST(ARBURST_CMD),
+      .ARVALID(ARVALID_CMD),
+      .ARADDR(ARADDR_CMD),
       .RID(RID),
       .RDATA_I(RDATA_I),
       .RRESP(RRESP),
       .RLAST(RLAST),
       .RVALID(RVALID),
-      .RREADY(RREADY),
+      .RREADY(RREADY_CMD),
       .RDATA_O(RDATA_O),
       .LINK_HEADER(LINK_HEADER),
       .wptr(wptr),
@@ -455,6 +476,7 @@ wire cmd_done_stop;
         .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
         .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
         .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+
         .mux_out_reg(mux_logic_in)
        );               
       
@@ -516,17 +538,18 @@ wire cmd_done_stop;
     .src_xaddr_inc(src_xaddr_inc),
     .des_xaddr_inc(des_xaddr_inc),
     .ARREADY(ARREADY),
-    .ARVALID(ARVALID),
-    .ARADDR(ARADDR),
-    .ARSIZE(ARSIZE),
-    .ARBURST(ARBURST),
-    .ARID(ARID),
-    .ARLEN(ARLEN),
+    .ARVALID(ARVALID_D),
+    .ARADDR(ARADDR_D),
+    .ARSIZE(ARSIZE_D),
+    .ARBURST(ARBURST_D),
+    .ARID(ARID_D),
+    .ARLEN(ARLEN_D),
+	.RID(RID),
     .RVALID(RVALID),
     .RDATA(RDATA_I),
     .RRESP(RRESP),
     .RLAST(RLAST),
-    .RREADY(RREADY),
+    .RREADY(RREADY_D),
     .AWREADY(AWREADY),
     .AWVALID(AWVALID_D),
     .AWADDR(AWADDR_D),
