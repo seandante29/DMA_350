@@ -23,9 +23,9 @@
          output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,// to reg bank
          output reg cfg_wr_en,cfg_rd_en// to reg bank
          );
-    localparam IDLE   = 3'b001;
-    localparam SETUP  = 3'b010;
-    localparam ACCESS = 3'b100;
+    localparam IDLE_ST   = 3'b001;
+    localparam SETUP_ST  = 3'b010;
+    localparam ACCESS_ST = 3'b100;
     
      
      reg [2:0] current_state, next_state;
@@ -37,7 +37,7 @@
      
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
-    assign PREADY = (current_state == ACCESS)? 1 : 0;
+    assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
     
     // wire strobe_error;
      
@@ -47,7 +47,7 @@
      always@(posedge PCLK or negedge PRESETn)
          begin
        if(!PRESETn)
-        current_state <= IDLE;
+        current_state <= IDLE_ST;
        else
         current_state <= next_state;
       end
@@ -56,24 +56,24 @@
       begin
        case(current_state)
        
-       IDLE:
+       IDLE_ST:
         begin
-         next_state = (PSEL && !PENABLE) ? SETUP : IDLE;
+         next_state = (PSEL && !PENABLE) ? SETUP_ST : IDLE_ST;
         end
         
-       SETUP:
+       SETUP_ST:
         begin
-         next_state = (PSEL && PENABLE) ? ACCESS : SETUP;
+         next_state = (PSEL && PENABLE) ? ACCESS_ST : SETUP_ST;
         end
        
-       ACCESS:
+       ACCESS_ST:
         begin
-         next_state = (PREADY) ? (PSEL ? SETUP : IDLE) : ACCESS; 
+         next_state = (PREADY) ? (PSEL ? SETUP_ST : IDLE_ST) : ACCESS_ST; 
         end
         
        default: 
        begin
-        next_state = IDLE;
+        next_state = IDLE_ST;
        end
        endcase
       end
@@ -92,6 +92,7 @@
          cfg_rd_en <= 1'b0;               //
          cfg_addr  <= {ADDR_WIDTH{1'b0}};  //
          cfg_wdata <= {DATA_WIDTH{1'b0}};  //
+	PRDATA <= 'd0;
         end
         
        else
@@ -101,7 +102,7 @@
          cfg_rd_en <= 1'b0;
          PSLVERR   <= 1'b0; 
          case(current_state)
-        SETUP:
+        SETUP_ST:
         begin
         cfg_addr <= PADDR;
         PWRITE_q <= PWRITE;
@@ -111,7 +112,7 @@
        cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
      
         end
-        ACCESS:
+        ACCESS_ST:
          begin
           PSLVERR <= strobe_error_q;
        //   PREADY  <= 1'b1;    
