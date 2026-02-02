@@ -73,6 +73,12 @@ module trigger_matrix (
         trig1_out_req     = 1'b0;
 
         ch_trigout_ack      = 1'b0;
+	//added this logic not to infer latch
+	    SRCTRIGINSELERR = 1'b0;
+            DESTRIGINSELERR = 1'b0;
+            TRIGOUTSELERR   = 1'b0;
+	//idk
+
         if(!STAT_ERR) begin
             SRCTRIGINSELERR = 1'b0;
             DESTRIGINSELERR = 1'b0;
@@ -143,7 +149,7 @@ module trigger_matrix (
                 trig1_ack_type    = ch_des_ack_type;
             end
         end
-        // TRIGGER OUT routing (DMA → Peripheral)
+        // TRIGGER OUT routing (DMA \u2192 Peripheral)
         if (use_trigout && ch_trigout_req && trigout_type == 2'b10 && !TRIGOUTSELERR) begin
             if (trigout_sel == 1'b0) begin
                 trig0_out_req       = 1'b1;
