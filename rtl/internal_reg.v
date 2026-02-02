@@ -93,7 +93,9 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
                  config_error| regval_error | SRCTRIGINSELERR| DESTRIGINSELERR 
                  | TRIGOUTSELERR | AXIRDRESPERR_CMDFSM | AXIRDPOISERR_CMDFSM |  
                  BUSERR_CMDFSM |  LINKHDERR;
- 
+
+ reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;
+
    assign stat_disable_intr_reg = data_in [50] ?1'b0 : STAT_DISABLED_DATA;
    assign stat_stopped_intr_reg = data_in [51]? 1'b0: STAT_STOPPED_DATA;
   // wire stat_done = IRQ ? data_in [48] : STAT_DONE;
@@ -105,11 +107,11 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  //  wire stat_err_reg = data_in [49]; //== 1 )? 0 :1 ;//stat_err;
    
    
-   wire stopcmd = STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
-   wire disablecmd = DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
-   wire enablecmd =ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
-   wire pausecmd =  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
-   wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
+  // wire stopcmd = STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
+  // wire disablecmd = DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
+  // wire enablecmd =ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
+  // wire pausecmd =  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
+   //wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    
  reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
  //reg [31:0 ] intr_mem_regval [ 0:15 ]; //wrkregval
@@ -160,15 +162,22 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  
  always @(posedge clk or negedge resetn) 
  begin
-  if(!resetn)
+  if(!resetn)begin
   for(i = 0;i<DEPTH;i=i+1)
    intr_mem [i] <= 'd0;
+	{stopcmd,disablecmd,enablecmd,pausecmd,resumecmd} <= 'd0;
+end
   else
    begin
    //if(wr_en)
    //{intr_mem[0],intr_mem[8],intr_mem[12],intr_mem[16],intr_mem[24],intr_mem[32],intr_mem[40],intr_mem[44],
    //intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120]} <= data_in;
-   
+   stopcmd <= STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
+   disablecmd <= DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
+   enablecmd <= ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
+   pausecmd <=  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
+   resumecmd <=  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
+
    intr_mem[0] <= {data_in [31:6],resumecmd,pausecmd,stopcmd,disablecmd,data_in[1],enablecmd};
    intr_mem[8]  <= data_in [(WIDTH * 3) -1 : (WIDTH*2)];
    intr_mem[12] <= data_in [(WIDTH * 4) -1 : (WIDTH*3)];
