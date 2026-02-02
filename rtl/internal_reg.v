@@ -69,7 +69,7 @@ output wire stat_stopped_intr_reg ,
 output wire  stat_err_intr_reg,
 output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  
- output  wire reg_wr_en,
+ //output  wire reg_wr_en,
  output wire [31:0] wrkregval_rd,
  input wire [31:0] cfg_WRKREGPTR,
  input wire [31:0] SRCADDR_INITIAL,
@@ -125,7 +125,7 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  assign IRQ = (INTR_DISABLED | INTR_STOPPED | INTR_ERR | INTR_DONE);
  
  //to reg bank
- assign reg_wr_en = IRQ  ? 1: 0;
+ //assign reg_wr_en = IRQ  ? 1: 0;
  assign chn_reg_out = {intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120],intr_mem[144]};// error,status 
 assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign wrkregval_rd = intr_mem[140];
