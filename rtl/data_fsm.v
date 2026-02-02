@@ -1,16 +1,13 @@
 
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-
 module data_fsm #(
     parameter ADDR_W = 32,
-    parameter DATA_W = 128,
+    parameter DATA_W = 128,  //128
     parameter ID_W   = 4
 )(
     input  wire              clk,
     input  wire              resetn,
     input  wire              stat_error_intr_reg,// from internal reg
-    input wire               stat_error_partsel,
+    //input wire               stat_error_partsel,
     input  wire              stat_done_intr_reg,// from internal reg
     input  wire              link_en,        // from part select
     // Control
@@ -35,7 +32,7 @@ module data_fsm #(
 
     input  wire              use_trigout,
     input  wire [1:0]        trigout_type,
-    input  wire [7:0]        trigout_sel,
+    input  wire [5:0]        trigout_sel,
 
     input  wire              src_trigin_sw,
     input  wire              des_trigin_sw,
@@ -70,7 +67,7 @@ module data_fsm #(
     input  wire [15:0]       srcxsize,
     input  wire [15:0]       desxsize,
     input  wire [2:0]        x_type,
-    input  wire [127:0]      fillval,
+    input  wire [31:0]      fillval,
     input  wire  [15:0]            src_xaddr_inc,
     input  wire   [15:0]           des_xaddr_inc,
 
@@ -81,11 +78,11 @@ module data_fsm #(
     output reg  [2:0]        ARSIZE,
     output reg  [1:0]        ARBURST,
     output reg  [ID_W-1:0]   ARID,
-    output reg  [7:0]        ARLEN,
+    output reg  [3:0]        ARLEN,
 
     input wire              [3:0] RID,
     input  wire              RVALID,
-    input  wire [127 : 0]    RDATA,
+    input  wire [127 : 0]    RDATA, //128
     input  wire [1:0]        RRESP,
     input  wire              RLAST,
     output reg               RREADY,
@@ -97,7 +94,7 @@ module data_fsm #(
     output reg  [2:0]        AWSIZE,
     output reg  [1:0]        AWBURST,
     output reg  [ID_W-1:0]   AWID,
-    output reg  [7:0] AWLEN,
+    output reg  [3:0] AWLEN,
 
     input  wire              WREADY,
     output reg               WVALID,
@@ -110,7 +107,7 @@ module data_fsm #(
 
     // Status
     output reg               DONE,
-   output wire              ERROR,
+   //output wire              ERROR,
 
 //
     output reg [31:0] SRCADDR_UPDATED,
@@ -123,12 +120,12 @@ module data_fsm #(
      output wire [31:0] SRCXSIZE_INITIAL,
      output wire [31:0] DESXSIZE_INITIAL,
     // Error flags
-    output reg               config_error,
+    output wire               config_error,
     output reg               ard_error,
     output reg               arpoison_error,
     output reg               awr_error,
     output reg               bus_error,
-    output reg               regvalerr,
+    output wire               regvalerr,
     output wire             cmd_done_stop,
     output reg               ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA,// FROM DATA FSM TO INTERNAL REGISTER 
     output reg               STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA, 
@@ -136,10 +133,11 @@ module data_fsm #(
     output reg               STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA
 );
 
+	wire              ERROR;
     // Internal counters
     reg cmd_done_reg;
     reg [15:0] src_left, des_left, fill_count;
-    reg [15:0] wrap_rd_ptr;
+    reg [7:0] wrap_rd_ptr;
     reg [DATA_W-1:0] wdata_mask;
     integer i;
     reg [15:0] srcxsize_reg,desxsize_reg;
@@ -148,7 +146,8 @@ module data_fsm #(
     reg [7:0]   fifo_wptr;
     reg [7:0]   fifo_rptr;
     integer j;
-
+    reg config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6;
+    reg regvalerr_src,regvalerr_des,regvalerr_trigout;
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
 
    // reg cmd_done_reg_1, cmd_done_reg_2;
@@ -169,7 +168,7 @@ module data_fsm #(
                WAIT_1 = 4'd14,
                WAIT_2 = 4'd15;
 
-    reg [3:0] state, next;
+    reg [3:0] state, next_st;
 
     reg case1,case2,case3,case4,case5,case6;
 //    wire case1 = (srcxsize == 0 && desxsize == 0);
@@ -179,191 +178,201 @@ module data_fsm #(
 //    wire case5 = ((srcxsize > desxsize) && (desxsize != 0));
 //    wire case6 = ((srcxsize < desxsize) && (srcxsize !=0));
     assign cmd_done_stop = (state == WAIT) ? 1 : 0;
-
+    assign config_error =config_error_src | config_error_des | config_error_trigout | config_error_inc | config_error_x_type | config_error_case3 | config_error_case6;
+	assign regvalerr = regvalerr_src | regvalerr_des | regvalerr_trigout;
   assign ERROR    = config_error || ard_error || arpoison_error || awr_error || bus_error;
  //   assign trig_err = SRCTRIGINSELERR || DESTRIGINSELERR || TRIGOUTSELERR;
 
      assign  SRCADDR_INITIAL = src_addr_reg;
      assign DESADDR_INITIAL = des_addr_reg;
-     assign SRCXSIZE_INITIAL = srcxsize_reg;
-     assign DESXSIZE_INITIAL = desxsize_reg;
+     assign SRCXSIZE_INITIAL = {16'd0,srcxsize_reg};
+     assign DESXSIZE_INITIAL = {16'd0,desxsize_reg};
 //always@(posedge clk)
 //begin
 //cmd_done_reg_1 <= cmd_done;
 //cmd_done_reg_2 <= cmd_done_reg_1;
 //end
 
-always @(*)
+always @(posedge clk or negedge resetn)
 begin
- wr_en_for_updated =(state > CONFIG && state < TRIG_OUT);
- SRCADDR_UPDATED = SRCADDR_UPDATED;
-DESADDR_UPDATED = DESADDR_UPDATED;
-XSIZE_UPDATED = {des_left,src_left};
+if(!resetn)
+begin
+ wr_en_for_updated <= 'd 0;
+ SRCADDR_UPDATED <= 'd 0;
+DESADDR_UPDATED <= 'd 0;
+XSIZE_UPDATED <= 'd 0;
+end
+else begin
+ wr_en_for_updated <=(state > CONFIG && state < TRIG_OUT);
+ SRCADDR_UPDATED <= SRCADDR_UPDATED;
+DESADDR_UPDATED <= DESADDR_UPDATED;
+XSIZE_UPDATED <= {des_left,src_left};
  if(state == WAIT_TRIG)
  begin
-SRCADDR_UPDATED = src_addr_reg;
-DESADDR_UPDATED = des_addr_reg;
+SRCADDR_UPDATED <= src_addr_reg;
+DESADDR_UPDATED <= des_addr_reg;
 //XSIZE_UPDATED = {desxsize,srcxsize};
-XSIZE_UPDATED = {des_left,src_left};
+XSIZE_UPDATED <= {des_left,src_left};
 end
 
 else if(state ==  R && src_left !=0) begin
    // wr_en_for_updated = 1;
-    XSIZE_UPDATED = {des_left,src_left};
+    XSIZE_UPDATED <= {des_left,src_left};
   // XSIZE_UPDATED[15:0] = src_left;
-    if(src_xaddr_inc == 0)
-        SRCADDR_UPDATED = src_addr_reg;
-     else if(src_xaddr_inc == 1)
+    //if(src_xaddr_inc == 0)
+        //SRCADDR_UPDATED = src_addr_reg;
+     if(src_xaddr_inc == 1)
      begin
-        SRCADDR_UPDATED = src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize));
+        SRCADDR_UPDATED <= src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize));
      end
      else
-         SRCADDR_UPDATED =  SRCADDR_UPDATED ;
+         SRCADDR_UPDATED <=  src_addr_reg;
  end
       
  else if(state == WRAP_FILL && src_left !=0) begin
- XSIZE_UPDATED = {des_left,src_left};
+ XSIZE_UPDATED <= {des_left,src_left};
     //wr_en_for_updated =1;
-    SRCADDR_UPDATED = src_addr_reg + ((wrap_rd_ptr) *( 2**transize));
+    SRCADDR_UPDATED <= src_addr_reg + ((wrap_rd_ptr) *( 2**transize));
  end
  else if(state == W  && des_left !=0) begin
   //wr_en_for_updated =1;
-  XSIZE_UPDATED = {des_left,src_left};
+  XSIZE_UPDATED <= {des_left,src_left};
    // XSIZE_UPDATED[31:16] = des_left;
-    if(des_xaddr_inc == 0)
-        DESADDR_UPDATED = des_addr_reg;
-     else if(des_xaddr_inc == 1)
+    //if(des_xaddr_inc == 0)
+       // DESADDR_UPDATED = des_addr_reg;
+     if(des_xaddr_inc == 1)
      begin
-        DESADDR_UPDATED = des_addr_reg + ((desxsize_reg - des_left) * ( 2**transize));
+        DESADDR_UPDATED <= des_addr_reg + ((desxsize_reg - des_left) * ( 2**transize));
      end
      else
-         DESADDR_UPDATED =  DESADDR_UPDATED ;
+         DESADDR_UPDATED <=  des_addr_reg;
          end
   //else
    //wr_en_for_updated =0;
  end
+end
 
 
     always @(posedge clk or negedge resetn) begin
         if (!resetn)
             state <= IDLE;
         else
-            state <= next;
+            state <= next_st;
     end
 
         
     // Next State Logic
     always @(*) begin
-        next = state;
+        next_st = state;
         if (stop_cmd_partsel) begin
-            next = IDLE;
+            next_st = IDLE;
         end else begin
         
         
             case (state)
                 IDLE:
                     if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA)
-                        next = WAIT;
+                        next_st = WAIT;
                     else
-                        next = IDLE;
+                        next_st = IDLE;
                         
-                WAIT : next = WAIT_1;
-                WAIT_1: next = WAIT_2;
-                WAIT_2 : next = CONFIG;
+                WAIT : next_st = WAIT_1;
+                WAIT_1: next_st = WAIT_2;
+                WAIT_2 : next_st = CONFIG;
                 
                 CONFIG: begin
                     if (config_error)
-                        next = ERROR_ST;
+                        next_st = ERROR_ST;
                     else if (case1 || x_type == 0)
-                        next = DONE_ST;
+                        next_st = DONE_ST;
                     else if (case2)
-                        next = (x_type == 3) ? WAIT_TRIG : ERROR_ST; // Note: You had WAIT_RD, but it's not defined. Using WAIT_TRIG
+                        next_st = (x_type == 3) ? WAIT_TRIG : ERROR_ST; // Note: You had WAIT_RD, but it's not defined. Using WAIT_TRIG
                     else if (case3)
-                        next = ERROR_ST;
+                        next_st = ERROR_ST;
                     else if (case6)
-                        next = (x_type == 0) ? DONE_ST : WAIT_TRIG;
+                        next_st = (x_type == 0) ? DONE_ST : WAIT_TRIG;
                     else
-                        next = WAIT_TRIG;
+                        next_st = WAIT_TRIG;
                 end
 
                 
                 WAIT_TRIG:
                 if (config_error)
-                        next = ERROR_ST;
+                        next_st = ERROR_ST;
                     else if (pause_cmd_partsel)
-                        next = PAUSED;
+                        next_st = PAUSED;
                     else if (use_src_trigin && use_des_trigin) begin  
                     
                         if ((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))
-                            next = (case2 && x_type == 'd3) ? WRAP_FILL : AR; 
+                            next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR; 
                         else if ((src_trigin_type == 2'b10 && src_trigin) && (des_trigin_type == 2'b10 && des_trigin))
-                            next = (case2 && x_type == 'd3) ? WRAP_FILL : AR;  
+                            next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;  
                     end
                     else if (!use_src_trigin && !use_des_trigin)
-                        next = AR;
+                        next_st = AR;
                     else
-                        next = WAIT_TRIG;
+                        next_st = WAIT_TRIG;
 
                 AR:
                     if (ARVALID && ARREADY)
-                        next = R;
+                        next_st = R;
                     else
-                        next = AR;
+                        next_st = AR;
 
                 R:
                     if ((RRESP == 2 || RRESP == 3) && RVALID)
-                        next = ERROR_ST;
+                        next_st = ERROR_ST;
                     else if (RVALID && RREADY && RLAST) begin
                         if ((src_left > 0 || fill_count > 1) &&(case6 || case2))
-                            next = WRAP_FILL;
+                            next_st = WRAP_FILL;
                       // else if (src_left == 0)
                           //next = AW;
                         else
-                            next = AW;
+                            next_st = AW;
                     end else
-                        next = R;
+                        next_st = R;
 
                 WRAP_FILL:
                     if (src_left == 0 && fill_count == 0)
-                        next = AW;
+                        next_st = AW;
                     else
-                        next = WRAP_FILL;
+                        next_st = WRAP_FILL;
 
                 AW:
                     if (AWVALID && AWREADY)
-                        next = W;
+                        next_st = W;
 
                 W:
                     if (WREADY && WVALID && WLAST)
-                        next = B;
+                        next_st = B;
 
                 B:
                     if (BVALID && BREADY)
-                        next = (BRESP <= 1) ? TRIG_OUT : ERROR_ST;
+                        next_st = (BRESP <= 1) ? TRIG_OUT : ERROR_ST;
 
                 TRIG_OUT:
                     if (!use_trigout)
-                        next = DONE_ST;
+                        next_st = DONE_ST;
                     else begin
                         if (trigout_type == 2'b00 && trig_out_ack_sw)
-                            next = DONE_ST;
+                            next_st = DONE_ST;
                         else if (trigout_type == 2'b10 && trig_out_ack)
-                            next = DONE_ST;
+                            next_st = DONE_ST;
                     end
 
                 PAUSED:
                     if (resume_cmd_partsel)
-                        next = WAIT_TRIG;
+                        next_st = WAIT_TRIG;
 
                 DONE_ST:
-                    next = IDLE;
+                    next_st = IDLE;
                      //next = STAT_DONE ? DONE_ST : IDLE;
 
                 ERROR_ST:
                     //if (stat_error_partsel ==0)// (stat_error == 1)
-                        next = IDLE;
+                        next_st = IDLE;
 
-                default: next = IDLE;
+                default: next_st = IDLE;
             endcase
         end
     end
@@ -371,13 +380,17 @@ else if(state ==  R && src_left !=0) begin
     // Sequential Logic
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin
-            {ARVALID, RREADY, AWVALID, WVALID, BREADY,
-             DONE, trig_out_req, config_error, ard_error,regvalerr,
+            {ARVALID, RREADY, AWVALID, WVALID, BREADY,WLAST,case1,case2,case3,case4,case5,case6,des_addr_reg,src_addr_reg,wdata_mask,
+             DONE, trig_out_req,  ard_error,WDATA,AWADDR,ARADDR,des_trigin_ack_type,
+		src_trigin_ack_type,AWSIZE,AWBURST,AWLEN,desxsize_reg,ARID,ARSIZE,ARBURST,srcxsize_reg,ARLEN,AWID,
              arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
             {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
              STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
 //             cmd_done_reg_1<='b0;
 //             cmd_done_reg_2<='b0;
+	
+ 	 {config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
+	{regvalerr_src,regvalerr_des,regvalerr_trigout} <= 'd0;
 
             fifo_wptr   <= 0;
             fifo_rptr   <= 0;
@@ -388,7 +401,7 @@ else if(state ==  R && src_left !=0) begin
             src_trigack <= 0;
             des_trigack <= 0;
             
-            for(j=0;j<255;j=j+1) begin
+            for(j=0;j<256;j=j+1) begin
                 fifo_mem [j] <= 'd0;end
                 
         end else begin
@@ -397,7 +410,7 @@ else if(state ==  R && src_left !=0) begin
             AWVALID      <= 0;
             WVALID       <= 0;
             BREADY       <= 0;
-            DONE         <= 0;
+            DONE         <= stop_cmd_partsel? 1: 0;
             trig_out_req <= 0;
             src_trigack  <= 0;
             des_trigack  <= 0;
@@ -411,39 +424,49 @@ else if(state ==  R && src_left !=0) begin
             STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
             STAT_SRCTRIGINWAIT_DATA <= 1'b0;
             STAT_DESTRIGINWAIT_DATA <= 1'b0;
-             if( stat_disable_intr_reg == 0)begin
-                         ENABLECMD_DATA    <= 0;
-                        STAT_DISABLE_DATA  <= 0;
-                         DISABLECMD_DATA <= 0;
-                end
-            if(stat_stop_intr_reg == 0) begin
-                 ENABLECMD_DATA    <= 0;
-                STAT_STOP_DATA    <= 0;
-                STOPCMD_DATA <= 0;
-            end
+
+	 if (disable_cmd_partsel || stop_cmd_partsel)
+		ENABLECMD_DATA    <= 1;
+	else if(stat_disable_intr_reg == 0 || stat_stop_intr_reg == 0)
+		 ENABLECMD_DATA    <= 0;
+
             if (disable_cmd_partsel) begin
-                ENABLECMD_DATA    <= 1;
+               // ENABLECMD_DATA    <= 1;
                 DISABLECMD_DATA <= 1;
                 STAT_DISABLE_DATA <= 1;
             end
+            else if( stat_disable_intr_reg == 0)begin
+                        // ENABLECMD_DATA    <= 0;
+                        STAT_DISABLE_DATA  <= 0;
+                         DISABLECMD_DATA <= 0;
+                end
             if (stop_cmd_partsel) begin
-                ENABLECMD_DATA    <= 1;
+               // ENABLECMD_DATA    <= 1;
                 STAT_STOP_DATA    <= 1;
                 STOPCMD_DATA <= 1;
-                DONE <= 1;// after stop cmd the current command will not excuted and goes for next command after stat_stop is cleared 
+                //DONE <= 1;// after stop cmd the current command will not excuted and goes for next command after stat_stop is cleared 
                 
             end
+            else if(stat_stop_intr_reg == 0) begin
+                // ENABLECMD_DATA    <= 0;
+                STAT_STOP_DATA    <= 0;
+                STOPCMD_DATA <= 0;
+            end
+
+
             STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA:0 ;
 //data_done <=0;
             case (state)
                 IDLE: begin
                     if (stat_error_intr_reg == 0) begin
-                        config_error   <= 0;
+                        //config_error   <= 0;
+ 			{config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6 }<= 0;
                         ard_error      <= 0;
                         arpoison_error <= 0;
                         awr_error      <= 0;
                         bus_error      <= 0;
-                        regvalerr      <= 0;
+                        //regvalerr      <= 0;
+			{regvalerr_src,regvalerr_des,regvalerr_trigout} <= 'd0;
                         //data_done <=1; if cpu gives linaddr for reconfig.. then data_done should be high
                     end
                   /*  if( stat_disable_reg == 0)
@@ -476,38 +499,38 @@ else if(state ==  R && src_left !=0) begin
 
                     srcxsize_reg <= srcxsize;
                     ARLEN   <= srcxsize - 1;
-                    ARBURST <= (src_xaddr_inc) ? 2'b01 : 2'b00;
+                    ARBURST <= (src_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
                     ARSIZE  <= transize;
                     ARID    <= 0;
                     
                     desxsize_reg <= desxsize;
                     AWLEN <= desxsize - 1;
-                    AWBURST <= (des_xaddr_inc) ? 2'b01 : 2'b00;
+                    AWBURST <= (des_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
                     AWSIZE  <= transize;
                     AWID    <= 0;
 
                     if (use_src_trigin) begin
                         if ((src_trigin_type != 2'b00 && src_trigin_type != 2'b10) || src_trigin_mode != 2'b00) begin
-                            config_error <= 1;
-                            regvalerr    <= 1;
+                            config_error_src <= 1;
+                            regvalerr_src    <= 1;
                         end
                     end
 
                     if (use_des_trigin) begin
                         if ((des_trigin_type != 2'b00 && des_trigin_type != 2'b10) || src_trigin_mode != 2'b00) begin
-                            config_error <= 1;
-                            regvalerr    <= 1;
+                            config_error_des <= 1;
+                            regvalerr_des    <= 1;
                         end
                     end
 
                     if (use_trigout) begin
                         if (trigout_type != 2'b00 && trigout_type != 2'b10) begin
-                            config_error <= 1;
-                            regvalerr    <= 1;
+                            config_error_trigout <= 1;
+                            regvalerr_trigout    <= 1;
                         end
                     end
 
-                    config_error <= (config_error | (x_type > 3) |(src_xaddr_inc>1| (des_xaddr_inc>1))? 1 : 0);
+                    config_error_inc <= ((x_type > 3) |(src_xaddr_inc>1| (des_xaddr_inc>1))? 1 : 0);
 
                     if (case1) begin
                         src_left <= 0;
@@ -517,11 +540,11 @@ else if(state ==  R && src_left !=0) begin
                             src_left <= 0;
                             des_left <= desxsize;
                         end else if (x_type == 0)
-                            config_error <= 0;
+                            config_error_x_type <= 0;
                         else
-                            config_error <= 1;
+                            config_error_x_type <= 1;
                     end else if (case3)
-                        config_error <= 1;
+                        config_error_case3 <= 1;
                     else if (case4 || case5) begin
                         src_left <= srcxsize;
                         des_left <= desxsize;
@@ -531,7 +554,7 @@ else if(state ==  R && src_left !=0) begin
                             1: begin src_left <= srcxsize; des_left <= srcxsize; end
                             2: begin src_left <= desxsize; des_left <= desxsize; end
                             3: begin src_left <= srcxsize; des_left <= desxsize; end
-                            default: config_error <= 1;
+                            default: config_error_case6 <= 1;
                         endcase
                     end
 
@@ -577,14 +600,14 @@ else if(state ==  R && src_left !=0) begin
                         2: begin
                             if ((!(desxsize - src_left < srcxsize)) && src_left > 0) begin
                                 fifo_mem[fifo_wptr] <= fifo_mem[wrap_rd_ptr];
-                                wrap_rd_ptr         <= (wrap_rd_ptr == srcxsize) ? 0 : wrap_rd_ptr + 1;
+                                wrap_rd_ptr         <= (wrap_rd_ptr == srcxsize[7:0]) ? 0 : wrap_rd_ptr + 1;
                                 fifo_wptr           <= fifo_wptr + 1;
                                 src_left            <= src_left - 1;
                             end
                         end
                         3: begin
                             if (fill_count > 0 && src_left == 0 && (case2 || case6)) begin
-                                fifo_mem[fifo_wptr] <= fillval;
+                                fifo_mem[fifo_wptr] <= {96'd0,fillval};
                                 fill_count          <= fill_count - 1;
                                 fifo_wptr           <= fifo_wptr + 1;
                             end
@@ -611,7 +634,7 @@ else if(state ==  R && src_left !=0) begin
                 B: begin
                     BREADY <= 1;
                     if (BRESP >= 2) begin
-                        awr_error <= 1;
+                        awr_error<= 1;
                         bus_error <= 1;
                     end
                 end
