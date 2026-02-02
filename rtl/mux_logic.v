@@ -3,7 +3,7 @@ module mux_logic #(parameter WIDTH = 32)
 	input wire [31:0] cmd_data,
 	input wire clk,resetn,
 	input wire link_en,data_done,
-	input wire [5:0] wptr,//input from cmd fsm
+	input wire [4:0] wptr,//input from cmd fsm
 	input wire [31:0] header_in,// from cmd fsm
 //	input wire cmd_done_stop,
 	//previous data
@@ -92,7 +92,7 @@ module mux_logic #(parameter WIDTH = 32)
 	wire REGCLEAR = HEADER_CMD[0];
 	
 	wire [(WIDTH * 13) -1:0] concat_cmd;
-	reg [5:0] rd_ptr;
+	reg [4:0] rd_ptr;
 	reg chn_cmd_wr_en_reg;//for delay
 reg chn_stat_wr_en_reg;
 reg chn_intren_wr_en_reg;
@@ -185,10 +185,10 @@ end
 		cmd_data_in [(WIDTH * i) +: WIDTH ] = cmd_data_mem [rd_ptr];
 		rd_ptr = rd_ptr+1'b1; 
 		end
-		else if(i==31)
-		rd_ptr = 1;
+		//else if(i==31)
+		//rd_ptr = 1;
 		else
-		rd_ptr = rd_ptr;
+		cmd_data_in [(WIDTH * i) +: WIDTH ] = 'd0;
 	
 	end
 	
