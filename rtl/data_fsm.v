@@ -425,9 +425,9 @@ end
             STAT_SRCTRIGINWAIT_DATA <= 1'b0;
             STAT_DESTRIGINWAIT_DATA <= 1'b0;
 
-	 if (disable_cmd_partsel || stop_cmd_partsel)
+	 if (disable_cmd_partsel || stop_cmd_partsel || STAT_DONE_DATA)
 		ENABLECMD_DATA    <= 1;
-	else if(stat_disable_intr_reg == 0 || stat_stop_intr_reg == 0)
+	else if(stat_disable_intr_reg == 0 || stat_stop_intr_reg == 0 || !stat_done_intr_reg)
 		 ENABLECMD_DATA    <= 0;
 
             if (disable_cmd_partsel) begin
