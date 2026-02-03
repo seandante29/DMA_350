@@ -96,11 +96,11 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
 
  reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;
 
-   assign stat_disable_intr_reg = data_in [50] ?1'b0 : STAT_DISABLED_DATA;
-   assign stat_stopped_intr_reg = data_in [51]? 1'b0: STAT_STOPPED_DATA;
+   assign stat_disable_intr_reg = data_in [50]| data_in[0] ?1'b0 : STAT_DISABLED_DATA;
+   assign stat_stopped_intr_reg = data_in [51]| data_in[0] ? 1'b0: STAT_STOPPED_DATA;
   // wire stat_done = IRQ ? data_in [48] : STAT_DONE;
-  assign stat_done_intr_reg = data_in [48] ? 1'b0  : STAT_DONE_DATA;//?1:stat_done;
-  assign stat_err_intr_reg = data_in [49] ? 1'b0  : STAT_ERR;
+  assign stat_done_intr_reg = data_in [48] | data_in[0] ? 1'b0  : STAT_DONE_DATA;//?1:stat_done;
+  assign stat_err_intr_reg = data_in [49] | data_in[0] ? 1'b0  : STAT_ERR;
   // wire  stat_done_reg  = data_in [48];
    //assign stat_disable_reg = data_in [50];
  //  wire stat_stopped_reg = data_in [51];
@@ -197,8 +197,8 @@ end
    intr_mem[84] <= data_in [(WIDTH * 14) -1 : (WIDTH*13)];
    intr_mem[120]<= data_in [(WIDTH * 15) -1 : (WIDTH*14)];
    
-   intr_mem[144] <= {6'd0,regval_error,LINKHDERR,6'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},AXIWRRESPERR,11'd0,
-         TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,config_error,{BUSERR|BUSERR_CMDFSM}};
+   intr_mem[144] <= {6'd0,(regval_error | config_error) ,LINKHDERR,5'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},AXIWRRESPERR,{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},11'd0,
+         TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,(config_error|LINKHDERR),{BUSERR|BUSERR_CMDFSM}};
    
    intr_mem[4] <= {5'd0,STAT_TRIGOUTACKWAIT_DATA,STAT_DESTRIGINWAIT_DATA,STAT_SRCTRIGINWAIT_DATA,2'd0,STAT_RESUMEWAIT_DATA,STAT_PAUSED_DATA,stat_stopped_intr_reg,
        stat_disable_intr_reg,stat_err_intr_reg,stat_done_intr_reg,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
