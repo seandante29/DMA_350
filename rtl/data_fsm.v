@@ -142,7 +142,7 @@ module data_fsm #(
     integer i;
     reg [15:0] srcxsize_reg,desxsize_reg;
     // FIFO memory
-    reg [127:0] fifo_mem [0:255];
+   (* ram_style = "block" *)  reg [127:0] fifo_mem [0:255];
     reg [7:0]   fifo_wptr;
     reg [7:0]   fifo_rptr;
     integer j;
@@ -587,11 +587,26 @@ end
                         RREADY <= 1;
                     else
                         RREADY <= 0;
-
-                    if (RVALID && RREADY && src_left > 0) begin
+                    
+                    if (RVALID && RREADY && src_left > 0 ) begin
                         fifo_mem[fifo_wptr] <= RDATA;
                         fifo_wptr           <= fifo_wptr + 1;
                         src_left            <= src_left - 1;
+                                         
+                    if(RRESP == 2'b11)    // error handling TBD
+                        begin
+                            //if(RLAST)begin
+                            bus_error <= 1'b1;
+                            ard_error <=1'b1;
+                            //end
+                    end
+                    else if(RRESP == 2'b10)
+                        begin
+                            //if(RLAST)begin
+                            bus_error <=1'b1;
+                            arpoison_error <= 1'b1;
+                            //end
+                    end
                     end
                 end
 
