@@ -70,7 +70,7 @@ module mux_logic #(parameter WIDTH = 32)
 	output reg [(WIDTH * 15) -1:0] mux_out_reg//to internal reg 
 	);
 	
-	reg [31:0] cmd_data_mem [0:31];
+	(* ram_style = "block" *) reg [31:0] cmd_data_mem [0:31];
 
 	reg [1023:0] cmd_data_in;
 	
@@ -208,7 +208,7 @@ end
         if (chn_stat_wr_en_reg)
             mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <= cfg_CH_STATUS;
         else if ((link_en && data_done) || cmd_done)
-            mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <= mux_out_reg[(WIDTH*2)-1:(WIDTH*1)];
+            mux_out_reg[51:48] <= 0;//mux_out_reg[(WIDTH*2)-1:(WIDTH*1)];
 
         // WORD 2 : INTREN
         if (chn_intren_wr_en_reg)
