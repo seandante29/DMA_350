@@ -5,7 +5,7 @@ module register_bank #(parameter WIDTH = 32,
       input wire cfg_rd_en,cfg_wr_en,//reg_wr_en,// write enable from apb to reg, 
       input wire [ WIDTH-1 : 0] cfg_data_in,//from apb to reg
       input wire [ WIDTH-1 : 0 ] addr_in,// from apb
-      input wire [(WIDTH*11)-1 : 0] chn_reg_in,// from channel
+      input wire [(WIDTH*12)-1 : 0] chn_reg_in,// from channel
       input wire [WIDTH-1 : 0] wrkregval_rd,
       output wire [ WIDTH-1 : 0] cfg_data_out, // to apb
    //   output wire chn_wr_en, //to channel   not being used
@@ -35,7 +35,7 @@ module register_bank #(parameter WIDTH = 32,
 	  );
       //output wire [(WIDTH * 15) -1 : 0] reg_chn_out); // to  channel
 	  
-      reg [ WIDTH-1:0 ] reg_mem [ 0:DEPTH-1 ];
+      (* ram_style = "block" *) reg [ WIDTH-1:0 ] reg_mem [ 0:DEPTH-1 ];
       wire [7:0] addr_w; 
 	  integer i;
 	   
@@ -96,7 +96,7 @@ module register_bank #(parameter WIDTH = 32,
 		   else
 		   begin// if(reg_wr_en)
 		   ///intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120]
-			{reg_mem [4] , reg_mem[12],reg_mem [40] , reg_mem[44],reg_mem [48] , reg_mem[56],reg_mem [76] ,
+			{reg_mem [0],reg_mem [4] , reg_mem[12],reg_mem [40] , reg_mem[44],reg_mem [48] , reg_mem[56],reg_mem [76] ,
 			                  reg_mem[80],reg_mem [84] ,reg_mem[120], reg_mem[144]} <= chn_reg_in;
 			{reg_mem [16] , reg_mem[24],reg_mem [32]} <=src_des_xsize_updated;
 			reg_mem[140] <= wrkregval_rd; 
