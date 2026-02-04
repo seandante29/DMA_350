@@ -89,15 +89,17 @@ module cmd_fsm (input clk,
          next_state = IDLE;
          
        AR:
-        if(ARREADY && ARVALID)
-         next_state = R;
+        if(!cmd_error)
+            next_state = IDLE;
+        else if(ARREADY && ARVALID)
+            next_state = R;
         else
-         next_state = AR;
+            next_state = AR;
          
        R:
         //if((RVALID && RREADY && RLAST && count == 0) )//|| (|RDATA_I != 1))///RDATAI/ rdatao?
           //  next_state = IDLE;
-          if(STAT_ERROR_PARTSEL)
+          if(!cmd_error)
         next_state = IDLE;
        else if(RVALID && RREADY && RLAST && count == 0)
         //if(RRESP==2'b00 || RRESP==2'b01)
@@ -108,7 +110,10 @@ module cmd_fsm (input clk,
          next_state = R;
          
        COUNT : begin
-         next_state = AR;
+         if(!cmd_error)
+            next_state = IDLE;
+         else 
+            next_state = AR;
         end
              
        default : next_state = IDLE;
