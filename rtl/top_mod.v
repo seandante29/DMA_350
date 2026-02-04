@@ -1,1074 +1,393 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 01/05/2026 03:38:10 PM
-// Design Name: 
-// Module Name: top_tb
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
-module top_tb ;
-
-    parameter WIDTH = 32;
-    parameter DATA_W = 128;
-    parameter DATA_WIDTH = 32;
-    parameter ADDR_WIDTH = 32;
-    parameter STRB_WIDTH =  DATA_WIDTH/8;
-// -------------------------------------------------
-// clocks & resets (inputs → reg)
-// -------------------------------------------------
-reg clk;
-reg resetn;
-reg PCLK;
-reg PRESETn;
-
-// -------------------------------------------------
-// APB interface (inputs → reg)
-// -------------------------------------------------
-reg  [31:0] PADDR;
-reg         PWRITE;
-reg         PENABLE;
-reg         PSEL;
-reg  [31:0] PWDATA;
-reg  [3:0]  PSTRB;
-
-// APB outputs (outputs → wire)
-wire [31:0] PRDATA;
-wire        PREADY;
-wire        PSLVERR;
-
-// -------------------------------------------------
-// trigger matrix (inputs → reg, outputs → wire)
-// -------------------------------------------------
-reg         trig0_req;
-reg  [1:0]  trig0_req_type;
-wire        trig0_ack;
-wire [1:0]  trig0_ack_type;
-
-reg         trig1_req;
-reg  [1:0]  trig1_req_type;
-wire        trig1_ack;
-wire [1:0]  trig1_ack_type;
-
-wire        trig0_out_req;
-reg         trig0_out_ack;
-wire        trig1_out_req;
-reg         trig1_out_ack;
-
-// -------------------------------------------------
-// AXI read inputs (inputs → reg)
-// -------------------------------------------------
-reg         ARREADY;
-reg         RID;
-reg [127:0] RDATA_I;
-reg [1:0]   RRESP;
-reg         RLAST;
-reg         RVALID;
-
-reg         ARREADY_D;
-reg         RID_D;
-reg [127:0] RDATA_I_D;
-reg [1:0]   RRESP_D;
-reg         RLAST_D;
-reg         RVALID_D;
-
-// -------------------------------------------------
-// AXI write inputs (inputs → reg)
-// -------------------------------------------------
-reg         WREADY;
-reg         AWREADY;
-reg         BVALID;
-reg [1:0]   BRESP;
-
-// -------------------------------------------------
-// AXI outputs (outputs → wire)
-// -------------------------------------------------
-wire [3:0]  ARID;
-wire [3:0]  ARLEN;
-wire [2:0]  ARSIZE;
-wire [1:0]  ARBURST;
-wire        ARVALID;
-wire [31:0] ARADDR;
-wire        RREADY;
-
-//wire [3:0]  ARID_D;
-//wire [3:0]  ARLEN_D;
-//wire [2:0]  ARSIZE_D;
-//wire [1:0]  ARBURST_D;
-//wire        ARVALID_D;
-//wire [31:0] ARADDR_D;
-//wire        RREADY_D;
-
-wire [3:0]  AWID_D;
-wire [3:0]  AWLEN_D;
-wire [2:0]  AWSIZE_D;
-wire [1:0]  AWBURST_D;
-wire        AWVALID_D;
-wire [31:0] AWADDR_D;
-wire        WVALID_D;
-wire [127:0] WDATA_D;
-wire        WLAST_D;
-wire        BREADY_D;
-
-// -------------------------------------------------
-// Interrupt
-// -------------------------------------------------
-wire IRQ;
-
-
-top_mod #(
-    .WIDTH       (32),
-    .DATA_W      (128),
-    .DATA_WIDTH  (32),
-    .ADDR_WIDTH  (32),
-    .STRB_WIDTH  (32/8)
-) u_top_mod (
-    // clocks & resets
-    .clk            (clk),
-    .resetn         (resetn),
-    .PCLK           (PCLK),
-    .PRESETn        (PRESETn),
-
-    // APB interface
-    .PADDR          (PADDR),
-    .PWRITE         (PWRITE),
-    .PENABLE        (PENABLE),
-    .PSEL           (PSEL),
-    .PWDATA         (PWDATA),
-    .PSTRB          (PSTRB),
-    .PRDATA         (PRDATA),
-    .PREADY         (PREADY),
-    .PSLVERR        (PSLVERR),
-
-    // trigger matrix
-    .trig0_req          (trig0_req),
-    .trig0_req_type     (trig0_req_type),
-    .trig0_ack          (trig0_ack),
-    .trig0_ack_type     (trig0_ack_type),
-
-    .trig1_req          (trig1_req),
-    .trig1_req_type     (trig1_req_type),
-    .trig1_ack          (trig1_ack),
-    .trig1_ack_type     (trig1_ack_type),
-
-    .trig0_out_req      (trig0_out_req),
-    .trig0_out_ack      (trig0_out_ack),
-    .trig1_out_req      (trig1_out_req),
-    .trig1_out_ack      (trig1_out_ack),
-
-    // AXI read (main)
-    .ARREADY        (ARREADY),
-    .RID            (RID),
-    .RDATA_I        (RDATA_I),
-    .RRESP          (RRESP),
-    .RLAST          (RLAST),
-    .RVALID         (RVALID),
-
-    // AXI read (D)
-//    .ARREADY_D      (ARREADY_D),
-//    .RID_D          (RID_D),
-//    .RDATA_I_D      (RDATA_I_D),
-//    .RRESP_D        (RRESP_D),
-//    .RLAST_D        (RLAST_D),
-//    .RVALID_D       (RVALID_D),
-
-    // AXI write responses
-    .WREADY         (WREADY),
-    .AWREADY        (AWREADY),
-    .BVALID         (BVALID),
-    .BRESP          (BRESP),
-
-    // AXI read address outputs
-    .ARID           (ARID),
-    .ARLEN          (ARLEN),
-    .ARSIZE         (ARSIZE),
-    .ARBURST        (ARBURST),
-    .ARVALID        (ARVALID),
-    .ARADDR         (ARADDR),
-    .RREADY         (RREADY),
-
-    // AXI read address outputs (D)
-//    .ARID_D         (ARID_D),
-//    .ARLEN_D        (ARLEN_D),
-//    .ARSIZE_D       (ARSIZE_D),
-//    .ARBURST_D      (ARBURST_D),
-//    .ARVALID_D      (ARVALID_D),
-//    .ARADDR_D       (ARADDR_D),
-//    .RREADY_D       (RREADY_D),
-
-    // AXI write address/data (D)
-    .AWID_D         (AWID_D),
-    .AWLEN_D        (AWLEN_D),
-    .AWSIZE_D       (AWSIZE_D),
-    .AWBURST_D      (AWBURST_D),
-    .AWVALID_D      (AWVALID_D),
-    .AWADDR_D       (AWADDR_D),
-    .WVALID_D       (WVALID_D),
-    .WDATA_D        (WDATA_D),
-    .WLAST_D        (WLAST_D),
-    .BREADY_D       (BREADY_D),
-
-    // interrupt
-    .IRQ            (IRQ)
-);
-
-  // ------------- Clock -------------
-  always #5 clk = ~clk;
-
-  // ------------- Test --------------
-  initial begin
-    // Init
-    clk        = 0;
-    resetn     = 0;
-    PRESETn    = 0;
-    PADDR      = 0;
-    PWRITE     = 0;
-    PSEL       = 0;
-    PENABLE    = 0;
-    PWDATA     = 0;
-    PSTRB      = 4'b0000;
-    //ch_wr_en_i = 0;
-
-    // Reset
-    #20;
-    PRESETn = 1;
-    resetn     = 1;
-
-    // -------- APB WRITE --------
-    // link addr
-    #10;
-    PADDR   = 32'h78;
-    PWRITE  = 1;
-    PSEL    = 1;
-    PWDATA  = 32'h0000ABCF;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-#10;
-    PENABLE = 1;
- #10;
-    PENABLE = 0;
-    
-    // CH_TRIGOUT CFG
-
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h54;
-    PWDATA  = 32'h0000000;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-      // CH_DESTRIGINCFG 
-
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h50;
-    PWDATA  = 32'h0;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-    //CH_SRCTIRGINCFG
-
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h4C;
-    PWDATA  = 32'h0;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-        #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-    //FILLVAL
-        
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h38;
-    PWDATA  = 32'h1234;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-       //XADDRINC 
-   
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h30;
-    PWDATA  = 32'h00010001;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;      
-        
-    //CH_DESTRANSCFG
-  
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h2C;
-    PWDATA  = 32'h0;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-     //CH_SRCTRANSCFG
+module top_mod#( 
+    parameter WIDTH = 32,
+    parameter DATA_W = 128,
+    parameter DATA_WIDTH = 32,
+    parameter ADDR_WIDTH = 32,
+    parameter STRB_WIDTH =  DATA_WIDTH/8
+)
+    (// apb_reg interface
+      input wire clk,
+      input wire resetn,
+      input wire PCLK,
+      input wire PRESETn,
+      input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
+      input wire PWRITE,
+      input wire PENABLE,
+      input wire PSEL,
+    //  input  wire [(WIDTH*2)-1 : 0] chn_reg_in,
+      input wire [DATA_WIDTH-1 : 0] PWDATA,
+      input wire [STRB_WIDTH-1 : 0] PSTRB,
       
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h28;
-    PWDATA  = 32'h0;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-     //XSIZE   
-    
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h20;
-    PWDATA  = 32'h00050005;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;      
-    //DESADDR    
+      // going back to cpu
+      output wire [DATA_WIDTH-1 : 0] PRDATA,
+      output wire PREADY,
+      output wire PSLVERR,
       
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h18;
-    PWDATA  = 32'h6084;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;    
-        
-        //SRCADDR
-       
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h10;
-    PWDATA  = 32'h1612;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-       
-        //CH_CTRL
-     
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h0C;
-    PWDATA  = 32'h0E001402;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;    
-        
-    //CH_INTREN
+
+      // trigger matrix
+
+    input  wire        trig0_req,
+    input  wire [1:0]  trig0_req_type,
+    output wire         trig0_ack,
+    output wire  [1:0]  trig0_ack_type,
+
+    input  wire        trig1_req,
+    input  wire [1:0]  trig1_req_type,
+    output wire         trig1_ack,
+    output wire  [1:0]  trig1_ack_type,
+    output wire         trig0_out_req,
+    input  wire        trig0_out_ack,
+    output wire         trig1_out_req,
+    input  wire        trig1_out_ack,
       
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h08;
-    PWDATA  = 32'h70F;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;  
-        
-        
-        //CH_CMD
+     //AXI signals 
+    input wire ARREADY,
+     input wire [3:0] RID,
+     input wire [DATA_W-1 : 0]RDATA_I,
+     input wire [1:0]RRESP,
+     input wire RLAST,
+     input wire RVALID,
+
      
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h00;
-    PWDATA  = 32'h01110001;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;  
-        
-#100;
-      ARREADY = 'b1;
-#30 ARREADY = 'b0;
-
-#10 
-RRESP = 'b01;
-RVALID = 'b1;
-RDATA_I = 'hABC0;
-#10
-RDATA_I = 'hABC1;
-#10
-RDATA_I = 'hABC2;
-#10
-RDATA_I = 'hABC3;
-#10
-RDATA_I = 'hABC4;
-RLAST = 'b1;
-#10 RLAST = 'b0;
-RVALID = 'b0;
-#20;
-
-AWREADY = 'b1;
-#30 AWREADY = 'b0;
-
-WREADY = 'b1;
-#100;
-WREADY = 'b0;
-BVALID = 1'b1;
-BRESP = 'b00;
-#20 BVALID = 'b0;   
-        
- # 100;
+//     input wire ARREADY_D,
+//     input wire RID_D,
+//     input wire [DATA_W-1 : 0]RDATA_I_D,
+//     input wire [1:0]RRESP_D,
+//     input wire RLAST_D,
+//     input wire RVALID_D,
+     
+     input wire WREADY,
+     input wire AWREADY,
+     input wire BVALID,
+     input wire [1:0] BRESP,
  
-     
-    // comand descriptor1
-
-  #10;
-    ARREADY = 1'b1;
-    #20 ARREADY = 1'b0;
-          
-
-     #10
-          RRESP='b00;
-    RID = 'b0;
-    RVALID =1;
-     RDATA_I = 'h40385D5D;
-     RLAST = 1;
-     #10 RVALID =0; RLAST=0;
-     #30;
-    ARREADY = 1'b1;
-    #30 ARREADY = 1'b0;
-        RVALID =1;
-        RDATA_I = 32'h70F; #10//intren
-        RDATA_I = 32'h0E001600;#10//ctrl
-        RDATA_I = 32'h1234;#10//src addr
-        RDATA_I = 32'h5687;#10//des addr
-        RDATA_I=32'h00070000;#10//xsize
-        RDATA_I=32'h0;#10//trans cfg
-        RDATA_I=32'h0;#10//
-        RDATA_I=32'h00010001;#10//xaddr inc
-        RDATA_I=32'h1234;#10//fill val
-        RDATA_I = 32'h00000201 ;#10//srctrig
-        RDATA_I = 32'h00000200;#10//destrig
-        RDATA_I = 32'h00000200;#10//trigout
-        RDATA_I = 32'h0001ABCF; //link addr
-        RLAST = 1;
-        #10 RLAST= 0;
-        RVALID=0;
-     
-#100;
-//#50;
-
-        trig0_req = 1;
-        trig1_req = 1;
-        #10;
-        trig0_req = 0;
-        trig1_req = 0;
-     ARREADY = 1;
-     #30
-     ARREADY = 0;
-     
-     
-     RVALID = 1;
-     RRESP = 'b00;
-  
-     RDATA_I = 'hABC4;
-    #10
-    RDATA_I = 'hABC5;
-    #10
-    RDATA_I = 'hABC6;
-    #10
-    RDATA_I = 'hABC7;
-    #10
-    RDATA_I = 'hABC8;
-    #10
-    RDATA_I = 'hABC9;
-     #10
-    RDATA_I = 'hABCa;
-    RLAST = 'b1;
-    #10 RLAST = 'b0;
-    RVALID = 'b0;
-    #20;
- #100;
-    AWREADY = 'b1;
-    #40 AWREADY = 'b0;
-    
-    WREADY = 'b1;
-    #120;
-   WREADY = 'b0;    
-    BVALID = 1'b1;
-    BRESP = 'b00;
-    #20 BVALID = 'b0;
-    
-    trig0_out_ack = 'b1;
-    #20 trig0_out_ack = 'b0;
-
-        
-   // comand descriptor2
-
-  #30;
-    ARREADY = 1'b1;
-    #20 ARREADY = 1'b0;
-          
-
-     #10
-          RRESP='b00;
-    RID = 'b0;
-    RVALID =1;
-     RDATA_I = 'h40385D5D;
-     RLAST = 1;
-     #10 RVALID =0; RLAST=0;
-     #30;
-    ARREADY = 1'b1;
-    #30 ARREADY = 1'b0;
-        RVALID =1;
-        RDATA_I = 32'h70F; #10//intren
-        RDATA_I = 32'h0E001600;#10//ctrl
-        RDATA_I = 32'h1234;#10//src addr
-        RDATA_I = 32'h5687;#10//des addr
-        RDATA_I=32'h00070007;#10//xsize
-        RDATA_I=32'h0;#10//trans cfg
-        RDATA_I=32'h0;#10//
-        RDATA_I=32'h00010001;#10//xaddr inc
-        RDATA_I=32'h1234;#10//fill val
-        RDATA_I = 32'h00000201 ;#10//srctrig
-        RDATA_I = 32'h00000200;#10//destrig
-        RDATA_I = 32'h00000200;#10//trigout
-        RDATA_I = 32'h0002ABCF; //link addr
-        RLAST = 1;
-        #10 RLAST= 0;
-        RVALID=0;
-     
-#100;
-//// reading status
-//PSEL    = 1;
-//    PWRITE  = 0;
-//    PADDR   = 32'h04;
-//    //PWDATA  = 32'h01110008;
-//    PSTRB   = 4'b1111;
-//    PENABLE = 0;
-    
-//    #10;
-//        PENABLE = 1;
-//     #10;
-//        PENABLE = 0;
-//    // reading error info    
-// PSEL    = 1;
-//    PWRITE  = 0;
-//    PADDR   = 32'h90;
-//    //PWDATA  = 32'h01110008;
-//    PSTRB   = 4'b1111;
-//    PENABLE = 0;
-    
-//    #10;
-//        PENABLE = 1;
-//     #10;
-//        PENABLE = 0;
-        
-/////-------------------------------------------------------------------------------------------------------------
-        
-//#50;
-        //CH_CMD(stop_cmd)
-     
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h00;
-    PWDATA  = 32'h01110008;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0; 
-//-------------------------------------------------------------------------- 
-      #10  trig0_req = 1;
-        trig1_req = 1;
-        #10;
-         trig0_req = 0;
-        trig1_req = 0;
-     ARREADY = 1;
-     #30
-     ARREADY = 0;
-     
-     
-     RVALID = 1;
-     RRESP = 'b00;
- //--------------------------------------------------------------------------------------------- 
-      // status stat stop
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h04;
-    PWDATA  = 32'h00080000;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0; 
-   //enable cmd
-   PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h00;
-    PWDATA  = 32'h01110001;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-///--------------------------------------------------
-             
-     RDATA_I = 'hABC4;
-    #10
-    RDATA_I = 'hABC5;
-    #10
-    RDATA_I = 'hABC6;
-    #10
-    RDATA_I = 'hABC7;
-    #10
-    RDATA_I = 'hABC8;
-     RRESP = 'b11;
-    #10
-    RDATA_I = 'hABC9;
-     #10
-    RDATA_I = 'hABCa;
-    RLAST = 'b1;
-    #10 RLAST = 'b0;
-    RVALID = 'b0;
-    #20;
- #80;
- //-- reading status and error info for axi bus error 
-
-    PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h04;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-    // reading error info    
-    PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h90;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-        
-//#50;
-       //-- writing CH_STAT (Clearing error )
-     
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h04;
-    PWDATA  = 32'h00020000;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0; 
-    //---- again writing the same data
-      #40  trig0_req = 1;
-        trig1_req = 1;
-        #50;
-     ARREADY = 1;
-     #60
-     ARREADY = 0;
-     
-    
-     RVALID = 1;
-     RRESP = 'b00;
-     RDATA_I = 'hABC4;
-    #10
-    RDATA_I = 'hABC5;
-    #10
-    RDATA_I = 'hABC6;
-    #10
-    RDATA_I = 'hABC7;
-    #10
-    RDATA_I = 'hABC8;
-    #10
-    RDATA_I = 'hABC9;
-     #10
-    RDATA_I = 'hABCa;
-    RLAST = 'b1;
-    #10 RLAST = 'b0;
-    RVALID = 'b0;
-    #20;
- #160;
- 
-    AWREADY = 'b1;
-    #40 AWREADY = 'b0;
-    
-    WREADY = 'b1;
-    #120;
-   WREADY = 'b0;   
-    BVALID = 1'b1;
-    BRESP = 'b00;
-    #20 BVALID = 'b0;
-    
-    trig0_out_ack = 'b1;
-    #20 trig0_out_ack = 'b0;
-
-    
-    // comand descriptor3
-        trig0_req = 0;
-        trig1_req = 0;
-        #10;
-  #10;
-    ARREADY = 1'b1;
-    #20 ARREADY = 1'b0;
-          
-
-     #10
-          RRESP='b00;
-    RID = 'b0;
-    RVALID =1;
-     RDATA_I = 'h40385D5D;
-     RLAST = 1;
-     #10 RVALID =0; RLAST=0;
-     #30;
-    ARREADY = 1'b1;
-    #30 ARREADY = 1'b0;
-        RVALID =1;
-        RDATA_I = 32'h70F; #10//intren
-        RDATA_I = 32'h0E001600;#10//ctrl
-        RDATA_I = 32'h1234;#10//src addr
-        RDATA_I = 32'h5687;#10//des addr
-        RDATA_I=32'h00060007;#10//xsize
-        RDATA_I=32'h0;#10//trans cfg
-        RDATA_I=32'h0;#10//
-        RDATA_I=32'h00010001;#10//xaddr inc
-        RDATA_I=32'h1234;#10//fill val
-        RDATA_I = 32'h00000204 ;#10//srctrig
-        RDATA_I = 32'h00000200;#10//destrig
-        RDATA_I = 32'h00000200;#10//trigout
-        RDATA_I = 32'h0003ABCF; //link addr
-        RLAST = 1;
-        #10 RLAST= 0;
-        RVALID=0;
-     
-#100;     
-        trig0_req = 1;
-        trig1_req = 1;
-        #10;
-         trig0_req = 0;
-        trig1_req = 0;
-
-#200;
-//-- reading status and error info for src_trigin error 
-
-    PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h04;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-    // reading error info    
-    PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h90;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-         //-- writing SRC_TRIGIN_CFG
-     
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h4C;
-    PWDATA  = 32'h00000201;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-    
-//#50;
-       //-- writing CH_STAT (Clearing error )
-     
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h04;
-    PWDATA  = 32'h00020000;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0; 
-        #100;
-//-- give trigger again 
-        trig0_req = 1;
-        trig1_req = 1;
-        #10;
-        
-     ARREADY = 1;
-     #30
-     ARREADY = 0;
-     
-     
-     RVALID = 1;
-     RRESP = 'b00;
-  
-     RDATA_I = 'hABCA;
-    #10
-    RDATA_I = 'hABCB;
-    #10
-    RDATA_I = 'hABCC;
-    #10
-    RDATA_I = 'hABCD;
-    #10
-    RDATA_I = 'hABCE;
-    #10
-    RDATA_I = 'hABCF;
-     #10
-    RDATA_I = 'hABC0;
-    RLAST = 'b1;
-    #10 RLAST = 'b0;
-    RVALID = 'b0;
-    #20;
- 
-        trig0_req = 0;
-        trig1_req = 0;
-    AWREADY = 'b1;
-    #40 AWREADY = 'b0;
-    
-    WREADY = 'b1;
-    #120;
-   WREADY = 'b0;    
-    BVALID = 1'b1;
-    BRESP = 'b00;
-    #20 BVALID = 'b0;
-    
-    trig0_out_ack = 'b1;
-    #20 trig0_out_ack = 'b0;
+      
+       output wire [3:0] ARID,
+      output wire [3:0] ARLEN,
+      output wire[2:0] ARSIZE,
+      output wire [1:0] ARBURST,
+      output wire ARVALID,
+      output wire [31:0]ARADDR,
+      output wire RREADY,      
+      
+//      output wire [3:0] ARID_D,
+//      output wire [3:0] ARLEN_D,
+//      output wire[2:0] ARSIZE_D,
+//      output wire [1:0] ARBURST_D,
+//      output wire ARVALID_D,
+//      output wire [31:0]ARADDR_D,
+//      output wire RREADY_D ,
+      
+      output wire [3:0] AWID_D,
+      output wire [3:0] AWLEN_D,
+      output wire[2:0] AWSIZE_D,
+      output wire [1:0] AWBURST_D,
+      output wire AWVALID_D,
+      output wire [31:0]AWADDR_D,
+      output wire WVALID_D,
+      output wire [DATA_W -1 :0] WDATA_D,
+      output wire WLAST_D,
+      output wire BREADY_D,
+      output  wire IRQ
+    );
+    wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
+    //wire reg_wr_en;
+      wire  [(WIDTH * 15) -1:0] reg_chn_out;
+      wire [(WIDTH*12)-1 : 0] chn_reg_out;
+     // wire ch_wr_en_o;
+      // from channel to trigger matrix
+   wire        use_src_trigin;
+   wire [1:0]  src_trigin_type;   // 2'b10 = HW
+   wire [7:0]  src_trigin_sel;  // 0 = trig0, 1 = trig1  for peripheral 1 and 2 respectively
+   wire        use_des_trigin;
+   wire [1:0]  des_trigin_type;   // 2'b10 = HW
+   wire [7:0]  des_trigin_sel;   // 0 = trig0, 1 = trig1
+   wire        use_trigout;
+   wire [1:0]  trigout_type;    // 2'b10 = HW
+   wire [5:0]  trigout_sel;      // 0 = trig0, 1 = trig1
    
-   //--------LINKHEADER ERROR 
-   #30
-   #10;
-    ARREADY = 1'b1;
-    #20 ARREADY = 1'b0;
-          
-
-     #10
-          RRESP='b00;
-    RID = 'b0;
-    RVALID =1;
-     RDATA_I = 'h0;
-     RLAST = 1;
-     #10 RVALID =0; RLAST=0;
-     #30;
-    ARREADY = 1'b1;
-    #30 ARREADY = 1'b0;
-        RVALID =1;
-        RLAST = 1;
-        #10 RLAST= 0;
-        RVALID=0;
-     
-#100;
-
-//-- reading status and error info for src_trigin error 
-
-    PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h04;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-    // reading error info    
-    PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h90;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-    
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-        
-       //-- writing CH_STAT (Clearing error )
-     
-    PSEL    = 1;
-    PWRITE  = 1;
-    PADDR   = 32'h04;
-    PWDATA  = 32'h00020000;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
-      #10;            
-          PENABLE = 1;
-          #10;
-          PENABLE = 0;
-          
-          
-          ///---------- rewrite link header
-          
-          #60;
-    ARREADY = 1'b1;
-    #20 ARREADY = 1'b0;
-          
-
-     #10
-          RRESP='b00;
-    RID = 'b0;
-    RVALID =1;
-     RDATA_I = 'h40385D5D;
-     RLAST = 1;
-     #10 RVALID =0; RLAST=0;
-     #30;
-    ARREADY = 1'b1;
-    #30 ARREADY = 1'b0;
-        RVALID =1;
-        RDATA_I = 32'h70F; #10//intren
-        RDATA_I = 32'h0E001600;#10//ctrl
-        RDATA_I = 32'h1234;#10//src addr
-        RDATA_I = 32'h5687;#10//des addr
-        RDATA_I=32'h00060007;#10//xsize
-        RDATA_I=32'h0;#10//trans cfg
-        RDATA_I=32'h0;#10//
-        RDATA_I=32'h00010001;#10//xaddr inc
-        RDATA_I=32'h1234;#10//fill val
-        RDATA_I = 32'h00000201 ;#10//srctrig
-        RDATA_I = 32'h00000200;#10//destrig
-        RDATA_I = 32'h00000200;#10//trigout
-        RDATA_I = 32'h0003ABCF; //link addr
-        RLAST = 1;
-        #10 RLAST= 0;
-        RVALID=0;
-     
-#100;     
-          #40;
-        trig0_req = 1;
-        trig1_req = 1;
-        #30;
-        trig0_req = 0;
-        trig1_req = 0;
-     ARREADY = 1;
-     #30
-     ARREADY = 0;
-     
-     
-     RVALID = 1;
-     RRESP = 'b00;
-  
-     RDATA_I = 'hABCA;
-    #10
-    RDATA_I = 'hABCB;
-    #10
-    RDATA_I = 'hABCC;
-    #10
-    RDATA_I = 'hABCD;
-    #10
-    RDATA_I = 'hABCE;
-    #10
-    RDATA_I = 'hABCF;
-     #10
-    RDATA_I = 'hABC0;
-    RLAST = 'b1;
-    #10 RLAST = 'b0;
-    RVALID = 'b0;
-    #20;
+       // To DMA Channel (REQ view)
+    wire src_trig_req;
+    wire [1:0]  src_trig_req_type;
+    wire des_trig_req;
+    wire [1:0]  des_trig_req_type;
+    wire        ch_src_ack;
+    wire [1:0]  ch_src_ack_type;
+    wire        ch_des_ack;
+    wire [1:0]  ch_des_ack_type;
+    wire        ch_trigout_req;
+    wire ch_trigout_ack;
  
-        trig0_req = 0;
-        trig1_req = 0;
-    AWREADY = 'b1;
-    #40 AWREADY = 'b0;
+    wire SRCTRIGINSELERR, DESTRIGINSELERR, TRIGOUTSELERR;
+      
+    wire chn_wr_en;
     
-    WREADY = 'b1;
-    #120;
-   WREADY = 'b0;    
-    BVALID = 1'b1;
-    BRESP = 'b00;
-    #20 BVALID = 'b0;
-    
-    trig0_out_ack = 'b1;
-    #20 trig0_out_ack = 'b0;
-   
-    ///----------
-        #500;
-    $finish;
-  end
+wire [WIDTH-1 : 0] cfg_CH_CMD;
+wire [WIDTH-1 : 0] cfg_CH_STATUS;
+wire [WIDTH-1 : 0] cfg_CH_INTREN;
+wire [WIDTH-1 : 0] cfg_CH_CTRL;
+wire [WIDTH-1 : 0] cfg_CH_SRCADDR;
+wire [WIDTH-1 : 0] cfg_CH_DESADDR;
+wire [WIDTH-1 : 0] cfg_CH_XSIZE;
+wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG;
+wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG;
+wire [WIDTH-1 : 0] cfg_CH_XADDRINC;
+wire [WIDTH-1 : 0] cfg_CH_FILLVAL;
+wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG;
+wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG;
+wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG;
+wire [WIDTH-1 : 0] cfg_LINKADDR;
+wire [WIDTH-1:0] wrkregval_rd;
 
-endmodule
- 
+wire chn_cmd_wr_en_o;
+wire chn_stat_wr_en_o;
+wire chn_intren_wr_en_o;
+wire chn_ctrl_wr_en_o;
+wire chn_srcaddr_wr_en_o;
+wire chn_desaddr_wr_en_o;
+wire chn_xsize_wr_en_o;
+wire chn_srctrans_wr_en_o;
+wire chn_destrans_wr_en_o;
+wire chn_xaddrinc_wr_en_o;
+wire chn_fillval_wr_en_o;
+wire chn_srctrigin_wr_en_o;
+wire chn_destrigin_wr_en_o;
+wire chn_trigout_wr_en_o;
+wire chn_linkaddr_wr_en_o;
+//wire chn_wrkregptr_wr_en_o;
+
+wire [31:0] cfg_WRKREGPTR;
+    
+    
+    dma_channel #(
+    .WIDTH(WIDTH),
+    .DATA_W(DATA_W)
+) dut0 (
+    // Clock and Reset
+    .clk                (clk),
+    .resetn             (resetn),
+
+    // Configuration Interface
+    .chn_reg_out        (chn_reg_out),
+  //  .reg_wr_en (reg_wr_en),
+    .IRQ                (IRQ),
+    .stat_err (stat_err),
+    .cfg_CH_CMD            (cfg_CH_CMD),
+    .cfg_CH_STATUS         (cfg_CH_STATUS),
+    .cfg_CH_INTREN         (cfg_CH_INTREN),
+    .cfg_CH_CTRL           (cfg_CH_CTRL),
+    .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
+    .cfg_CH_DESADDR        (cfg_CH_DESADDR),
+    .cfg_CH_XSIZE          (cfg_CH_XSIZE),
+    .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
+    .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
+    .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
+    .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
+    .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
+    .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
+    .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
+    .cfg_LINKADDR          (cfg_LINKADDR),
+
+    .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
+    .chn_stat_wr_en_o      (chn_stat_wr_en_o),
+    .chn_intren_wr_en_o    (chn_intren_wr_en_o),
+    .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
+    .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
+    .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
+    .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+    .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
+    .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
+    .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
+    .chn_fillval_wr_en_o   (chn_fillval_wr_en_o),
+    .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
+    .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
+    .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
+    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+  //  .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
+
+    // AXI Read Address/Data (General/Descriptor)
+    .ARID               (ARID),
+    .ARADDR             (ARADDR),
+    .ARLEN              (ARLEN),
+    .ARSIZE             (ARSIZE),
+    .ARBURST            (ARBURST),
+    .ARVALID            (ARVALID),
+    .ARREADY            (ARREADY),
+    
+    .RID                (RID),
+    .RDATA_I            (RDATA_I),
+    .RRESP              (RRESP),
+    .RLAST              (RLAST),
+    .RVALID             (RVALID),
+    .RREADY             (RREADY),
+
+//    .RID_D                (RID_D),
+//    .RDATA_I_D            (RDATA_I_D),
+//    .RRESP_D              (RRESP_D),
+//    .RLAST_D              (RLAST_D),
+//    .RVALID_D             (RVALID_D),
+//    .ARREADY_D             (ARREADY_D),
+
+    // AXI Read Master (Data Specific - _D)
+//    .ARID_D             (ARID_D),
+//    .ARADDR_D           (ARADDR_D),
+//    .ARLEN_D            (ARLEN_D),
+//    .ARSIZE_D           (ARSIZE_D),
+//    .ARBURST_D          (ARBURST_D),
+//    .ARVALID_D          (ARVALID_D),
+//    .RREADY_D           (RREADY_D),
+
+    // AXI Write Master (Data Specific - _D)
+    .AWID_D             (AWID_D),
+    .AWADDR_D           (AWADDR_D),
+    .AWLEN_D            (AWLEN_D),
+    .AWSIZE_D           (AWSIZE_D),
+    .AWBURST_D          (AWBURST_D),
+    .AWVALID_D          (AWVALID_D),
+    .AWREADY            (AWREADY),
+    
+    .WDATA_D            (WDATA_D),
+    .WVALID_D           (WVALID_D),
+    .WLAST_D            (WLAST_D),
+    .WREADY             (WREADY),
+    
+    .BVALID             (BVALID),
+    .BRESP              (BRESP),
+    .BREADY_D           (BREADY_D),
+
+    // Trigger and Control Signals
+  //  .data_done          (data_done),
+   // .linkaddren         (linkaddren),
+    .SRCTRIGINSELERR    (SRCTRIGINSELERR),
+    .DESTRIGINSELERR    (DESTRIGINSELERR),
+    .TRIGOUTSELERR      (TRIGOUTSELERR),
+
+    // Source Trigger Interface
+    .src_trig_req       (src_trig_req),
+    .src_trig_req_type  (src_trig_req_type),
+    .ch_src_ack         (ch_src_ack),
+    .ch_src_ack_type    (ch_src_ack_type),
+    .use_src_trigin     (use_src_trigin),
+    .src_trigin_type    (src_trigin_type),
+    .src_trigin_sel     (src_trigin_sel),
+
+    // Destination Trigger Interface
+    .des_trig_req       (des_trig_req),
+    .des_trig_req_type  (des_trig_req_type),
+    .ch_des_ack         (ch_des_ack),
+    .ch_des_ack_type    (ch_des_ack_type),
+    .use_des_trigin     (use_des_trigin),
+    .des_trigin_type    (des_trigin_type),
+    .des_trigin_sel     (des_trigin_sel),
+
+    // Trigger Out Interface
+    .ch_trigout_req     (ch_trigout_req),
+    .ch_trigout_ack     (ch_trigout_ack),
+    .use_trigout        (use_trigout),
+    .trigout_type       (trigout_type),
+    .trigout_sel        (trigout_sel),
+    .src_des_xsize_updated(src_des_xsize_updated),
+    .wrkregval_rd(wrkregval_rd),
+    .cfg_WRKREGPTR(cfg_WRKREGPTR) );
+    
+    
+        trigger_matrix dut1(
+    .STAT_ERR(stat_err),
+    .trig0_req(trig0_req),
+    .trig0_req_type(trig0_req_type),
+    .trig0_ack(trig0_ack),
+    .trig0_ack_type(trig0_ack_type),
+    .trig1_req(trig1_req),
+    .trig1_req_type(trig1_req_type),
+    .trig1_ack(trig1_ack),
+    .trig1_ack_type(trig1_ack_type),
+    .trig0_out_req(trig0_out_req),
+    .trig0_out_ack(trig0_out_ack),
+    .trig1_out_req(trig1_out_req),
+    .trig1_out_ack(trig1_out_ack),
+    
+    .use_src_trigin(use_src_trigin),
+    .src_trigin_type(src_trigin_type),
+    .src_trigin_sel(src_trigin_sel), 
+    .use_des_trigin(use_des_trigin),
+    .des_trigin_type(des_trigin_type),   
+    .des_trigin_sel(des_trigin_sel),
+    .use_trigout(use_trigout),
+    .trigout_type(trigout_type), 
+    .trigout_sel(trigout_sel),
+    
+    .src_trig_req(src_trig_req),
+    .src_trig_req_type(src_trig_req_type),
+    .des_trig_req(des_trig_req),
+    .des_trig_req_type(des_trig_req_type),
+    .ch_src_ack(ch_src_ack), 
+    .ch_src_ack_type(ch_src_ack_type),
+    .ch_des_ack(ch_des_ack),
+    .ch_des_ack_type(ch_des_ack_type),
+    .ch_trigout_req(ch_trigout_req),
+    .ch_trigout_ack(ch_trigout_ack),
+    .SRCTRIGINSELERR(SRCTRIGINSELERR), 
+    .DESTRIGINSELERR(DESTRIGINSELERR), 
+    .TRIGOUTSELERR(TRIGOUTSELERR)
+    );
+    
+     apb_reg #(.DATA_WIDTH (DATA_WIDTH),
+        .ADDR_WIDTH (ADDR_WIDTH),
+         .STRB_WIDTH (STRB_WIDTH),
+         .WIDTH (WIDTH))
+     dut2 (
+    .clk        (clk),
+    .resetn     (resetn),
+    .PCLK       (clk),     // single clock
+    .PRESETn    (resetn),
+    .PADDR      (PADDR),
+    .PWRITE     (PWRITE),
+    .PSEL       (PSEL),
+    .PENABLE    (PENABLE),
+    .PWDATA     (PWDATA),
+    .PSTRB      (PSTRB),
+    .PRDATA     (PRDATA),
+    .PREADY     (PREADY),
+    .PSLVERR    (PSLVERR),
+    .chn_reg_in (chn_reg_out),
+  // .reg_wr_en (reg_wr_en),
+      .cfg_CH_CMD            (cfg_CH_CMD),
+    .cfg_CH_STATUS         (cfg_CH_STATUS),
+    .cfg_CH_INTREN         (cfg_CH_INTREN),
+    .cfg_CH_CTRL           (cfg_CH_CTRL),
+    .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
+    .cfg_CH_DESADDR        (cfg_CH_DESADDR),
+    .cfg_CH_XSIZE          (cfg_CH_XSIZE),
+    .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
+    .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
+    .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
+    .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
+    .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
+    .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
+    .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
+    .cfg_LINKADDR          (cfg_LINKADDR),
+
+    .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
+    .chn_stat_wr_en_o      (chn_stat_wr_en_o),
+    .chn_intren_wr_en_o    (chn_intren_wr_en_o),
+    .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
+    .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
+    .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
+    .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+    .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
+    .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
+    .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
+    .chn_fillval_wr_en_o   (chn_fillval_wr_en_o),
+    .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
+    .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
+    .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
+    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+    .src_des_xsize_updated(src_des_xsize_updated),
+  //  .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
+    .wrkregval_rd(wrkregval_rd),
+    .cfg_WRKREGPTR(cfg_WRKREGPTR)
+  );
+    
+    
+endmodule 
