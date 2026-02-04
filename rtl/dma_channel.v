@@ -42,7 +42,7 @@ module dma_channel
 
 
     //inter reg signals    
-    output wire [(WIDTH*11)-1 : 0] chn_reg_out,              
+    output wire [(WIDTH*12)-1 : 0] chn_reg_out,              
    // output wire reg_wr_en,         
     output  wire IRQ,
     //cmd fsm signal
@@ -483,6 +483,7 @@ wire [3:0] ARID_CMD;
     data_fsm dut4(
     .clk(clk),
     .resetn(resetn),
+      .LINKHDERR(LINKHDERR),
     .SRCADDR_UPDATED(SRCADDR_UPDATED),
     .DESADDR_UPDATED(DESADDR_UPDATED),
     .XSIZE_UPDATED(XSIZE_UPDATED),
