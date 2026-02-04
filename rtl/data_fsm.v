@@ -10,6 +10,8 @@ module data_fsm #(
     //input wire               stat_error_partsel,
     input  wire              stat_done_intr_reg,// from internal reg
     input  wire              link_en,        // from part select
+    input wire               LINKHDERR,
+
     // Control
     input  wire              enable_cmd_partsel,
     input  wire              pause_cmd_partsel,
@@ -271,8 +273,12 @@ end
         
             case (state)
                 IDLE:
-                    if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA)
-                        next_st = WAIT;
+                    if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
+                        if(LINKHDERR)  
+                            next_st = DONE_ST;
+                        else
+                            next_st = WAIT;
+                    end
                     else
                         next_st = IDLE;
                         
