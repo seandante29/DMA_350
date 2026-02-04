@@ -45,7 +45,7 @@ module internal_reg #(parameter WIDTH = 32,
  
  
  // to reg bank
- output wire [(WIDTH*11)-1 : 0] chn_reg_out,
+ output wire [(WIDTH*12)-1 : 0] chn_reg_out,
  // to partselect module
  output  wire [31:0] CH_CTRL_O,
  output  wire [31:0] CH_INTREN_O,
@@ -113,7 +113,7 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
   // wire pausecmd =  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
    //wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    
- reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
+ (* ram_style = "block" *) reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
  //reg [31:0 ] intr_mem_regval [ 0:15 ]; //wrkregval
 
  
@@ -128,7 +128,7 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  
  //to reg bank
  //assign reg_wr_en = IRQ  ? 1: 0;
- assign chn_reg_out = {intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120],intr_mem[144]};// error,status 
+ assign chn_reg_out = {intr_mem[0],intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120],intr_mem[144]};// error,status 
 assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign wrkregval_rd = intr_mem[140];
  
