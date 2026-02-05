@@ -42,7 +42,7 @@ module register_bank #(parameter WIDTH = 32,
       
       //assign reg_chn_out = { reg_mem[120],reg_mem[84],reg_mem[80],reg_mem[76],reg_mem[56],reg_mem[48],reg_mem[44],reg_mem[40],reg_mem[32],
      //                        reg_mem[24],reg_mem[16],reg_mem[12],reg_mem[8],reg_mem[4],reg_mem[0]};
-
+    //reg reg_mem0_0_1,reg_mem0_0_2,reg_mem0_0_3;
 	assign addr_w = addr_in & 32'hFFFFFFFC;
 	assign cfg_CH_CMD = reg_mem[0];
 	assign cfg_CH_STATUS = reg_mem[4];
@@ -82,6 +82,9 @@ module register_bank #(parameter WIDTH = 32,
       always @(posedge clk or negedge resetn)
 	  begin
 		  if(!resetn) begin
+//		       reg_mem0_0_1<=0;
+//		       reg_mem0_0_2<=0;		       
+//		       reg_mem0_0_3<=0;
 		   for(i=0;i<DEPTH;i=i+1)
 			reg_mem [i] <= {WIDTH{1'b0}};
 		  // cfg_data_out <= {WIDTH{1'b0}};                       
@@ -89,9 +92,13 @@ module register_bank #(parameter WIDTH = 32,
 		   
 		  else 
 		   begin
+//		   reg_mem0_0_1<=reg_mem [0][0] ;
+//		   reg_mem0_0_2<=reg_mem0_0_1;
+//		   reg_mem0_0_3<= reg_mem0_0_2;
 		   if(cfg_wr_en)
 		   begin
-		      if (! (  addr_w == 'h80 | addr_w == 'h8C | addr_w == 'h90 ))
+		      if (! (  addr_w == 'h80 || addr_w == 'h8C || addr_w == 'h90 ))
+		        if((!(reg_mem [0][0]))|| addr_w == 'h0 || addr_w == 'h4 || addr_w == 'h88)
 			     reg_mem [addr_w] <= cfg_data_in;
 		   end
 		   else
