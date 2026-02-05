@@ -91,7 +91,8 @@ module register_bank #(parameter WIDTH = 32,
 		   begin
 		   if(cfg_wr_en)
 		   begin
-			reg_mem [addr_w] <= cfg_data_in;
+		      if (! (  addr_w == 'h80 | addr_w == 'h8C | addr_w == 'h90 ))
+			     reg_mem [addr_w] <= cfg_data_in;
 		   end
 		   else
 		   begin// if(reg_wr_en)
