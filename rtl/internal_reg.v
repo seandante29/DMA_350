@@ -89,13 +89,31 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  
  reg [31:0] WRKREGVAL_temp;
  
- wire STAT_ERR = AXIRDRESPERR| AXIRDPOISERR | AXIWRRESPERR| BUSERR |
+ 
+reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;
+
+(* ram_style = "block" *) reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
+ //reg [31:0 ] intr_mem_regval [ 0:15 ]; //wrkregval
+
+ wire regval_err_reserved_bits = ( (|intr_mem[0][31:25]) | (intr_mem[0][23]) | intr_mem[0][19] | (|intr_mem[0][15:6]) 
+                                | (|intr_mem[4][31:27]) | (|intr_mem[4][23:22]) | (|intr_mem[4][15:11]) | (|intr_mem[4][7:4])
+                                | (|intr_mem[8][31:11]) | (|intr_mem[8][7:4])
+                                | (|intr_mem[12][31:30]) | (|intr_mem[12][17:15]) | (intr_mem[4][8]) | (|intr_mem[4][3]) 
+                                | (|intr_mem[40][31:20]) | (|intr_mem[40][15:12]) 
+                                | (|intr_mem[44][31:20]) | (|intr_mem[44][15:12])
+                                | (|intr_mem[76][31:24]) | (|intr_mem[76][15:12])
+                                | (|intr_mem[80][31:24]) | (|intr_mem[80][15:12])
+                                | (|intr_mem[84][31:10]) | (|intr_mem[84][7:6])
+                                | (intr_mem[120][1])
+                                | (|intr_mem[136][31:4])
+                                | (|intr_mem[144][15:8]) | (|intr_mem[144][6:5]) );
+                  
+                  
+wire STAT_ERR = AXIRDRESPERR| AXIRDPOISERR | AXIWRRESPERR| BUSERR |
                  config_error| regval_error | SRCTRIGINSELERR| DESTRIGINSELERR 
                  | TRIGOUTSELERR | AXIRDRESPERR_CMDFSM | AXIRDPOISERR_CMDFSM |  
-                 BUSERR_CMDFSM |  LINKHDERR;
-
- reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;
-
+                 BUSERR_CMDFSM |  LINKHDERR | regval_err_reserved_bits ;
+                 
    assign stat_disable_intr_reg = data_in [50]| data_in[0] ?1'b0 : STAT_DISABLED_DATA;
    assign stat_stopped_intr_reg = data_in [51]| data_in[0] ? 1'b0: STAT_STOPPED_DATA;
   // wire stat_done = IRQ ? data_in [48] : STAT_DONE;
@@ -113,10 +131,7 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
   // wire pausecmd =  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
    //wire resumecmd =  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    
- (* ram_style = "block" *) reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
- //reg [31:0 ] intr_mem_regval [ 0:15 ]; //wrkregval
-
- 
+               
  assign INTR_TRIGOUTACKWAIT = (STAT_TRIGOUTACKWAIT_DATA && intr_mem[8][10]);
  assign INTR_DESTRIGINWAIT = (STAT_DESTRIGINWAIT_DATA && intr_mem [8][9]);
  assign INTR_SRCTRIGINWAIT = (STAT_SRCTRIGINWAIT_DATA && intr_mem [8][8]);
@@ -197,8 +212,8 @@ end
    intr_mem[84] <= data_in [(WIDTH * 14) -1 : (WIDTH*13)];
    intr_mem[120]<= data_in [(WIDTH * 15) -1 : (WIDTH*14)];
    
-   intr_mem[144] <= {6'd0,(regval_error | config_error) ,LINKHDERR,5'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},AXIWRRESPERR,{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},11'd0,
-         TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,(config_error|LINKHDERR),{BUSERR|BUSERR_CMDFSM}};
+   intr_mem[144] <= {6'd0,(regval_error | config_error| regval_err_reserved_bits) ,LINKHDERR,5'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},AXIWRRESPERR,{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},11'd0,
+         TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,(config_error|LINKHDERR| regval_err_reserved_bits),{BUSERR|BUSERR_CMDFSM}};
    
    intr_mem[4] <= {5'd0,STAT_TRIGOUTACKWAIT_DATA,STAT_DESTRIGINWAIT_DATA,STAT_SRCTRIGINWAIT_DATA,2'd0,STAT_RESUMEWAIT_DATA,STAT_PAUSED_DATA,stat_stopped_intr_reg,
        stat_disable_intr_reg,stat_err_intr_reg,stat_done_intr_reg,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
