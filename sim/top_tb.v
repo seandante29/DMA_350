@@ -484,6 +484,20 @@ top_mod #(
         PENABLE = 1;
      #10;
         PENABLE = 0;  
+     //-----------checking whether the register is written after enable cmd is given    
+           //XSIZE   
+    #20
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h20;
+    PWDATA  = 32'h000a000a;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;  
         
 #100;
       ARREADY = 'b1;
@@ -610,9 +624,9 @@ BRESP = 'b00;
           
 
      #10
-          RRESP='b00;
-    RID = 'b0;
-    RVALID =1;
+     RRESP='b00;
+     RID = 'b0;
+     RVALID =1;
      RDATA_I = 'h40385D5D;
      RLAST = 1;
      #10 RVALID =0; RLAST=0;
@@ -764,12 +778,12 @@ BRESP = 'b00;
         
         
 //#50;
-       //-- writing CH_STAT (Clearing error )
+       //-- writing CH_cmd (Clearing error ) and enable cmd
      
     PSEL    = 1;
     PWRITE  = 1;
-    PADDR   = 32'h04;
-    PWDATA  = 32'h00020000;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h00000001;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
@@ -820,7 +834,7 @@ BRESP = 'b00;
     trig0_out_ack = 'b1;
     #20 trig0_out_ack = 'b0;
 
-    
+   /* 
     // comand descriptor3
         trig0_req = 0;
         trig1_req = 0;
@@ -904,12 +918,12 @@ BRESP = 'b00;
         PENABLE = 0;
     
 //#50;
-       //-- writing CH_STAT (Clearing error )
+       //-- writing CH_CMD(clear stat_error and enable cmd = 1)
      
     PSEL    = 1;
     PWRITE  = 1;
-    PADDR   = 32'h04;
-    PWDATA  = 32'h00020000;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h00000001;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
@@ -1012,12 +1026,12 @@ BRESP = 'b00;
      #10;
         PENABLE = 0;
         
-       //-- writing CH_STAT (Clearing error )
+       //-- writing CH_CMD (Clearing error )
      
     PSEL    = 1;
     PWRITE  = 1;
-    PADDR   = 32'h04;
-    PWDATA  = 32'h00020000;
+    PADDR   = 32'h00;
+    PWDATA  = 32'h00000001;
     PSTRB   = 4'b1111;
     PENABLE = 0;
       #10;            
@@ -1108,7 +1122,7 @@ BRESP = 'b00;
     
     trig0_out_ack = 'b1;
     #20 trig0_out_ack = 'b0;
-   
+   */
     ///----------
         #500;
     $finish;
