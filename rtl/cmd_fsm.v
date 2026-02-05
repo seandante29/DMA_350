@@ -48,7 +48,7 @@ module cmd_fsm (input clk,
     reg data_done_reg;
     reg link_enable_reg;
     reg STAT_ERROR_reg;
-    wire cmd_error = !(LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
+    wire cmd_error = (LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
    localparam IDLE   = 4'b0001;
    localparam AR     = 4'b0010;
    localparam R      = 4'b0100;  
@@ -83,7 +83,7 @@ module cmd_fsm (input clk,
    begin
        case(current_state)
        IDLE:
-        if(link_enable_reg && data_done && cmd_error && !stat_disable_intr_reg)
+		   if(link_enable_reg && data_done && !cmd_error && !stat_disable_intr_reg)
          next_state = AR;
         else
          next_state = IDLE;
