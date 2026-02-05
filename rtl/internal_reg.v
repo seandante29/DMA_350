@@ -98,9 +98,9 @@ reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;
  wire regval_err_reserved_bits = ( (|intr_mem[0][31:25]) | (intr_mem[0][23]) | intr_mem[0][19] | (|intr_mem[0][15:6]) 
                                 | (|intr_mem[4][31:27]) | (|intr_mem[4][23:22]) | (|intr_mem[4][15:11]) | (|intr_mem[4][7:4])
                                 | (|intr_mem[8][31:11]) | (|intr_mem[8][7:4])
-                                | (|intr_mem[12][31:30]) | (|intr_mem[12][17:15]) | (intr_mem[4][8]) | (|intr_mem[4][3]) 
+                                | (|intr_mem[12][31:30]) | (|intr_mem[12][17:15]) | (intr_mem[12][8]) | (|intr_mem[12][3]) 
                                 | (|intr_mem[40][31:20]) | (|intr_mem[40][15:12]) 
-                                | (|intr_mem[44][31:20]) | (|intr_mem[44][15:12])
+                                | (intr_mem[44][31:20]) | (|intr_mem[44][15:12])
                                 | (|intr_mem[76][31:24]) | (|intr_mem[76][15:12])
                                 | (|intr_mem[80][31:24]) | (|intr_mem[80][15:12])
                                 | (|intr_mem[84][31:10]) | (|intr_mem[84][7:6])
@@ -189,7 +189,8 @@ end
    //intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120]} <= data_in;
    stopcmd <= STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
    disablecmd <= DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
-   enablecmd <= ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
+  // enablecmd <= ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
+  enablecmd <= data_in [0] ?  1 : ENABLECMD_DATA ? 0 : enablecmd;
    pausecmd <=  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
    resumecmd <=  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
 
