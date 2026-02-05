@@ -37,6 +37,8 @@
      
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
+    wire RO_error = (( cfg_addr == 'h80 | cfg_addr == 'h8C | cfg_addr == 'h90 ) & PWRITE_q);
+    wire address_error = (! (cfg_addr >=0 && cfg_addr <=144));
     assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
     
     // wire strobe_error;
@@ -114,7 +116,7 @@
         end
         ACCESS_ST:
          begin
-          PSLVERR <= strobe_error_q;
+          PSLVERR <= strobe_error_q | RO_error | address_error;
        //   PREADY  <= 1'b1;    
           //  if(PSEL && PENABLE)  //THIS IS DONE BY SEAN
           // begin
