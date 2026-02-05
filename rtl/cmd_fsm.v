@@ -83,13 +83,13 @@ module cmd_fsm (input clk,
    begin
        case(current_state)
        IDLE:
-		   if(link_enable_reg && data_done && !cmd_error && !stat_disable_intr_reg)
+        if(link_enable_reg && data_done && !cmd_error && !stat_disable_intr_reg)
          next_state = AR;
         else
          next_state = IDLE;
          
        AR:
-        if(!cmd_error)
+        if(cmd_error)
             next_state = IDLE;
         else if(ARREADY && ARVALID)
             next_state = R;
@@ -99,7 +99,7 @@ module cmd_fsm (input clk,
        R:
         //if((RVALID && RREADY && RLAST && count == 0) )//|| (|RDATA_I != 1))///RDATAI/ rdatao?
           //  next_state = IDLE;
-          if(!cmd_error)
+          if(cmd_error)
         next_state = IDLE;
        else if(RVALID && RREADY && RLAST && count == 0)
         //if(RRESP==2'b00 || RRESP==2'b01)
@@ -110,7 +110,7 @@ module cmd_fsm (input clk,
          next_state = R;
          
        COUNT : begin
-         if(!cmd_error)
+         if(cmd_error)
             next_state = IDLE;
          else 
             next_state = AR;
@@ -264,17 +264,17 @@ module cmd_fsm (input clk,
                         end
                     else if(RRESP == 2'b11)    // error handling TBD
                         begin
-                            if(RLAST)begin
+                            //if(RLAST)begin
                             BUSERR <= 1'b1;
                             AXIRDRESPERR <=1'b1;
-                            end
+                            //end
                         end
                     else if(RRESP == 2'b10)
                         begin
-                            if(RLAST)begin
+                           // if(RLAST)begin
                             BUSERR <=1'b1;
                             AXIRDPOISERR <= 1'b1;
-                            end
+                            // end
                         end
                     end
             end
