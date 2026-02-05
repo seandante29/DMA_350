@@ -342,12 +342,56 @@ top_mod #(
         PENABLE = 1;
      #10;
         PENABLE = 0;
-     //CH_SRCTRANSCFG
+        
+//        ///-- checking for pslave error for read only access type 
+//        //CH_ERRINFO
+  
+//    PSEL    = 1;
+//    PWRITE  = 1;
+//    PADDR   = 32'h90;
+//    PWDATA  = 32'h1;
+//    PSTRB   = 4'b1111;
+//    PENABLE = 0;
+    
+//    #10;
+//        PENABLE = 1;
+//     #10;
+//        PENABLE = 0; 
+//        //---checking for reseverd bits error
+//     //CH_SRCTRANSCFG
+      
+//    PSEL    = 1;
+//    PWRITE  = 1;
+//    PADDR   = 32'h28;
+//    PWDATA  = 32'h80000000;
+//    PSTRB   = 4'b1111;
+//    PENABLE = 0;
+    
+//    #10;
+//        PENABLE = 1;
+//     #10;
+//        PENABLE = 0;
+
+//------ address out of range error 
+//    PSEL    = 1;
+//    PWRITE  = 1;
+//    PADDR   = 32'd147;
+//    PWDATA  = 32'h80000000;
+//    PSTRB   = 4'b1111;
+//    PENABLE = 0;
+    
+//    #10;
+//        PENABLE = 1;
+//     #10;
+//        PENABLE = 0;
+     
+     
+          //CH_SRCTRANSCFG
       
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h28;
-    PWDATA  = 32'h0;
+    PWDATA  = 32'h00000000;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
@@ -355,7 +399,7 @@ top_mod #(
         PENABLE = 1;
      #10;
         PENABLE = 0;
-        
+   
      //XSIZE   
     
     PSEL    = 1;
@@ -516,32 +560,33 @@ BRESP = 'b00;
         trig0_req = 1;
         trig1_req = 1;
         #10;
-        
-//     ARREADY = 1;
-//     #30
-//     ARREADY = 0;
+        trig0_req = 0;
+        trig1_req = 0;
+     ARREADY = 1;
+     #30
+     ARREADY = 0;
      
      
-//     RVALID = 1;
-//     RRESP = 'b00;
+     RVALID = 1;
+     RRESP = 'b00;
   
-//     RDATA_I = 'hABC4;
-//    #10
-//    RDATA_I = 'hABC5;
-//    #10
-//    RDATA_I = 'hABC6;
-//    #10
-//    RDATA_I = 'hABC7;
-//    #10
-//    RDATA_I = 'hABC8;
-//    #10
-//    RDATA_I = 'hABC9;
-//     #10
-//    RDATA_I = 'hABCa;
-//    RLAST = 'b1;
-//    #10 RLAST = 'b0;
-//    RVALID = 'b0;
-//    #20;
+     RDATA_I = 'hABC4;
+    #10
+    RDATA_I = 'hABC5;
+    #10
+    RDATA_I = 'hABC6;
+    #10
+    RDATA_I = 'hABC7;
+    #10
+    RDATA_I = 'hABC8;
+    #10
+    RDATA_I = 'hABC9;
+     #10
+    RDATA_I = 'hABCa;
+    RLAST = 'b1;
+    #10 RLAST = 'b0;
+    RVALID = 'b0;
+    #20;
  #100;
     AWREADY = 'b1;
     #40 AWREADY = 'b0;
@@ -582,7 +627,7 @@ BRESP = 'b00;
         RDATA_I=32'h00070007;#10//xsize
         RDATA_I=32'h0;#10//trans cfg
         RDATA_I=32'h0;#10//
-        RDATA_I=32'h00010002;#10//xaddr inc
+        RDATA_I=32'h00010001;#10//xaddr inc
         RDATA_I=32'h1234;#10//fill val
         RDATA_I = 32'h00000201 ;#10//srctrig
         RDATA_I = 32'h00000200;#10//destrig
@@ -593,32 +638,32 @@ BRESP = 'b00;
         RVALID=0;
      
 #100;
-
-// reading status
-PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h04;
-    //PWDATA  = 32'h01110008;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
+//// reading status
+//PSEL    = 1;
+//    PWRITE  = 0;
+//    PADDR   = 32'h04;
+//    //PWDATA  = 32'h01110008;
+//    PSTRB   = 4'b1111;
+//    PENABLE = 0;
     
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
-    // reading error info    
- PSEL    = 1;
-    PWRITE  = 0;
-    PADDR   = 32'h90;
-    //PWDATA  = 32'h01110008;
-    PSTRB   = 4'b1111;
-    PENABLE = 0;
+//    #10;
+//        PENABLE = 1;
+//     #10;
+//        PENABLE = 0;
+//    // reading error info    
+// PSEL    = 1;
+//    PWRITE  = 0;
+//    PADDR   = 32'h90;
+//    //PWDATA  = 32'h01110008;
+//    PSTRB   = 4'b1111;
+//    PENABLE = 0;
     
-    #10;
-        PENABLE = 1;
-     #10;
-        PENABLE = 0;
+//    #10;
+//        PENABLE = 1;
+//     #10;
+//        PENABLE = 0;
         
+/////-------------------------------------------------------------------------------------------------------------
         
 ////#50;
 //        //CH_CMD(stop_cmd)
@@ -634,11 +679,12 @@ PSEL    = 1;
 //        PENABLE = 1;
 //     #10;
 //        PENABLE = 0; 
-        
-//        trig0_req = 1;
-//        trig1_req = 1;
-//        #10;
-        
+//-------------------------------------------------------------------------- 
+      #10  trig0_req = 1;
+        trig1_req = 1;
+        #10;
+         trig0_req = 0;
+        trig1_req = 0;
      ARREADY = 1;
      #30
      ARREADY = 0;
@@ -646,7 +692,7 @@ PSEL    = 1;
      
      RVALID = 1;
      RRESP = 'b00;
-  
+ //--------------------------------------------------------------------------------------------- 
 //      // status stat stop
 //    PSEL    = 1;
 //    PWRITE  = 1;
@@ -671,7 +717,77 @@ PSEL    = 1;
 //        PENABLE = 1;
 //     #10;
 //        PENABLE = 0;
+///--------------------------------------------------
              
+     RDATA_I = 'hABC4;
+    #10
+    RDATA_I = 'hABC5;
+    #10
+    RDATA_I = 'hABC6;
+    #10
+    RDATA_I = 'hABC7;
+    #10
+    RDATA_I = 'hABC8;
+     RRESP = 'b11;
+    #10
+    RDATA_I = 'hABC9;
+     #10
+    RDATA_I = 'hABCa;
+    RLAST = 'b1;
+    #10 RLAST = 'b0;
+    RVALID = 'b0;
+    #20;
+ #80;
+ //-- reading status and error info for axi bus error 
+
+    PSEL    = 1;
+    PWRITE  = 0;
+    PADDR   = 32'h04;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;
+    // reading error info    
+    PSEL    = 1;
+    PWRITE  = 0;
+    PADDR   = 32'h90;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;
+        
+        
+//#50;
+       //-- writing CH_STAT (Clearing error )
+     
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h04;
+    PWDATA  = 32'h00020000;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0; 
+    //---- again writing the same data
+      #40  trig0_req = 1;
+        trig1_req = 1;
+        #50;
+     ARREADY = 1;
+     #60
+     ARREADY = 0;
+     
+    
+     RVALID = 1;
+     RRESP = 'b00;
      RDATA_I = 'hABC4;
     #10
     RDATA_I = 'hABC5;
@@ -689,13 +805,14 @@ PSEL    = 1;
     #10 RLAST = 'b0;
     RVALID = 'b0;
     #20;
+ #160;
  
     AWREADY = 'b1;
     #40 AWREADY = 'b0;
     
     WREADY = 'b1;
     #120;
-   WREADY = 'b0;    
+   WREADY = 'b0;   
     BVALID = 1'b1;
     BRESP = 'b00;
     #20 BVALID = 'b0;
@@ -705,7 +822,9 @@ PSEL    = 1;
 
     
     // comand descriptor3
-
+        trig0_req = 0;
+        trig1_req = 0;
+        #10;
   #10;
     ARREADY = 1'b1;
     #20 ARREADY = 1'b0;
@@ -731,7 +850,7 @@ PSEL    = 1;
         RDATA_I=32'h0;#10//
         RDATA_I=32'h00010001;#10//xaddr inc
         RDATA_I=32'h1234;#10//fill val
-        RDATA_I = 32'h00000201 ;#10//srctrig
+        RDATA_I = 32'h00000204 ;#10//srctrig
         RDATA_I = 32'h00000200;#10//destrig
         RDATA_I = 32'h00000200;#10//trigout
         RDATA_I = 32'h0003ABCF; //link addr
@@ -739,9 +858,67 @@ PSEL    = 1;
         #10 RLAST= 0;
         RVALID=0;
      
-#100;
-//#50;
+#100;     
+        trig0_req = 1;
+        trig1_req = 1;
+        #10;
+         trig0_req = 0;
+        trig1_req = 0;
 
+#200;
+//-- reading status and error info for src_trigin error 
+
+    PSEL    = 1;
+    PWRITE  = 0;
+    PADDR   = 32'h04;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;
+    // reading error info    
+    PSEL    = 1;
+    PWRITE  = 0;
+    PADDR   = 32'h90;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;
+        
+         //-- writing SRC_TRIGIN_CFG
+     
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h4C;
+    PWDATA  = 32'h00000201;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;
+    
+//#50;
+       //-- writing CH_STAT (Clearing error )
+     
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h04;
+    PWDATA  = 32'h00020000;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0; 
+        #100;
+//-- give trigger again 
         trig0_req = 1;
         trig1_req = 1;
         #10;
@@ -772,6 +949,8 @@ PSEL    = 1;
     RVALID = 'b0;
     #20;
  
+        trig0_req = 0;
+        trig1_req = 0;
     AWREADY = 'b1;
     #40 AWREADY = 'b0;
     
@@ -785,8 +964,152 @@ PSEL    = 1;
     trig0_out_ack = 'b1;
     #20 trig0_out_ack = 'b0;
    
+   //--------LINKHEADER ERROR 
+   #30
+   #10;
+    ARREADY = 1'b1;
+    #20 ARREADY = 1'b0;
+          
 
+     #10
+          RRESP='b00;
+    RID = 'b0;
+    RVALID =1;
+     RDATA_I = 'h0;
+     RLAST = 1;
+     #10 RVALID =0; RLAST=0;
+     #30;
+    ARREADY = 1'b1;
+    #30 ARREADY = 1'b0;
+        RVALID =1;
+        RLAST = 1;
+        #10 RLAST= 0;
+        RVALID=0;
+     
+#100;
+
+//-- reading status and error info for src_trigin error 
+
+    PSEL    = 1;
+    PWRITE  = 0;
+    PADDR   = 32'h04;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;
+    // reading error info    
+    PSEL    = 1;
+    PWRITE  = 0;
+    PADDR   = 32'h90;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+    
+    #10;
+        PENABLE = 1;
+     #10;
+        PENABLE = 0;
+        
+       //-- writing CH_STAT (Clearing error )
+     
+    PSEL    = 1;
+    PWRITE  = 1;
+    PADDR   = 32'h04;
+    PWDATA  = 32'h00020000;
+    PSTRB   = 4'b1111;
+    PENABLE = 0;
+      #10;            
+          PENABLE = 1;
+          #10;
+          PENABLE = 0;
+          
+          
+          ///---------- rewrite link header
+          
+          #60;
+    ARREADY = 1'b1;
+    #20 ARREADY = 1'b0;
+          
+
+     #10
+          RRESP='b00;
+    RID = 'b0;
+    RVALID =1;
+     RDATA_I = 'h40385D5D;
+     RLAST = 1;
+     #10 RVALID =0; RLAST=0;
+     #30;
+    ARREADY = 1'b1;
+    #30 ARREADY = 1'b0;
+        RVALID =1;
+        RDATA_I = 32'h70F; #10//intren
+        RDATA_I = 32'h0E001600;#10//ctrl
+        RDATA_I = 32'h1234;#10//src addr
+        RDATA_I = 32'h5687;#10//des addr
+        RDATA_I=32'h00020001;#10//xsize
+        RDATA_I=32'h0;#10//trans cfg
+        RDATA_I=32'h0;#10//
+        RDATA_I=32'h00010001;#10//xaddr inc
+        RDATA_I=32'h1234;#10//fill val
+        RDATA_I = 32'h00000201 ;#10//srctrig
+        RDATA_I = 32'h00000200;#10//destrig
+        RDATA_I = 32'h00000200;#10//trigout
+        RDATA_I = 32'h0003ABCF; //link addr
+        RLAST = 1;
+        #10 RLAST= 0;
+        RVALID=0;
+     
+#100;     
+          #40;
+        trig0_req = 1;
+        trig1_req = 1;
+        #30;
+        trig0_req = 0;
+        trig1_req = 0;
+     ARREADY = 1;
+     #30
+     ARREADY = 0;
+     
+     
+     RVALID = 1;
+     RRESP = 'b00;
   
+     RDATA_I = 'hABCA;
+    #10
+    RDATA_I = 'hABCB;
+    #10
+    RDATA_I = 'hABCC;
+    #10
+    RDATA_I = 'hABCD;
+    #10
+    RDATA_I = 'hABCE;
+    #10
+    RDATA_I = 'hABCF;
+     #10
+    RDATA_I = 'hABC0;
+    RLAST = 'b1;
+    #10 RLAST = 'b0;
+    RVALID = 'b0;
+    #20;
+ 
+        trig0_req = 0;
+        trig1_req = 0;
+    AWREADY = 'b1;
+    #40 AWREADY = 'b0;
+    
+    WREADY = 'b1;
+    #120;
+   WREADY = 'b0;    
+    BVALID = 1'b1;
+    BRESP = 'b00;
+    #20 BVALID = 'b0;
+    
+    trig0_out_ack = 'b1;
+    #20 trig0_out_ack = 'b0;
+   
+    ///----------
         #500;
     $finish;
   end
