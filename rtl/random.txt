@@ -1,2 +1,13 @@
-random
-abac
+1)apb and slverr(invalid strb
+2)all 6 cases of data fsm
+3)stop,disable,statdone,pause,resume cmd's
+4)config error and r/b resp error(>1)
+5)back to back sw
+6)trigger error
+7)linkhdr err
+8)wrkregptr and wrkregval
+9)read from reg bank
+10)src/des addr,xsize initial
+11)internal reg to regbank updation
+12)if enable cmd is high then no write to reg (except status ,ch cmd,wrkregptr)
+13)if reserved bits are written regval err
