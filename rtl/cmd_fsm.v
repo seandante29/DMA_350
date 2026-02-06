@@ -193,7 +193,7 @@ module cmd_fsm (input clk,
             begin
             
                 ARADDR <= 0;
-                ARID   <= 0;
+                ARID   <= 1;
                 ARLEN  <= 0;
                 ARSIZE <= 'd2;
                 ARBURST <=0;
