@@ -230,9 +230,9 @@ else if(state ==  R && src_left !=0) begin
      if(RVALID) begin
      if(src_xaddr_inc == 1)
      begin
-        SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg +1  - (src_left-(desxsize_reg - srcxsize_reg))) *( 2**transize))) 
+        SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg   - (src_left-(desxsize_reg - srcxsize_reg))) *( 2**transize))) 
                                                                                                 : SRCADDR_UPDATED
-                                                                                                :src_addr_reg + ((srcxsize_reg +1- src_left) *( 2**transize)) ;
+                                                                                                :src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize)) ;
 
         //SRCADDR_UPDATED <= src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize));
      end
@@ -241,17 +241,18 @@ else if(state ==  R && src_left !=0) begin
      end
  end
       
- else if(state == WRAP_FILL && src_left !=0 && x_type == 2) begin
-//XSIZE_UPDATED <= (case6 && x_type == 2)?{des_left,(src_left-(desxsize_reg - srcxsize_reg))}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
-    //wr_en_for_updated =1;
-    SRCADDR_UPDATED <= src_addr_reg + ((wrap_rd_ptr) *( 2**transize));
- end
+// else if(state == WRAP_FILL && src_left !=0 && x_type == 2) begin
+////XSIZE_UPDATED <= (case6 && x_type == 2)?{des_left,(src_left-(desxsize_reg - srcxsize_reg))}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+//    //wr_en_for_updated =1;
+//    SRCADDR_UPDATED <= src_addr_reg + ((wrap_rd_ptr) *( 2**transize));
+// end
  else if(state == W  && des_left !=0) begin
   //wr_en_for_updated =1;
 //XSIZE_UPDATED <= (case6 && x_type == 2)?{des_left,(src_left-(desxsize_reg - srcxsize_reg))}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
    // XSIZE_UPDATED[31:16] = des_left;
     //if(des_xaddr_inc == 0)
        // DESADDR_UPDATED = des_addr_reg;
+    if(WREADY)
      if(des_xaddr_inc == 1)
      begin
         DESADDR_UPDATED <= des_addr_reg + ((desxsize_reg - des_left) * ( 2**transize));
@@ -292,9 +293,18 @@ end
                     else
                         next_st = IDLE;
                         
-                WAIT : next_st = WAIT_1;
-                WAIT_1: next_st = WAIT_2;
-                WAIT_2 : next_st = CONFIG;
+               WAIT : if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = WAIT_1;
+                WAIT_1: if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = WAIT_2;
+                WAIT_2 : if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = CONFIG;
                 
                 CONFIG: begin
                     if (config_error)
@@ -339,7 +349,7 @@ end
                     if ((RRESP == 2 || RRESP == 3) && RVALID)
                         next_st = ERROR_ST;
                     else if (RVALID && RREADY && RLAST) begin
-                        if ((src_left > 0 || fill_count > 1) &&(case6 || case2))
+                        if ((src_left > 0 || fill_count > 1) &&(case6 && (x_type != 1) || case2))
                             next_st = WRAP_FILL;
                       // else if (src_left == 0)
                           //next = AW;
