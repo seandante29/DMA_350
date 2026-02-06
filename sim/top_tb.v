@@ -77,12 +77,12 @@ reg [1:0]   RRESP;
 reg         RLAST;
 reg         RVALID;
 
-reg         ARREADY_D;
-reg         RID_D;
-reg [127:0] RDATA_I_D;
-reg [1:0]   RRESP_D;
-reg         RLAST_D;
-reg         RVALID_D;
+// reg         ARREADY_D;
+// reg         RID_D;
+// reg [127:0] RDATA_I_D;
+// reg [1:0]   RRESP_D;
+// reg         RLAST_D;
+// reg         RVALID_D;
 
 // -------------------------------------------------
 // AXI write inputs (inputs → reg)
