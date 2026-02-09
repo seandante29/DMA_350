@@ -167,9 +167,9 @@ module data_fsm #(
                DONE_ST   = 4'd10,
                ERROR_ST  = 4'd11,
                WRAP_FILL = 4'd12,
-               WAIT = 4'd13,
-               WAIT_1 = 4'd14,
-               WAIT_2 = 4'd15;
+               WAIT = 4'd13;
+               //WAIT_1 = 4'd14,
+              // WAIT_2 = 4'd15;
 
     reg [3:0] state, next_st;
 
