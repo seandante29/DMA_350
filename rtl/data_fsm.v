@@ -137,6 +137,7 @@ module data_fsm #(
 
 	wire              ERROR;
     // Internal counters
+    reg reg1,reg2;
     reg cmd_done_reg;
     reg [15:0] src_left, des_left, fill_count;
     reg [7:0] wrap_rd_ptr;
@@ -293,7 +294,7 @@ end
                     else
                         next_st = IDLE;
                         
-               WAIT : if (stat_error_intr_reg) 
+/*               WAIT : if (stat_error_intr_reg) 
                             next_st = ERROR_ST;
                        else 
                             next_st = WAIT_1;
@@ -304,7 +305,11 @@ end
                 WAIT_2 : if (stat_error_intr_reg) 
                             next_st = ERROR_ST;
                        else 
-                            next_st = CONFIG;
+                            next_st = CONFIG;*/
+                WAIT: if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = reg2 ? CONFIG : WAIT;
                 
                 CONFIG: begin
                     if (config_error)
@@ -426,7 +431,8 @@ end
             wrap_rd_ptr <= 0;
             src_trigack <= 0;
             des_trigack <= 0;
-            
+            reg1<=0;
+            reg2<=0;
             for(j=0;j<256;j=j+1) begin
                 fifo_mem [j] <= 'd0;end
                 
@@ -441,6 +447,8 @@ end
             src_trigack  <= 0;
             des_trigack  <= 0;
             cmd_done_reg <= cmd_done;
+            reg1<=0;
+            reg2<=0;
          //   cmd_done_stop <= 'd0;
         //   {STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
            //STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
@@ -505,14 +513,21 @@ end
                     ARLEN       <= 0;
                 end
 
-                WAIT_2 : begin
-                 case1 <= (srcxsize == 0 && desxsize == 0);
-                case2 <= (srcxsize == 0 && desxsize > 0);
-                case3 <= (srcxsize > 0 && desxsize == 0);
-                case4 <= (srcxsize == desxsize && srcxsize > 0);
-                case5 <= ((srcxsize > desxsize) && (desxsize != 0));
-                case6 <= ((srcxsize < desxsize) && (srcxsize !=0));
-                end
+                WAIT:
+                begin
+                    reg1<=1;
+                    reg2<=reg1;
+                  //  reg3<=reg2;
+                    if(reg2) begin
+                    case1 <= (srcxsize == 0 && desxsize == 0);
+                    case2 <= (srcxsize == 0 && desxsize > 0);
+                    case3 <= (srcxsize > 0 && desxsize == 0);
+                    case4 <= (srcxsize == desxsize && srcxsize > 0);
+                    case5 <= ((srcxsize > desxsize) && (desxsize != 0));
+                    case6 <= ((srcxsize < desxsize) && (srcxsize !=0));
+                    end
+                end 
+                
                 CONFIG: begin
                     wdata_mask <= {DATA_W{1'b0}};
                     for (i = 0; i < DATA_W; i = i + 1) begin
