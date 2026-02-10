@@ -1,302 +1,726 @@
 
+module data_fsm #(
+    parameter ADDR_W = 32,
+    parameter DATA_W = 128,  //128
+    parameter ID_W   = 4
+)(
+    input  wire              clk,
+    input  wire              resetn,
+    input  wire              stat_error_intr_reg,// from internal reg
+    //input wire               stat_error_partsel,
+    input  wire              stat_done_intr_reg,// from internal reg
+    input  wire              link_en,        // from part select
+    input wire               LINKHDERR,
+
+    // Control
+    input  wire              enable_cmd_partsel,
+    input  wire              pause_cmd_partsel,
+    input  wire              resume_cmd_partsel,
+    input  wire              disable_cmd_partsel,
+    input  wire              stop_cmd_partsel,      // from internal reg
+    input wire               stat_disable_intr_reg,
+    input wire               stat_stop_intr_reg,
+    input  wire              cmd_done,
+    // Triggers
+    input  wire              use_src_trigin,
+    input  wire [1:0]        src_trigin_type,
+    input  wire [1:0]        src_trigin_mode,
+    input  wire [7:0]        src_trigin_sel,
+
+    input  wire              use_des_trigin,
+    input  wire [1:0]        des_trigin_type,
+    input  wire [1:0]        des_trigin_mode,
+    input  wire [7:0]        des_trigin_sel,
+
+    input  wire              use_trigout,
+    input  wire [1:0]        trigout_type,
+    input  wire [5:0]        trigout_sel,
+
+    input  wire              src_trigin_sw,
+    input  wire              des_trigin_sw,
+    input  wire              trig_out_ack_sw,
+
+    input wire [1:0] src_trigin_sw_req_type,
+    input wire [1:0] des_trigin_sw_req_type,
+    
+    input  wire [1:0]        src_trigin_req_type,
+    input  wire [1:0]        des_trigin_req_type,
+
+    // To trigger matrix
+    output reg  [1:0]        src_trigin_ack_type,
+    output reg  [1:0]        des_trigin_ack_type,
+
+  //  input  wire              SRCTRIGINSELERR,
+  //  input  wire              DESTRIGINSELERR,
+ //   input  wire              TRIGOUTSELERR,
+//    output wire              trig_err,
+
+    input  wire              src_trigin,
+    input  wire              des_trigin,
+    output reg               src_trigack,
+    output reg               des_trigack,
+    output reg               trig_out_req,
+    input  wire              trig_out_ack,
+
+    // Config// from part select
+    input  wire [ADDR_W-1:0] SRC_ADDR,
+    input  wire [ADDR_W-1:0] des_ADDR,
+    input  wire [2:0]        transize,
+    input  wire [15:0]       srcxsize,
+    input  wire [15:0]       desxsize,
+    input  wire [2:0]        x_type,
+    input  wire [31:0]      fillval,
+    input  wire  [15:0]            src_xaddr_inc,
+    input  wire   [15:0]           des_xaddr_inc,
+
+    // AXI READ
+    input  wire              ARREADY,
+    output reg               ARVALID,
+    output reg  [ADDR_W-1:0] ARADDR,
+    output reg  [2:0]        ARSIZE,
+    output reg  [1:0]        ARBURST,
+    output reg  [ID_W-1:0]   ARID,
+    output reg  [3:0]        ARLEN,
+
+    input wire              [3:0] RID,
+    input  wire              RVALID,
+    input  wire [127 : 0]    RDATA, //128
+    input  wire [1:0]        RRESP,
+    input  wire              RLAST,
+    output reg               RREADY,
+
+    // AXI WRITE
+    input  wire              AWREADY,
+    output reg               AWVALID,
+    output reg  [ADDR_W-1:0] AWADDR,
+    output reg  [2:0]        AWSIZE,
+    output reg  [1:0]        AWBURST,
+    output reg  [ID_W-1:0]   AWID,
+    output reg  [3:0] AWLEN,
+
+    input  wire              WREADY,
+    output reg               WVALID,
+    output reg  [DATA_W-1:0] WDATA,
+    output reg               WLAST,
+
+    input  wire              BVALID,
+    input  wire [1:0]        BRESP,
+    output reg               BREADY,
+
+    // Status
+    output reg               DONE,
+   //output wire              ERROR,
+
+//
+    output reg [31:0] SRCADDR_UPDATED,
+    output reg [31:0]  DESADDR_UPDATED,
+    output reg [31:0]  XSIZE_UPDATED,
+    output reg wr_en_for_updated,
+    
+     output wire [31:0] SRCADDR_INITIAL,
+     output wire [31:0] DESADDR_INITIAL,
+     output wire [31:0] SRCXSIZE_INITIAL,
+     output wire [31:0] DESXSIZE_INITIAL,
+    // Error flags
+    output wire               config_error,
+    output reg               ard_error,
+    output reg               arpoison_error,
+    output reg               awr_error,
+    output reg               bus_error,
+    output wire               regvalerr,
+    output wire             cmd_done_stop,
+    output reg               ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA,// FROM DATA FSM TO INTERNAL REGISTER 
+    output reg               STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA, 
+    output reg               STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, 
+    output reg               STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA
+);
+
+	wire              ERROR;
+    // Internal counters
+    reg reg1,reg2;
+    reg cmd_done_reg;
+    reg [15:0] src_left, des_left, fill_count;
+    reg [7:0] wrap_rd_ptr;
+    reg [DATA_W-1:0] wdata_mask;
+    integer i;
+    reg [15:0] srcxsize_reg,desxsize_reg;
+    // FIFO memory
+   (* ram_style = "block" *)  reg [127:0] fifo_mem [0:255];
+    reg [7:0]   fifo_wptr;
+    reg [7:0]   fifo_rptr;
+    integer j;
+    reg config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6;
+    reg regvalerr_src,regvalerr_des,regvalerr_trigout;
+    reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
+
+   // reg cmd_done_reg_1, cmd_done_reg_2;
+    localparam IDLE      = 4'd0,
+               CONFIG    = 4'd1,
+               WAIT_TRIG = 4'd2,
+               AR        = 4'd3,
+               R         = 4'd4,
+               AW        = 4'd5,
+               W         = 4'd6,
+               B         = 4'd7,
+               TRIG_OUT  = 4'd8,
+               PAUSED    = 4'd9,
+               DONE_ST   = 4'd10,
+               ERROR_ST  = 4'd11,
+               WRAP_FILL = 4'd12,
+               WAIT = 4'd13,
+               WAIT_1 = 4'd14,
+               WAIT_2 = 4'd15;
+
+    reg [3:0] state, next_st;
+
+    reg case1,case2,case3,case4,case5,case6;
+//    wire case1 = (srcxsize == 0 && desxsize == 0);
+//    wire case2 = (srcxsize == 0 && desxsize > 0);
+//    wire case3 = (srcxsize > 0 && desxsize == 0);
+//    wire case4 = (srcxsize == desxsize && srcxsize > 0);
+//    wire case5 = ((srcxsize > desxsize) && (desxsize != 0));
+//    wire case6 = ((srcxsize < desxsize) && (srcxsize !=0));
+    assign cmd_done_stop = (state == WAIT) ? 1 : 0;
+    assign config_error =config_error_src | config_error_des | config_error_trigout | config_error_inc | config_error_x_type | config_error_case3 | config_error_case6;
+	assign regvalerr = regvalerr_src | regvalerr_des | regvalerr_trigout;
+  assign ERROR    = config_error || ard_error || arpoison_error || awr_error || bus_error;
+ //   assign trig_err = SRCTRIGINSELERR || DESTRIGINSELERR || TRIGOUTSELERR;
+
+     assign  SRCADDR_INITIAL = src_addr_reg;
+     assign DESADDR_INITIAL = des_addr_reg;
+     assign SRCXSIZE_INITIAL = {16'd0,srcxsize_reg};
+     assign DESXSIZE_INITIAL = {16'd0,desxsize_reg};
+//always@(posedge clk)
+//begin
+//cmd_done_reg_1 <= cmd_done;
+//cmd_done_reg_2 <= cmd_done_reg_1;
+//end
+
+always @(posedge clk or negedge resetn)
+begin
+if(!resetn)
+begin
+ wr_en_for_updated <= 'd 0;
+ SRCADDR_UPDATED <= 'd 0;
+DESADDR_UPDATED <= 'd 0;
+XSIZE_UPDATED <= 'd 0;
+end
+else begin
+ wr_en_for_updated <=(state > CONFIG && state <= DONE_ST);
+ SRCADDR_UPDATED <= SRCADDR_UPDATED;
+DESADDR_UPDATED <= DESADDR_UPDATED;
+//XSIZE_UPDATED <= (case6 && x_type == 2)? (src_left>=(desxsize_reg - srcxsize_reg))?({des_left,(src_left-(desxsize_reg - srcxsize_reg))}):{des_left,16'b0}
+//                   :{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+XSIZE_UPDATED <= (case6 && x_type == 2)? (src_left>=(desxsize_reg - srcxsize_reg))?({des_left,(src_left-(desxsize_reg - srcxsize_reg))}):{des_left,16'b0}
+                  : (case6 && x_type == 1)? {(des_left+(desxsize_reg - srcxsize_reg)),src_left}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+
+ if(state == WAIT_TRIG)
+ begin
+SRCADDR_UPDATED <= src_addr_reg;
+DESADDR_UPDATED <= des_addr_reg;
+//XSIZE_UPDATED = {desxsize,srcxsize};
+//XSIZE_UPDATED <= (case6 && x_type == 2)?{des_left,(src_left-(desxsize_reg - srcxsize_reg))}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+end
+
+else if(state ==  R && src_left !=0) begin
+   // wr_en_for_updated = 1;
+  //  XSIZE_UPDATED <= (case6 && x_type == 2)?{des_left,(src_left-(desxsize_reg - srcxsize_reg))}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+  // XSIZE_UPDATED[15:0] = src_left;
+    //if(src_xaddr_inc == 0)
+        //SRCADDR_UPDATED = src_addr_reg;
+     if(RVALID) begin
+     if(src_xaddr_inc == 1)
+     begin
+        SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg   - (src_left-(desxsize_reg - srcxsize_reg))) *( 2**transize))) 
+                                                                                                : SRCADDR_UPDATED
+                                                                                                :src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize)) ;
+
+        //SRCADDR_UPDATED <= src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize));
+     end
+     else
+         SRCADDR_UPDATED <=  src_addr_reg;
+     end
+ end
+      
+// else if(state == WRAP_FILL && src_left !=0 && x_type == 2) begin
+////XSIZE_UPDATED <= (case6 && x_type == 2)?{des_left,(src_left-(desxsize_reg - srcxsize_reg))}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+//    //wr_en_for_updated =1;
+//    SRCADDR_UPDATED <= src_addr_reg + ((wrap_rd_ptr) *( 2**transize));
+// end
+ else if(state == W  && des_left !=0) begin
+  //wr_en_for_updated =1;
+//XSIZE_UPDATED <= (case6 && x_type == 2)?{des_left,(src_left-(desxsize_reg - srcxsize_reg))}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+   // XSIZE_UPDATED[31:16] = des_left;
+    //if(des_xaddr_inc == 0)
+       // DESADDR_UPDATED = des_addr_reg;
+    if(WREADY)
+     if(des_xaddr_inc == 1)
+     begin
+        DESADDR_UPDATED <= des_addr_reg + ((desxsize_reg - des_left) * ( 2**transize));
+     end
+     else
+         DESADDR_UPDATED <=  des_addr_reg;
+         end
+  //else
+   //wr_en_for_updated =0;
+ end
+end
 
 
-module cmd_fsm (input clk, 
-      input resetn,
-      input [31:0]LINKADDR,// fro intern reg
-      input link_enable,// fro intern reg
-      input data_done,// fro intern reg
-      input wire cmd_done_stop,//not used
-      input wire wr_en,//or of every write enable 
-      input wire stat_disable_intr_reg,
-      // AR signals
-      input ARREADY,
-      output reg [3:0] ARID,
-      output reg [3:0] ARLEN,
-      output reg[2:0] ARSIZE,
-      output reg [1:0] ARBURST,
-      output reg ARVALID,
-      output reg [31:0]ARADDR,
-      // R signals
-      input [3:0]RID,
-      input [127:0]RDATA_I,//32
-      input [1:0]RRESP,
-      input RLAST,
-      input RVALID,
-      output reg RREADY,
-      output reg [31:0]RDATA_O,//32
-      output reg [31:0] LINK_HEADER,
-      output reg [4:0] wptr,
-      // ERROR and STATUS signals
-      output  reg cmd_done_1,// to mux_logic as select ( 1cycle pulse)
-      output reg LINKHDRERR,
-      output reg CMD_DONE,//done signal to data fsm
-      output reg STAT_CMD_DONE, //done signal to muxlogic
-      output reg AXIRDRESPERR,//address out of range error
-      output reg AXIRDPOISERR,//corrupted data error
-      output reg BUSERR,//any axi error assterts this
-      input wire STAT_ERROR_PARTSEL
-      );
-    //reg cmd_done_1;// to mux_logic as select ( 1cycle pulse)
-    reg wr_en_reg;
-    reg [3:0] current_state, next_state;
-    reg [3:0] count;//
-    //reg stop_count;
-   reg [3:0] count1;
-    //reg [5:0] i;
-	integer i;
-    reg data_done_reg;
-    reg link_enable_reg;
-    reg STAT_ERROR_reg;
-    wire cmd_error = (LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
-   localparam IDLE   = 4'b0001;
-   localparam AR     = 4'b0010;
-   localparam R      = 4'b0100;  
-   localparam COUNT  = 4'b1000;
-   //temp fix
-   always @(posedge clk or negedge resetn)
-   begin
-   if(!resetn) begin
-   data_done_reg <= 'd0;
-   link_enable_reg <= 'd0;
-   STAT_ERROR_reg <= 'd0;
-   end
-   else begin
-   data_done_reg <= data_done;
-   link_enable_reg <= link_enable;
-   STAT_ERROR_reg <= STAT_ERROR_PARTSEL;
-   end
-   end
-   
-   
-   always@(posedge clk or negedge resetn)
-   begin
-       if(!resetn)
-       current_state <= IDLE;
-       else
-       current_state <= next_state;
-   end
-   
-   //combo always
-   
-   always@(*)
-   begin
-       case(current_state)
-       IDLE:
-        if(link_enable_reg && data_done && !cmd_error && !stat_disable_intr_reg)
-         next_state = AR;
+    always @(posedge clk or negedge resetn) begin
+        if (!resetn)
+            state <= IDLE;
         else
-         next_state = IDLE;
-         
-       AR:
-        if(cmd_error)
-            next_state = IDLE;
-        else if(ARREADY && ARVALID)
-            next_state = R;
-        else
-            next_state = AR;
-         
-       R:
-        //if((RVALID && RREADY && RLAST && count == 0) )//|| (|RDATA_I != 1))///RDATAI/ rdatao?
-          //  next_state = IDLE;
-          if(cmd_error)
-        next_state = IDLE;
-       else if(RVALID && RREADY && RLAST && count == 0)
-        //if(RRESP==2'b00 || RRESP==2'b01)
-         next_state = COUNT;
-        else  if(RVALID && RREADY && RLAST)  //and |RDATA != 1 nextstate = idle
-         next_state = IDLE;
-        else 
-         next_state = R;
-         
-       COUNT : begin
-         if(cmd_error)
-            next_state = IDLE;
-         else 
-            next_state = AR;
-        end
-             
-       default : next_state = IDLE;
-       endcase
-   end
-   
-   always@(*) begin
-	count1 = count;
-        if(current_state == IDLE  ) 
-            count1 = 0; 
-	else if(current_state == COUNT)begin
-		count1 = 0;
-		for( i = 1 ; i < 31 ; i = i + 1) 
-			count1 = count1 + RDATA_I[i];
-	end	
-   end
-
-	always @(posedge clk or negedge resetn)
-	begin
-	if(!resetn)
-	count<='d0;
-	else
-	count <= count1;
-
-	end
-   
-  /* always@(posedge clk or negedge resetn)
-    begin
-    if(!resetn)
-    count1<='d0;
-    else if(count1 == count)
-    count1<=0;
-    else if(current_state == COUNT && count == 0 )
-    count1<=count1+1;
-    end*/
-   
-     always@(posedge clk or negedge resetn)
-    begin
-    if(!resetn)
-    wr_en_reg <= 'd0;
-    else
-    wr_en_reg <= wr_en;
+            state <= next_st; 
     end
-   // ERROR HANDLING ISSUE 
-   always@(posedge clk or negedge resetn)
-   begin
-   if(!resetn)
-   begin
-        CMD_DONE <= 0; //done signal to data fsm
-        AXIRDRESPERR <= 0;//address out of range error
-        AXIRDPOISERR <= 0;//corrupted data error
-        BUSERR <= 0;//any axi error assterts this
-        ARADDR <= 0;
-        ARID   <= 0;
-        ARLEN  <= 0;
-        ARSIZE <= 'd2;//
-        ARBURST <=0;
-        ARVALID <=0;
-        RREADY <= 0;
-        RDATA_O <= 0;
-        LINKHDRERR <= 0;
-        LINK_HEADER <= 0;
-        STAT_CMD_DONE <= 1'b0;
-        cmd_done_1 <= 1'b0;
-        wptr <= 0;
-   end
-   else
-   begin
-     CMD_DONE <= 1'b1; // temp fix for deasserting
-     cmd_done_1 <= 1'b0;
-     STAT_CMD_DONE <= cmd_done_1 ; 
-      //if(wr_en_reg)         LINK_HEADER <= 0;
-       //CMD_DONE <= (cmd_done_stop) ? 'b0 :  'b1; //
-        case(current_state)
-            IDLE:
-            
-            begin
-            
-                ARADDR <= 0;
-                ARID   <= 1;
-                ARLEN  <= 0;
-                ARSIZE <= 'd2;
-                ARBURST <=0;
-                ARVALID <=0;
-                RREADY <= 0;
-                if(~STAT_ERROR_PARTSEL)
-                 begin
-                  BUSERR <= 0;
-                  AXIRDPOISERR <= 0;
-                  AXIRDRESPERR <= 0;
-                  LINKHDRERR <= 0;
-                 end
-                 //STAT_CMD_DONE <= 1'b0;
-                 if(data_done) begin
-                    CMD_DONE <= 0; 
-                   /// STAT_CMD_DONE <= 1'b0;
+
+        
+    // Next State Logic
+    always @(*) begin
+        next_st = state;
+        if (stop_cmd_partsel) begin
+            next_st = IDLE;
+        end else begin
+        
+        
+            case (state)
+                IDLE:
+                    if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
+                        if(LINKHDERR)  
+                            next_st = DONE_ST;
+                        else
+                            next_st = WAIT;
                     end
-              //  RDATA_O <= 0;
-		if(wr_en_reg)         LINK_HEADER <= 0;
-            end
-            
-            AR: 
-            begin
-           //stop_count <= 1;
-		ARSIZE <= 'd2;
-             CMD_DONE <= 0;
-                if (count == 0) begin
-                    ARADDR <= LINKADDR;
-                    ARLEN <= 0;
-                   
-               end
-               else begin
-                    ARADDR <= LINKADDR + 4;
-                    ARLEN <= count - 1;
-               end
-               ARVALID <= 1;          
-               RREADY <= 0;
-            end
-            
-            R:
-            begin
-             CMD_DONE <= 0;
-		//stop_count <= 0;
-                RREADY  <= 1;
-                ARVALID <= 0;  //just added
-               // if(wptr + 1 == count && count != 0) //STAT_CMD_DONE <= 1; 
-                if(RREADY && RVALID) begin
-                    if(count!=0)begin
-                    RDATA_O <= RDATA_I [31:0];
-                    wptr <= wptr + 1; 
-                    end
-                    else if(RLAST  && !(|RDATA_I[31:0]))
-                        LINKHDRERR <= 1;
-                    else if(RLAST  && (|RDATA_I[31:0]) && count ==0)begin //count==0
-                        LINK_HEADER <= RDATA_I[31:0];
-                        wptr <= 0;
-                        end
-                 
+                    else
+                        next_st = IDLE;
                         
-                    if((RRESP == 2'b00 || RRESP == 2'b01) && RLAST) 
-                    // if(RRESP == 2'b00 || RRESP == 2'b01)
-                        begin
-                        if(count!=0) begin
-                            CMD_DONE <= 1'b1;
-                           cmd_done_1 <= 1'b1;
-                          // STAT_CMD_DONE <= 1; 
-                            end
+/*               WAIT : if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = WAIT_1;
+                WAIT_1: if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = WAIT_2;
+                WAIT_2 : if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = CONFIG;*/
+                WAIT: if (stat_error_intr_reg) 
+                            next_st = ERROR_ST;
+                       else 
+                            next_st = reg2 ? CONFIG : WAIT;
+                
+                CONFIG: begin
+                    if (config_error)
+                        next_st = ERROR_ST;
+                    else if (case1 || x_type == 0)
+                        next_st = DONE_ST;
+                    else if (case2)
+                        next_st = (x_type == 3) ? WAIT_TRIG : ERROR_ST; // Note: You had WAIT_RD, but it's not defined. Using WAIT_TRIG
+                    else if (case3)
+                        next_st = ERROR_ST;
+                    else if (case6)
+                        next_st = (x_type == 0) ? DONE_ST : WAIT_TRIG;
+                    else
+                        next_st = WAIT_TRIG;
+                end
+
+                
+                WAIT_TRIG:
+                if (config_error)
+                        next_st = ERROR_ST;
+                    else if (pause_cmd_partsel)
+                        next_st = PAUSED;
+                    else if (use_src_trigin && use_des_trigin) begin  
+                    
+                        if ((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))
+                            next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR; 
+                        else if ((src_trigin_type == 2'b10 && src_trigin) && (des_trigin_type == 2'b10 && des_trigin))
+                            next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;  
+                    end
+                    else if (!use_src_trigin && !use_des_trigin)
+                        next_st = AR;
+                    else
+                        next_st = WAIT_TRIG;
+
+                AR:
+                    if (ARVALID && ARREADY)
+                        next_st = R;
+                    else
+                        next_st = AR;
+
+                R:
+                    if ((RRESP == 2 || RRESP == 3) && RVALID)
+                        next_st = ERROR_ST;
+                    else if (RVALID && RREADY && RLAST) begin
+                        if ((src_left > 0 || fill_count > 1) &&(case6 && (x_type != 1) || case2))
+                            next_st = WRAP_FILL;
+                      // else if (src_left == 0)
+                          //next = AW;
+                        else
+                            next_st = AW;
+                    end else
+                        next_st = R;
+
+                WRAP_FILL:
+                    if (src_left == 0 && fill_count == 0)
+                        next_st = AW;
+                    else
+                        next_st = WRAP_FILL;
+
+                AW:
+                    if (AWVALID && AWREADY)
+                        next_st = W;
+
+                W:
+                    if (WREADY && WVALID && WLAST)
+                        next_st = B;
+
+                B:
+                    if (BVALID && BREADY)
+                        next_st = (BRESP <= 1) ? TRIG_OUT : ERROR_ST;
+
+                TRIG_OUT:
+                    if (!use_trigout)
+                        next_st = DONE_ST;
+                    else begin
+                        if (trigout_type == 2'b00 && trig_out_ack_sw)
+                            next_st = DONE_ST;
+                        else if (trigout_type == 2'b10 && trig_out_ack)
+                            next_st = DONE_ST;
+                    end
+
+                PAUSED:
+                    if (resume_cmd_partsel)
+                        next_st = WAIT_TRIG;
+
+                DONE_ST:
+                    next_st = IDLE;
+                     //next = STAT_DONE ? DONE_ST : IDLE;
+
+                ERROR_ST:
+                    //if (stat_error_partsel ==0)// (stat_error == 1)
+                        next_st = IDLE;
+
+                default: next_st = IDLE;
+            endcase
+        end
+    end
+
+    // Sequential Logic
+    always @(posedge clk or negedge resetn) begin
+        if (!resetn) begin
+            {ARVALID, RREADY, AWVALID, WVALID, BREADY,WLAST,case1,case2,case3,case4,case5,case6,des_addr_reg,src_addr_reg,wdata_mask,
+             DONE, trig_out_req,  ard_error,WDATA,AWADDR,ARADDR,des_trigin_ack_type,
+		src_trigin_ack_type,AWSIZE,AWBURST,AWLEN,desxsize_reg,ARID,ARSIZE,ARBURST,srcxsize_reg,ARLEN,AWID,
+             arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
+            {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
+             STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
+//             cmd_done_reg_1<='b0;
+//             cmd_done_reg_2<='b0;
+	
+ 	 {config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
+	{regvalerr_src,regvalerr_des,regvalerr_trigout} <= 'd0;
+
+            fifo_wptr   <= 0;
+            fifo_rptr   <= 0;
+            src_left    <= 0;
+            des_left    <= 0;
+            fill_count  <= 0;
+            wrap_rd_ptr <= 0;
+            src_trigack <= 0;
+            des_trigack <= 0;
+            reg1<=0;
+            reg2<=0;
+            for(j=0;j<256;j=j+1) begin
+                fifo_mem [j] <= 'd0;end
+                
+        end else begin
+            ARVALID      <= 0;
+            RREADY       <= 0;
+            AWVALID      <= 0;
+            WVALID       <= 0;
+            BREADY       <= 0;
+            DONE         <= stop_cmd_partsel? 1: 0;
+            trig_out_req <= 0;
+            src_trigack  <= 0;
+            des_trigack  <= 0;
+            cmd_done_reg <= cmd_done;
+            reg1<=0;
+            reg2<=0;
+         //   cmd_done_stop <= 'd0;
+        //   {STAT_STOP, STAT_DISABLE, STAT_RESUMEWAIT,
+           //STAT_TRIGOUTACKWAIT, STAT_SRCTRIGINWAIT, STAT_DESTRIGINWAIT, STAT_PAUSED} <= 'b0;
+            //STAT_DONE <= !stat_done ? 0 :1;
+            STAT_RESUMEWAIT_DATA <= 'd0;
+            STAT_PAUSED_DATA <= 'd0;
+            STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
+            STAT_SRCTRIGINWAIT_DATA <= 1'b0;
+            STAT_DESTRIGINWAIT_DATA <= 1'b0;
+
+	 if (disable_cmd_partsel || stop_cmd_partsel )//|| STAT_DONE_DATA ||stat_error_intr_reg
+		ENABLECMD_DATA    <= 1;
+	else //if(stat_disable_intr_reg == 0 || stat_stop_intr_reg == 0 || !stat_done_intr_reg || ! stat_error_intr_reg)          // just check once 
+		 ENABLECMD_DATA    <= 0;
+
+            if (disable_cmd_partsel) begin
+               // ENABLECMD_DATA    <= 1;
+                DISABLECMD_DATA <= 1;
+                STAT_DISABLE_DATA <= 1;
+            end
+            else if( stat_disable_intr_reg == 0)begin
+                        // ENABLECMD_DATA    <= 0;
+                        STAT_DISABLE_DATA  <= 0;
+                         DISABLECMD_DATA <= 0;
+                end
+            if (stop_cmd_partsel) begin
+               // ENABLECMD_DATA    <= 1;
+                STAT_STOP_DATA    <= 1;
+                STOPCMD_DATA <= 1;
+                //DONE <= 1;// after stop cmd the current command will not excuted and goes for next command after stat_stop is cleared 
+                
+            end
+            else if(stat_stop_intr_reg == 0) begin
+                // ENABLECMD_DATA    <= 0;
+                STAT_STOP_DATA    <= 0;
+                STOPCMD_DATA <= 0;
+            end
+
+
+            STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA:0 ;
+//data_done <=0;
+            case (state)
+                IDLE: begin
+                    if (stat_error_intr_reg == 0) begin
+                        //config_error   <= 0;
+ 			{config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6 }<= 0;
+                        ard_error      <= 0;
+                        arpoison_error <= 0;
+                        awr_error      <= 0;
+                        bus_error      <= 0;
+                        //regvalerr      <= 0;
+			{regvalerr_src,regvalerr_des,regvalerr_trigout} <= 'd0;
+                        //data_done <=1; if cpu gives linaddr for reconfig.. then data_done should be high
+                    end
+                  /*  if( stat_disable_reg == 0)
+                        STAT_DISABLE  <= 0;*/
+                   // STAT_DONE <= stat_done_reg ? 0:STAT_DONE ;
+                    fifo_wptr   <= 0;
+                    fifo_rptr   <= 0;
+                    wrap_rd_ptr <= 0;
+                    fill_count  <= 0;
+                    ARLEN       <= 0;
+                end
+
+                WAIT:
+                begin
+                    reg1<=1;
+                    reg2<=reg1;
+                  //  reg3<=reg2;
+                    if(reg2) begin
+                    case1 <= (srcxsize == 0 && desxsize == 0);
+                    case2 <= (srcxsize == 0 && desxsize > 0);
+                    case3 <= (srcxsize > 0 && desxsize == 0);
+                    case4 <= (srcxsize == desxsize && srcxsize > 0);
+                    case5 <= ((srcxsize > desxsize) && (desxsize != 0));
+                    case6 <= ((srcxsize < desxsize) && (srcxsize !=0));
+                    end
+                end 
+                
+                CONFIG: begin
+                    wdata_mask <= {DATA_W{1'b0}};
+                    for (i = 0; i < DATA_W; i = i + 1) begin
+                        if (i < ((8'd1 << transize) << 3))
+                            wdata_mask[i] <= 1'b1;
+                    end
+
+                    src_addr_reg <= SRC_ADDR;
+                    des_addr_reg <= des_ADDR;
+
+                    srcxsize_reg <= srcxsize;
+                    ARLEN   <= srcxsize - 1;
+                    ARBURST <= (src_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
+                    ARSIZE  <= transize;
+                    ARID    <= 0;
+                    
+                    desxsize_reg <= desxsize;
+                    AWLEN <= desxsize - 1;
+                    AWBURST <= (des_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
+                    AWSIZE  <= transize;
+                    AWID    <= 0;
+
+                    if (use_src_trigin) begin
+                        if ((src_trigin_type != 2'b00 && src_trigin_type != 2'b10) || src_trigin_mode != 2'b00) begin
+                            config_error_src <= 1;
+                            regvalerr_src    <= 1;
                         end
-                    else if(RRESP == 2'b11)    // error handling TBD
+                    end
+
+                    if (use_des_trigin) begin
+                        if ((des_trigin_type != 2'b00 && des_trigin_type != 2'b10) || src_trigin_mode != 2'b00) begin
+                            config_error_des <= 1;
+                            regvalerr_des    <= 1;
+                        end
+                    end
+
+                    if (use_trigout) begin
+                        if (trigout_type != 2'b00 && trigout_type != 2'b10) begin
+                            config_error_trigout <= 1;
+                            regvalerr_trigout    <= 1;
+                        end
+                    end
+
+                    config_error_inc <= ((x_type > 3) |(src_xaddr_inc>1| (des_xaddr_inc>1))? 1 : 0);
+
+                    if (case1) begin
+                        src_left <= 0;
+                        des_left <= 0;
+                    end else if (case2) begin
+                        if (x_type == 3) begin
+                            src_left <= 0;
+                            des_left <= desxsize;
+                        end else if (x_type == 0)
+                            config_error_x_type <= 0;
+                        else
+                            config_error_x_type <= 1;
+                    end else if (case3)
+                        config_error_case3 <= 1;
+                    else if (case4 || case5) begin
+                        src_left <= srcxsize;
+                        des_left <= desxsize;
+                    end else if (case6) begin
+                        case (x_type)
+                            0: begin src_left <= 0; des_left <= 0; end
+                            1: begin src_left <= srcxsize; des_left <= srcxsize; end
+                            2: begin src_left <= desxsize; des_left <= desxsize; end
+                            3: begin src_left <= srcxsize; des_left <= desxsize; end
+                            default: config_error_case6 <= 1;
+                        endcase
+                    end
+
+                    fill_count <= ((srcxsize < desxsize) && x_type == 3 && (case2 || case6)) ? ((desxsize - srcxsize) & 16'hFFFF) : 0;
+                end
+
+                WAIT_TRIG: begin
+                    if (use_src_trigin && use_des_trigin) begin  
+                        if ((src_trigin_type == 2'b10 && src_trigin) && (des_trigin_type == 2'b10 && des_trigin)) begin
+                            src_trigack <= 1;
+                            src_trigin_ack_type <= (src_trigin_req_type == 0 || src_trigin_req_type == 2) ? 0 : 1;
+                            des_trigack <= 1;
+                            des_trigin_ack_type <= (des_trigin_req_type == 0 || des_trigin_req_type == 2) ? 0 : 1;					
+                        end else begin
+                         if (!((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))) begin
+                            STAT_SRCTRIGINWAIT_DATA <= 1'b1;
+                            STAT_DESTRIGINWAIT_DATA <= 1'b1;				
+                            end	
+                        end
+                    end
+                end
+
+                AR: begin
+                    ARVALID <= 1;
+                    ARADDR  <= src_addr_reg;
+                end
+
+                R: begin
+                    if (fifo_wptr + 1 != fifo_rptr)
+                        RREADY <= 1;
+                    else
+                        RREADY <= 0;
+                    
+                    if (RVALID && RREADY && src_left > 0 ) begin
+                        fifo_mem[fifo_wptr] <= RDATA;
+                        fifo_wptr           <= fifo_wptr + 1;
+                        src_left            <= src_left - 1;
+                                         
+                    if(RRESP == 2'b11)    // error handling TBD
                         begin
                             //if(RLAST)begin
-                            BUSERR <= 1'b1;
-                            AXIRDRESPERR <=1'b1;
+                            bus_error <= 1'b1;
+                            ard_error <=1'b1;
                             //end
-                        end
+                    end
                     else if(RRESP == 2'b10)
                         begin
-                           // if(RLAST)begin
-                            BUSERR <=1'b1;
-                            AXIRDPOISERR <= 1'b1;
-                            // end
-                        end
+                            //if(RLAST)begin
+                            bus_error <=1'b1;
+                            arpoison_error <= 1'b1;
+                            //end
                     end
-            end
-            
-            COUNT : begin
-             CMD_DONE <= 0;
-              //  for( i = 1 ; i < 31 ; i = i + 1) count = count + rdata[i];
-            end
-            
-            default:
-            begin
-                ARADDR <= 0;
-                ARID   <= 0;
-                ARLEN  <= 0;
-                ARSIZE <= 3'b111;
-                ARBURST <=0;
-                ARVALID <=0;
-                RREADY <= 0;
-              //  RDATA_O <= 0;
-            end
-            endcase 
-   end
-   end
-   
-endmodule   
+                    end
+                end
+
+                WRAP_FILL: begin
+                    case (x_type)
+                        2: begin
+                            if ((!(desxsize - src_left < srcxsize)) && src_left > 0) begin
+                                fifo_mem[fifo_wptr] <= fifo_mem[wrap_rd_ptr];
+                                wrap_rd_ptr         <= (wrap_rd_ptr == srcxsize[7:0]) ? 0 : wrap_rd_ptr + 1;
+                                fifo_wptr           <= fifo_wptr + 1;
+                                src_left            <= src_left - 1;
+                            end
+                        end
+                        3: begin
+                            if (fill_count > 0 && src_left == 0 && (case2 || case6)) begin
+                                fifo_mem[fifo_wptr] <= {96'd0,fillval};
+                                fill_count          <= fill_count - 1;
+                                fifo_wptr           <= fifo_wptr + 1;
+                            end
+                        end
+                        default: fifo_mem[fifo_wptr] <= fifo_mem[fifo_wptr];
+                    endcase
+                end
+
+                AW: begin
+                    AWVALID <= 1;
+                    AWADDR  <= des_addr_reg;
+                end
+
+                W: begin
+                    WVALID <= 1;
+                    WLAST  <= (des_left == 1);
+                    if (WREADY && des_left > 0 && WVALID) begin
+                        WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
+                        des_left  <= des_left - 1;
+                        fifo_rptr <= fifo_rptr + 1;
+                    end
+                end
+
+                B: begin
+                    BREADY <= 1;
+                    if (BRESP >= 2) begin
+                        awr_error<= 1;
+                        bus_error <= 1;
+                    end
+                end
+
+                TRIG_OUT: begin
+                    if (use_trigout && trigout_type == 'b10)
+                        trig_out_req <= 1;
+                    
+                    if (use_trigout && !trig_out_ack_sw && trigout_type == 'b00)
+                        STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
+                    else if (use_trigout && !trig_out_ack && trigout_type == 'b10)
+                        STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
+                    else 
+                        STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
+                end
+
+                DONE_ST: begin
+                    DONE <= 1;
+                    STAT_DONE_DATA <= !link_en ? 1 : 0;
+                 end    
+             //  WAIT : cmd_done_stop <= 1;
+               
+               
+
+                PAUSED: begin
+                    STAT_RESUMEWAIT_DATA <= !resume_cmd_partsel ? 1 : 0;
+                    STAT_PAUSED_DATA <= 1;
+                end
+            endcase
+        end
+    end
+
+endmodule
