@@ -595,7 +595,7 @@ end
                             1: begin src_left <= srcxsize; des_left <= srcxsize; end
                             2: begin src_left <= desxsize; des_left <= desxsize; end
                             3: begin src_left <= srcxsize; des_left <= desxsize; end
-                            default: config_error_case6 <= 1;
+                            default:begin src_left <= srcxsize; des_left <= desxsize;  config_error_case6 <= 1; end
                         endcase
                     end
 
