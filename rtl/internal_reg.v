@@ -109,10 +109,10 @@ reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;
                                 | (|intr_mem[144][15:8]) | (|intr_mem[144][6:5]) );
                   
                   
-wire STAT_ERR = AXIRDRESPERR| AXIRDPOISERR | AXIWRRESPERR| BUSERR |
+wire STAT_ERR = (AXIRDRESPERR| AXIRDPOISERR | AXIWRRESPERR| BUSERR |
                  config_error| regval_error | SRCTRIGINSELERR| DESTRIGINSELERR 
                  | TRIGOUTSELERR | AXIRDRESPERR_CMDFSM | AXIRDPOISERR_CMDFSM |  
-                 BUSERR_CMDFSM |  LINKHDERR | regval_err_reserved_bits ;
+                 BUSERR_CMDFSM |  LINKHDERR | regval_err_reserved_bits) ;
                  
    assign stat_disable_intr_reg = data_in [50]| data_in[0] ?1'b0 : STAT_DISABLED_DATA;
    assign stat_stopped_intr_reg = data_in [51]| data_in[0] ? 1'b0: STAT_STOPPED_DATA;
@@ -174,23 +174,25 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  default:WRKREGVAL_temp = 'd0;
  endcase
  end
- 
+ reg data_in_0_1 ;
  always @(posedge clk or negedge resetn) 
  begin
   if(!resetn)begin
+  data_in_0_1<= 0;
   for(i = 0;i<DEPTH;i=i+1)
    intr_mem [i] <= 'd0;
 	{stopcmd,disablecmd,enablecmd,pausecmd,resumecmd} <= 'd0;
 end
   else
    begin
+   data_in_0_1 <= data_in [0];
    //if(wr_en)
    //{intr_mem[0],intr_mem[8],intr_mem[12],intr_mem[16],intr_mem[24],intr_mem[32],intr_mem[40],intr_mem[44],
    //intr_mem[48],intr_mem[56],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120]} <= data_in;
    stopcmd <= STOPCMD_DATA ? 0 :data_in [3]? 1: stopcmd; //STOPCMD : data_in [3];
    disablecmd <= DISABLECMD_DATA ? 0 : data_in [2]? 1: disablecmd;
   // enablecmd <= ENABLECMD_DATA ?  0 : data_in [0] ?1: enablecmd;
-  enablecmd <= data_in [0] ?  1 : ENABLECMD_DATA ? 0 : enablecmd;
+  enablecmd <= data_in [0]|data_in_0_1 ?  1 : (ENABLECMD_DATA||stat_done_intr_reg||stat_err_intr_reg)  ? 0 : enablecmd;
    pausecmd <=  STAT_PAUSED_DATA   ? 0 :data_in [4] ?1: pausecmd;
    resumecmd <=  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
 
