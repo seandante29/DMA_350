@@ -6,7 +6,7 @@ module cmd_fsm (input clk,
       input [31:0]LINKADDR,// fro intern reg
       input link_enable,// fro intern reg
       input data_done,// fro intern reg
-      inpAut wire cmd_done_stop,//not used
+      input wire cmd_done_stop,//not used
       input wire wr_en,//or of every write enable 
       input wire stat_disable_intr_reg,
       // AR signals
