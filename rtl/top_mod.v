@@ -22,13 +22,13 @@ module top_mod#(
     output wire PSLVERR,
     // trigger matrix
     input  wire        trig0_req,
-    input  wire [1:0]  trig0_req_type,
+    //input  wire [1:0]  trig0_req_type,
     output wire         trig0_ack,
-    output wire  [1:0]  trig0_ack_type,
+    //output wire  [1:0]  trig0_ack_type,
     input  wire        trig1_req,
-    input  wire [1:0]  trig1_req_type,
+    //input  wire [1:0]  trig1_req_type,
     output wire         trig1_ack,
-    output wire  [1:0]  trig1_ack_type,
+    //output wire  [1:0]  trig1_ack_type,
     output wire         trig0_out_req,
     input  wire        trig0_out_ack,
     output wire         trig1_out_req,
@@ -78,13 +78,13 @@ module top_mod#(
     wire [5:0]  trigout_sel;      // 0 = trig0, 1 = trig1
     // To DMA Channel (REQ view)
     wire src_trig_req;
-    wire [1:0]  src_trig_req_type;
+    //wire [1:0]  src_trig_req_type;
     wire des_trig_req;
-    wire [1:0]  des_trig_req_type;
+    //wire [1:0]  des_trig_req_type;
     wire        ch_src_ack;
-    wire [1:0]  ch_src_ack_type;
+    //wire [1:0]  ch_src_ack_type;
     wire        ch_des_ack;
-    wire [1:0]  ch_des_ack_type;
+    //wire [1:0]  ch_des_ack_type;
     wire        ch_trigout_req;
     wire ch_trigout_ack;
     wire SRCTRIGINSELERR, DESTRIGINSELERR, TRIGOUTSELERR;
@@ -198,17 +198,17 @@ module top_mod#(
     .TRIGOUTSELERR      (TRIGOUTSELERR),
     // Source Trigger Interface
     .src_trig_req       (src_trig_req),
-    .src_trig_req_type  (src_trig_req_type),
+    //.src_trig_req_type  (src_trig_req_type),
     .ch_src_ack         (ch_src_ack),
-    .ch_src_ack_type    (ch_src_ack_type),
+    //.ch_src_ack_type    (ch_src_ack_type),
     .use_src_trigin     (use_src_trigin),
     .src_trigin_type    (src_trigin_type),
     .src_trigin_sel     (src_trigin_sel),
     // Destination Trigger Interface
     .des_trig_req       (des_trig_req),
-    .des_trig_req_type  (des_trig_req_type),
+    //.des_trig_req_type  (des_trig_req_type),
     .ch_des_ack         (ch_des_ack),
-    .ch_des_ack_type    (ch_des_ack_type),
+    //.ch_des_ack_type    (ch_des_ack_type),
     .use_des_trigin     (use_des_trigin),
     .des_trigin_type    (des_trigin_type),
     .des_trigin_sel     (des_trigin_sel),
@@ -225,13 +225,13 @@ module top_mod#(
     trigger_matrix dut1(
     .STAT_ERR(stat_err),
     .trig0_req(trig0_req),
-    .trig0_req_type(trig0_req_type),
+    //.trig0_req_type(trig0_req_type),
     .trig0_ack(trig0_ack),
-    .trig0_ack_type(trig0_ack_type),
+    //.trig0_ack_type(trig0_ack_type),
     .trig1_req(trig1_req),
-    .trig1_req_type(trig1_req_type),
+    //.trig1_req_type(trig1_req_type),
     .trig1_ack(trig1_ack),
-    .trig1_ack_type(trig1_ack_type),
+    ///.trig1_ack_type(trig1_ack_type),
     .trig0_out_req(trig0_out_req),
     .trig0_out_ack(trig0_out_ack),
     .trig1_out_req(trig1_out_req),
@@ -246,13 +246,13 @@ module top_mod#(
     .trigout_type(trigout_type), 
     .trigout_sel(trigout_sel),
     .src_trig_req(src_trig_req),
-    .src_trig_req_type(src_trig_req_type),
+    //.src_trig_req_type(src_trig_req_type),
     .des_trig_req(des_trig_req),
-    .des_trig_req_type(des_trig_req_type),
+    //.des_trig_req_type(des_trig_req_type),
     .ch_src_ack(ch_src_ack), 
-    .ch_src_ack_type(ch_src_ack_type),
+    //.ch_src_ack_type(ch_src_ack_type),
     .ch_des_ack(ch_des_ack),
-    .ch_des_ack_type(ch_des_ack_type),
+    //.ch_des_ack_type(ch_des_ack_type),
     .ch_trigout_req(ch_trigout_req),
     .ch_trigout_ack(ch_trigout_ack),
     .SRCTRIGINSELERR(SRCTRIGINSELERR), 
