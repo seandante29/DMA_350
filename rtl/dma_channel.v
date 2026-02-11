@@ -57,14 +57,14 @@ module dma_channel
     //trig matrix o/p's as i/p's to channel
     input wire SRCTRIGINSELERR, DESTRIGINSELERR, TRIGOUTSELERR,
     input wire src_trig_req,
-    input wire [1:0]  src_trig_req_type,
+    //input wire [1:0]  src_trig_req_type,
     input wire         des_trig_req,
-    input wire  [1:0]  des_trig_req_type,
+    //input wire  [1:0]  des_trig_req_type,
     input wire ch_trigout_ack,
     output wire        ch_src_ack,
-    output wire [1:0]  ch_src_ack_type,
+    //output wire [1:0]  ch_src_ack_type,
     output wire        ch_des_ack,
-    output wire [1:0]  ch_des_ack_type,
+    //output wire [1:0]  ch_des_ack_type,
     output wire        ch_trigout_req,
     output wire stat_err,
     
@@ -139,9 +139,9 @@ module dma_channel
     wire pause_cmd;
     wire resume_cmd;
     wire src_trigin_sw;
-    wire [1:0]  src_trigin_sw_req_type;
+    //wire [1:0]  src_trigin_sw_req_type;
     wire des_trigin_sw;
-    wire [1:0] des_trigin_sw_req_type;
+    //wire [1:0] des_trigin_sw_req_type;
     wire trigout_ack_sw;
     wire [1:0] src_trigin_mode;
     wire [1:0] des_trigin_mode;
@@ -179,8 +179,8 @@ module dma_channel
     
     //wires to trig mtx
     
-    wire [1:0] des_trigin_ack_type;
-    wire [1:0] src_trigin_ack_type;
+    //wire [1:0] des_trigin_ack_type;
+    //wire [1:0] src_trigin_ack_type;
     wire trig_out_req;
     wire des_trigack;
     wire src_trigack;
@@ -192,8 +192,8 @@ module dma_channel
         chn_trigout_wr_en_o || chn_linkaddr_wr_en_o;
     
     
-    wire [1:0]src_trigin_sw_type;
-    wire [1:0]des_trigin_sw_type;
+    //wire [1:0]src_trigin_sw_type;
+    //wire [1:0]des_trigin_sw_type;
     
     wire [3:0] ARID_D;
     wire [3:0] ARLEN_D;
@@ -307,9 +307,9 @@ module dma_channel
     .resume_cmd(resume_cmd),
     .stop_cmd(stop_cmd),
     .src_trigin_sw(src_trigin_sw),
-    .src_trigin_sw_type(src_trigin_sw_req_type),
+    //.src_trigin_sw_type(src_trigin_sw_req_type),
     .des_trigin_sw(des_trigin_sw),
-    .des_trigin_sw_type(des_trigin_sw_req_type),
+    //.des_trigin_sw_type(des_trigin_sw_req_type),
     .trigout_ack_sw(trigout_ack_sw),
     .src_trigin_mode(src_trigin_mode),
     .src_trigin_type(src_trigin_type),
@@ -455,15 +455,15 @@ module dma_channel
     .use_trigout(use_trigout),
     .trigout_type(trigout_type),
     .trigout_sel(trigout_sel),
-    .src_trigin_sw_req_type(src_trigin_sw_req_type),
-    .des_trigin_sw_req_type(des_trigin_sw_req_type),
+    //.src_trigin_sw_req_type(src_trigin_sw_req_type),
+   // .des_trigin_sw_req_type(des_trigin_sw_req_type),
     .src_trigin_sw(src_trigin_sw),
     .des_trigin_sw(des_trigin_sw),
     .trig_out_ack_sw(trigout_ack_sw),
-    .src_trigin_req_type(src_trig_req_type),//
-    .des_trigin_req_type(des_trig_req_type),//trig mtx
-    .src_trigin_ack_type(ch_src_ack_type),//to trig mtx
-    .des_trigin_ack_type(ch_des_ack_type),
+  //  .src_trigin_req_type(src_trig_req_type),//
+   // .des_trigin_req_type(des_trig_req_type),//trig mtx
+   // .src_trigin_ack_type(ch_src_ack_type),//to trig mtx
+   // .des_trigin_ack_type(ch_des_ack_type),
     .src_trigin(src_trig_req),//from trig
     .des_trigin(des_trig_req),//from trig
     .src_trigack(ch_src_ack),//to trig
