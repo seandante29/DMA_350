@@ -37,16 +37,8 @@ module data_fsm #(
     input  wire              src_trigin_sw,
     input  wire              des_trigin_sw,
     input  wire              trig_out_ack_sw,
-    
-    input wire [1:0] src_trigin_sw_req_type,
-    input wire [1:0] des_trigin_sw_req_type,
-    
-    input  wire [1:0]        src_trigin_req_type,
-    input  wire [1:0]        des_trigin_req_type,
-    
-    // To trigger matrix
-    output reg  [1:0]        src_trigin_ack_type,
-    output reg  [1:0]        des_trigin_ack_type,
+   
+  
     
     //  input  wire              SRCTRIGINSELERR,
     //  input  wire              DESTRIGINSELERR,
@@ -348,8 +340,7 @@ module data_fsm #(
     always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
         {ARVALID, RREADY, AWVALID, WVALID, BREADY,WLAST,case1,case2,case3,case4,case5,case6,des_addr_reg,src_addr_reg,wdata_mask,
-        DONE, trig_out_req,  ard_error,WDATA,AWADDR,ARADDR,des_trigin_ack_type,
-        src_trigin_ack_type,AWSIZE,AWBURST,AWLEN,desxsize_reg,ARID,ARSIZE,ARBURST,srcxsize_reg,ARLEN,AWID,
+        DONE, trig_out_req,  ard_error,WDATA,AWADDR,ARADDR,AWSIZE,AWBURST,AWLEN,desxsize_reg,ARID,ARSIZE,ARBURST,srcxsize_reg,ARLEN,AWID,
         arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
         {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
         STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
@@ -525,9 +516,7 @@ module data_fsm #(
                     if (use_src_trigin && use_des_trigin) begin  
                         if ((src_trigin_type == 2'b10 && src_trigin) && (des_trigin_type == 2'b10 && des_trigin)) begin
                             src_trigack <= 1;
-                            src_trigin_ack_type <= (src_trigin_req_type == 0 || src_trigin_req_type == 2) ? 0 : 1;
                             des_trigack <= 1;
-                            des_trigin_ack_type <= (des_trigin_req_type == 0 || des_trigin_req_type == 2) ? 0 : 1;					
                         end 
                         else begin
                             if (!((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))) begin
