@@ -37,13 +37,6 @@ module data_fsm #(
     input  wire              src_trigin_sw,
     input  wire              des_trigin_sw,
     input  wire              trig_out_ack_sw,
-   
-  
-    
-    //  input  wire              SRCTRIGINSELERR,
-    //  input  wire              DESTRIGINSELERR,
-    //   input  wire              TRIGOUTSELERR,
-    //    output wire              trig_err,
     
     input  wire              src_trigin,
     input  wire              des_trigin,
@@ -452,7 +445,7 @@ module data_fsm #(
                     ARID    <= 0;
                     
                     desxsize_reg <= desxsize;
-                    AWLEN <= desxsize - 1;
+                    AWLEN <= (case6 && x_type == 1)? srcxsize - 1: desxsize - 1;
                     AWBURST <= (des_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
                     AWSIZE  <= transize;
                     AWID    <= 0;
@@ -497,7 +490,7 @@ module data_fsm #(
                     else if (case3)
                         config_error_case3 <= 1;
                     else if (case4 || case5) begin
-                        src_left <= srcxsize;
+                        src_left <= desxsize;
                         des_left <= desxsize;
                     end 
                     else if (case6) begin
