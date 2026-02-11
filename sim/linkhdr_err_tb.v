@@ -426,16 +426,10 @@ module linkhdr_err_tb ;
         RLAST = 1;
         #10 RVALID =0; RLAST=0;
         #30;
-//        ARREADY = 1'b1;
-//        #30 ARREADY = 1'b0;
-//        RVALID =1;
-//        RLAST = 1;
-//        #10 RLAST= 0;
-//        RVALID=0;
         
      #100;
         
-        //-- reading status and error info for src_trigin error 
+        //-- reading status and error info 
         
         PSEL    = 1;
         PWRITE  = 0;
