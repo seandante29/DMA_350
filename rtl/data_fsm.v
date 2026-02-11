@@ -439,7 +439,7 @@ module data_fsm #(
                     des_addr_reg <= des_ADDR;
                     
                     srcxsize_reg <= srcxsize;
-                    ARLEN   <= srcxsize - 1;
+                    ARLEN   <= (case5) ? desxsize - 1 : srcxsize - 1;
                     ARBURST <= (src_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
                     ARSIZE  <= transize;
                     ARID    <= 0;
