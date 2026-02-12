@@ -31,7 +31,7 @@ module register_bank #(parameter WIDTH = 32,
 	  input wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated
 	  );
 	  
-    (* ram_style = "block" *) reg [ WIDTH-1:0 ] reg_mem [ 0:DEPTH-1 ];
+    reg [ WIDTH-1:0 ] reg_mem [ 0:DEPTH-1 ];
     wire [7:0] addr_w; 
     integer i;
     
