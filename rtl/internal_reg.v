@@ -60,7 +60,6 @@ module internal_reg #(
     output wire stat_stopped_intr_reg ,
     output wire  stat_err_intr_reg,
     output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
-    //output  wire reg_wr_en,
     output wire [31:0] wrkregval_rd,
     input wire [31:0] cfg_WRKREGPTR,
     input wire [31:0] SRCADDR_INITIAL,
@@ -80,7 +79,7 @@ module internal_reg #(
     reg [31:0] WRKREGVAL_temp;
     reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;
     reg data_in_0_1 ;
-    (* ram_style = "block" *) reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
+    reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
     
     wire regval_err_reserved_bits = ( (|intr_mem[0][31:25]) | (intr_mem[0][23]) | intr_mem[0][19] | (|intr_mem[0][15:6]) 
         | (|intr_mem[4][31:27]) | (|intr_mem[4][23:22]) | (|intr_mem[4][15:11]) | (|intr_mem[4][7:4])
