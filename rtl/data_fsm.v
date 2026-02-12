@@ -92,9 +92,8 @@ module data_fsm #(
     
     // Status
     output reg               DONE,
-    //output wire              ERROR,
     
-    //
+    
     output reg [31:0] SRCADDR_UPDATED,
     output reg [31:0]  DESADDR_UPDATED,
     output reg [31:0]  XSIZE_UPDATED,
@@ -117,7 +116,7 @@ module data_fsm #(
     output reg               STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA
     );
     
-    wire              ERROR;
+    wire ERROR;
     // Internal counters
     reg reg1,reg2;
     reg cmd_done_reg;
@@ -127,7 +126,7 @@ module data_fsm #(
     integer i;
     reg [15:0] srcxsize_reg,desxsize_reg;
     // FIFO memory
-    (* ram_style = "block" *)  reg [127:0] fifo_mem [0:255];
+    reg [127:0] fifo_mem [0:255];
     reg [7:0]   fifo_wptr;
     reg [7:0]   fifo_rptr;
     integer j;
