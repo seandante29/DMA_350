@@ -131,7 +131,7 @@ module data_fsm #(
     reg [7:0]   fifo_wptr;
     reg [7:0]   fifo_rptr;
     integer j;
-    reg config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6;
+    reg config_error_size,config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6;
     reg regvalerr_src,regvalerr_des,regvalerr_trigout;
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
     reg [3:0] state, next_st;
@@ -153,7 +153,7 @@ module data_fsm #(
     WAIT_1 = 4'd14,
     WAIT_2 = 4'd15;
     
-    assign config_error =config_error_src | config_error_des | config_error_trigout | config_error_inc | config_error_x_type | config_error_case3 | config_error_case6;
+    assign config_error = config_error_size | config_error_src | config_error_des | config_error_trigout | config_error_inc | config_error_x_type | config_error_case3 | config_error_case6;
     assign regvalerr = regvalerr_src | regvalerr_des | regvalerr_trigout;
     assign ERROR    = config_error || ard_error || arpoison_error || awr_error || bus_error;
     assign  SRCADDR_INITIAL = src_addr_reg;
@@ -337,7 +337,7 @@ module data_fsm #(
         arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
         {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
         STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
-        {config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
+        {config_error_size,config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
         {regvalerr_src,regvalerr_des,regvalerr_trigout} <= 'd0;
         
         fifo_wptr   <= 0;
@@ -400,7 +400,7 @@ module data_fsm #(
             case (state)
                 IDLE: begin
                     if (stat_error_intr_reg == 0) begin
-                        {config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6 }<= 0;
+                        {config_error_size,config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6 }<= 0;
                         ard_error      <= 0;
                         arpoison_error <= 0;
                         awr_error      <= 0;
@@ -450,7 +450,7 @@ module data_fsm #(
                     AWSIZE  <= transize;
                     AWID    <= 0;
                     config_error_inc <= ((x_type > 3) |(src_xaddr_inc>1| (des_xaddr_inc>1))? 1 : 0);
-
+                    config_error_size <= (transize > 4) | (srcxsize > 'd256) | (desxsize > 'd256);
                     
                     if (use_src_trigin) begin
                         if ((src_trigin_type != 2'b00 && src_trigin_type != 2'b10) || src_trigin_mode != 2'b00) begin
