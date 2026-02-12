@@ -63,7 +63,7 @@ module mux_logic #(parameter WIDTH = 32)
 	output reg [(WIDTH * 15) -1:0] mux_out_reg//to internal reg 
 	);
 	
-    (* ram_style = "block" *) reg [31:0] cmd_data_mem [0:31];
+    reg [31:0] cmd_data_mem [0:31];
     
     reg [1023:0] cmd_data_in;
     reg [4:0] rd_ptr;
