@@ -34,8 +34,8 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
-    wire RO_error = (( cfg_addr == 'h80 | cfg_addr == 'h8C | cfg_addr == 'h90 ) & PWRITE_q);
-    wire address_error = (! (cfg_addr >=0 && cfg_addr <=144));
+    wire RO_error = (( cfg_addr == 'h1080 | cfg_addr == 'h108C | cfg_addr == 'h1090 ) & PWRITE_q);
+    wire address_error = (! (cfg_addr >='h1000 && cfg_addr <='h1090));
     assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
     
     always@(posedge PCLK or negedge PRESETn)
