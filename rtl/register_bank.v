@@ -35,7 +35,7 @@ module register_bank #(parameter WIDTH = 32,
     wire [7:0] addr_w; 
     integer i;
     
-    assign addr_w = addr_in & 32'hFFFFFFFC;
+    assign addr_w = (addr_in & 32'hFFFFFFFC) - 'h1000;
     assign cfg_CH_CMD = reg_mem[0];
     assign cfg_CH_STATUS = reg_mem[4];
     assign cfg_CH_INTREN = reg_mem[8];
