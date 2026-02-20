@@ -84,7 +84,7 @@ module data_fsm #(
     input  wire              WREADY,
     output reg               WVALID,
     output reg  [DATA_W-1:0] WDATA,
-    output reg               WLAST,
+    output                   WLAST, //REG before
     
     input  wire              BVALID,
     input  wire [1:0]        BRESP,
@@ -159,6 +159,7 @@ module data_fsm #(
     assign DESADDR_INITIAL = des_addr_reg;
     assign SRCXSIZE_INITIAL = {16'd0,srcxsize_reg};
     assign DESXSIZE_INITIAL = {16'd0,desxsize_reg};
+    assign WLAST = (state == W && WVALID) ? ((des_left == 1)? 1 : 0) : 0;
 
     always @(posedge clk or negedge resetn)
     begin
@@ -331,7 +332,7 @@ module data_fsm #(
     // Sequential Logic
     always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
-        {ARVALID, RREADY, AWVALID, WVALID, BREADY,WLAST,case1,case2,case3,case4,case5,case6,des_addr_reg,src_addr_reg,wdata_mask,
+        {ARVALID, RREADY, AWVALID, WVALID, BREADY,case1,case2,case3,case4,case5,case6,des_addr_reg,src_addr_reg,wdata_mask,
         DONE, trig_out_req,  ard_error,WDATA,AWADDR,ARADDR,AWSIZE,AWBURST,AWLEN,desxsize_reg,ARID,ARSIZE,ARBURST,srcxsize_reg,ARLEN,AWID,
         arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
         {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
@@ -572,12 +573,15 @@ module data_fsm #(
                     AWVALID <= 1;
                     AWADDR  <= des_addr_reg;
                 end
-                
-                W: begin
-                    WVALID <= 1;
-                    WLAST  <= (des_left == 1);
+         W: begin
+                    //WVALID_reg <= 1;
+                    WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
+                    WVALID <= (WLAST && WREADY) ? 0 : 1;
+                   // if( !WVALID)  des_left  <= des_left - 1;
+                   // WLAST  <= (des_left == 1);// have changed
                     if (WREADY && des_left > 0 && WVALID) begin
-                        WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
+                       // WDATA   = fifo_mem[fifo_rptr] & wdata_mask;
+                       WDATA     <= fifo_mem[fifo_rptr + 1] & wdata_mask;
                         des_left  <= des_left - 1;
                         fifo_rptr <= fifo_rptr + 1;
                     end
