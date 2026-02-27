@@ -190,8 +190,29 @@ module data_fsm #(
             wr_en_for_updated <=(rd_state > RD_CONFIG && rd_state <= RD_PAUSED);
             SRCADDR_UPDATED <= SRCADDR_UPDATED;
             DESADDR_UPDATED <= DESADDR_UPDATED;
-            XSIZE_UPDATED <= (case6 && x_type == 2)? (src_left>=(desxsize_reg - srcxsize_reg))?({des_left,(src_left-(desxsize_reg - srcxsize_reg))}):{des_left,16'b0}
-                            : (case6 && x_type == 1)? {(des_left+(desxsize_reg - srcxsize_reg)),src_left}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+            //XSIZE_UPDATED <= (case6 && x_type == 2)?(src_xsize_remaining == 0 && src_left <= srcxsize_reg && src_left!=0)?XSIZE_UPDATED:(src_xsize_remaining>=src_left)?({des_left,src_left}):{des_left,srcxsize_reg-((desxsize_reg -src_left)%srcxsize_reg)}
+            //                : (case6 && x_type == 1)? {(des_left+(desxsize_reg - srcxsize_reg)),src_left}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
+            if (case6 && x_type == 2) begin
+                if (src_xsize_remaining == 0 && src_left <= srcxsize_reg && src_left != 0) begin
+                    XSIZE_UPDATED <= XSIZE_UPDATED;
+                end
+                else if (src_xsize_remaining >= src_left) begin
+                    XSIZE_UPDATED <= {des_left, src_left};
+                end
+                else begin
+                    XSIZE_UPDATED <= {des_left,
+                                      srcxsize_reg - ((desxsize_reg - src_left) % srcxsize_reg)};
+                end
+            end
+            
+            else if (case6 && x_type == 1) begin
+                XSIZE_UPDATED <= {des_left + (desxsize_reg - srcxsize_reg), src_left};
+            end
+            
+            else begin
+                XSIZE_UPDATED <= {des_left, src_left};
+            end 
+            
             if(rd_state == RD_WAIT_TRIG)
             begin
                 SRCADDR_UPDATED <= src_addr_reg;
@@ -202,7 +223,7 @@ module data_fsm #(
                     if(src_xaddr_inc == 1)
                     begin
                         SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg   - (src_left-(desxsize_reg - srcxsize_reg))) *( 2**transize))) 
-                                                    : SRCADDR_UPDATED
+                                                    : src_addr_reg +((desxsize_reg -src_left)%srcxsize_reg)
                                                     :src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize)) ;
                     end
                     else
@@ -348,8 +369,8 @@ module data_fsm #(
             {ARVALID, RREADY, case1, case2, case3, case4, case5, case6, des_addr_reg, src_addr_reg, wdata_mask,
              DONE, trig_out_req, ard_error, ARADDR, desxsize_reg, ARID, ARSIZE, ARBURST, srcxsize_reg, ARLEN,
              arpoison_error, bus_error_r, cmd_done_reg} <= 0;
-            {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
-             STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
+            { STAT_RESUMEWAIT_DATA,
+             STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
             {config_error_size, config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
 
@@ -519,7 +540,7 @@ module data_fsm #(
         
 
                 RD_R: begin
-                    if (fifo_wptr + 1 != fifo_rptr)
+                    if ({~fifo_wptr[6],fifo_wptr[5:0]} + 1 != fifo_rptr)
                         RREADY <= 1;
                     else
                         RREADY <= 0;
