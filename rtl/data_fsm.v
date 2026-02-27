@@ -141,8 +141,8 @@ module data_fsm #(
     reg [15:0] srcxsize_reg, desxsize_reg;
 
     reg [127:0] fifo_mem [0:31];
-    reg [6:0]   fifo_wptr;
-    reg [6:0]   fifo_rptr;
+    reg [5:0]   fifo_wptr;
+    reg [5:0]   fifo_rptr;
     integer     j;
 
     reg config_error_size, config_error_src, config_error_des, config_error_trigout;
