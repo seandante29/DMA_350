@@ -126,7 +126,7 @@ module data_fsm #(
 
     wire       ERROR;
 
-
+    
     // multiple reads
     reg [15:0] src_xsize_remaining;    
     reg [1:0] src_trig_req_type_reg;
@@ -152,7 +152,7 @@ module data_fsm #(
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
     reg [3:0] state, next_st;
     reg       case1, case2, case3, case4, case5, case6;
-    
+    wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
     
 
    
@@ -389,6 +389,7 @@ module data_fsm #(
                 fifo_mem[j] <= 'd0;
             end
         end else begin
+            if(full) fifo_rptr <= fifo_rptr+1;
             ARVALID      <= 0;
             RREADY       <= 0;
             src_trigack  <= 0;
@@ -540,16 +541,16 @@ module data_fsm #(
         
 
                 RD_R: begin
-                    if ({~fifo_wptr[6],fifo_wptr[5:0]} + 1 != fifo_rptr)
-                        RREADY <= 1;
-                    else
+                    if (full)
                         RREADY <= 0;
-                if (RVALID && RREADY && RLAST) begin
-                        src_xsize_remaining <= /*(src_xsize_remaining < (src_max_burst_len + 1)) ? 'd0 :*/ src_xsize_remaining - (ARLEN + 1);
-                end                
-                    if (RVALID && RREADY && src_left > 0) begin
+                    else
+                        RREADY <= 1;
+                    if (RVALID && RREADY && RLAST) begin
+                            src_xsize_remaining <= src_xsize_remaining - (ARLEN + 1);
+                    end                
+                    if ( RVALID && RREADY && src_left > 0 && !full) begin
                    
-                        fifo_mem[fifo_wptr] <= RDATA;
+                        fifo_mem[fifo_wptr[4:0]] <= RDATA;
                         fifo_wptr           <= fifo_wptr + 1;
                         src_left            <= src_left - 1;
                         
@@ -567,14 +568,6 @@ module data_fsm #(
                     
                 RD_WRAP_FILL: begin
                     case (x_type)
-                        2: begin
-                            if ((!(desxsize - src_left < srcxsize)) && src_left > 0) begin
-                                fifo_mem[fifo_wptr] <= RDATA;
-                               // wrap_rd_ptr         <= (wrap_rd_ptr == srcxsize[7:0]) ? 0 : wrap_rd_ptr + 1;
-                                fifo_wptr           <= fifo_wptr + 1;
-                                src_left            <= src_left - 1;
-                            end
-                        end
                         3: begin
                             if (fill_count > 0 && src_left == 0 && (case2 || case6)) begin
                                 fifo_mem[fifo_wptr] <= {96'd0, fillval};
