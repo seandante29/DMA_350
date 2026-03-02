@@ -155,7 +155,7 @@ module data_fsm #(
     reg       case1, case2, case3, case4, case5, case6;
     
      wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
-
+    wire empty = (fifo_wptr == fifo_rptr);
    
     assign config_error = config_error_size | config_error_src | config_error_des | config_error_trigout | 
                           config_error_inc | config_error_x_type | config_error_case3 | config_error_case6;
@@ -452,7 +452,7 @@ module data_fsm #(
            
             reg1 <= 0;
             reg2 <= 0;
-            for(j=0; j<256; j=j+1) begin
+            for(j=0; j<32; j=j+1) begin
                 fifo_mem[j] <= 'd0;
             end
         end else begin
@@ -670,10 +670,9 @@ module data_fsm #(
 always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
         {AWVALID, WVALID, BREADY,WLAST,des_addr_reg,
-        DONE, trig_out_req,  WDATA,AWADDR,ARADDR,AWSIZE,AWBURST,AWLEN,desxsize_reg,AWID,
+        DONE, trig_out_req,  WDATA,AWADDR,AWSIZE,AWBURST,AWLEN,AWID,
         awr_error, bus_error_w} <= 0;
-        {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
-        STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
+        { STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
         
         fifo_rptr   <= 0;
         des_left    <= 0;
@@ -738,13 +737,15 @@ always @(posedge clk or negedge resetn) begin
                     WLAST  <= (des_left == (des_xsize_remaining - AWLEN))? 1 :0 ;
                     if(WVALID && WREADY && WLAST)
                         des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
-                    if (WREADY && des_left > 0) begin
+                    
+                    if (WREADY && des_left > 0 && !empty) begin
                         WVALID <= 1;
                         WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
                         des_left  <= des_left - 1;
                         fifo_rptr <= fifo_rptr + 1;
-                    end
-                end               
+                    end 
+                    
+                end            
                 W_B: begin
                     BREADY <= 1;
                     if (BRESP >= 2) begin
