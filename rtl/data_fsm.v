@@ -1,6 +1,6 @@
 module data_fsm #(
     parameter ADDR_W = 32,
-    parameter DATA_W = 128,
+    parameter DATA_W = 32,
     parameter ID_W   = 4
 )(
     input  wire                 clk,
@@ -74,7 +74,7 @@ module data_fsm #(
     
     input  wire [3:0]           RID,
     input  wire                 RVALID,
-    input  wire [127:0]         RDATA,
+    input  wire [31:0]         RDATA,
     input  wire [1:0]           RRESP,
     input  wire                 RLAST,
     output reg                  RREADY,
@@ -89,9 +89,9 @@ module data_fsm #(
     output reg  [3:0]           AWLEN,
     
     input  wire                 WREADY,
-    output reg                  WVALID,
+    output wire                  WVALID,
     output reg  [31:0]    WDATA,
-    output reg                  WLAST,
+    output wire                 WLAST,
     
     input  wire                 BVALID,
     input  wire [1:0]           BRESP,
@@ -141,7 +141,7 @@ module data_fsm #(
     integer    i;
     reg [15:0] srcxsize_reg, desxsize_reg;
 
-    reg [127:0] fifo_mem [0:31];
+    reg [31:0] fifo_mem [0:31];
     reg [5:0]   fifo_wptr;
     reg [5:0]   fifo_rptr;
     integer     j;
@@ -169,6 +169,7 @@ module data_fsm #(
     assign SRCXSIZE_INITIAL = {16'd0, srcxsize_reg};
     assign DESXSIZE_INITIAL = {16'd0, desxsize_reg};
 
+ 
     localparam RD_IDLE       = 4'd0, RD_WAIT      = 4'd1, RD_CONFIG  = 4'd2, RD_WAIT_TRIG = 4'd3, 
                RD_AR         = 4'd4, RD_R         = 4'd5, RD_WRAP_FILL = 4'd6, RD_ERROR_ST  = 4'd7, 
                RD_PAUSED     = 4'd8;
@@ -179,7 +180,8 @@ module data_fsm #(
     reg       bus_error_w, bus_error_r, done_signal, wr_start;
 
 
-
+assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_left ? 1 : 0) : 0;
+  assign WVALID = ((WLAST && WREADY) || empty) ? 0 : 1;
     always @(posedge clk or negedge resetn)
     begin
         if(!resetn)
@@ -615,7 +617,7 @@ module data_fsm #(
                     ARID    <= 0;
                     ARVALID <= 1;
                    // ARADDR <= (src_xaddr_inc == 'd0) ? src_addr_reg : (src_xsize_remaining == srcxsize_reg)? src_addr_reg : (ARVALID && ARREADY) ? ARADDR + ((ARLEN + 1) * 2**transize) : ARADDR;
-                    ARADDR <= (case6 && x_type == 'd2 && src_xsize_remaining == 0)? SRCADDR_INITIAL: (src_xsize_remaining == src_left) ? ARADDR : src_addr_reg + (srcxsize_reg - src_xsize_remaining)  * (2**transize);
+                    ARADDR <= (case6 && x_type == 'd2 && src_xsize_remaining == 0)? SRCADDR_INITIAL: ((src_xsize_remaining == src_left) && case6 && x_type == 2) ? ARADDR : src_addr_reg + (srcxsize_reg - src_xsize_remaining)  * (2**transize);
                    	src_xsize_remaining <= (case6 && x_type == 'd2 && src_xsize_remaining == 0) ? (srcxsize_reg > src_left) ? src_left : srcxsize_reg : (src_xsize_remaining);
                     end
         
@@ -679,14 +681,14 @@ always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
         
          AWVALID      <= 0;
-            WVALID       <= 0;
+            //WVALID       <= 0;
             BREADY       <= 0;
             DONE <= 0;
        fifo_rptr   <= 0;
         des_left    <= 0;
            trig_out_req <= 0;
            STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
-           WLAST <= 0;
+          // WLAST <= 0;
            awr_error<=0;
            AWLEN <= 'd0;
            AWADDR <= 0;
@@ -699,7 +701,7 @@ always @(posedge clk or negedge resetn) begin
     end 
     else begin
             AWVALID      <= 0;
-            WVALID       <= 0;
+           // WVALID       <= 0;
             BREADY       <= 0;
            DONE         <= stop_cmd_partsel? 1: 0;
            trig_out_req <= 0;
@@ -712,6 +714,7 @@ always @(posedge clk or negedge resetn) begin
             
             case (wr_state)
                 W_IDLE: begin
+                AWADDR <= des_addr_reg;
                     des_xsize_remaining <= desxsize_reg;
                     if (stat_error_intr_reg == 0) begin
                         awr_error      <= 0;
@@ -751,19 +754,35 @@ always @(posedge clk or negedge resetn) begin
                     AWSIZE  <= transize;
                     AWID    <= 0;
                 end
-                
-                W_W: begin
-                    
-                    WLAST  <= (des_left == (des_xsize_remaining - AWLEN))? 1 :0 ;
-                    if(WVALID && WREADY && WLAST)
+               
+             W_W:
+             begin
+                 // WLAST  <= (des_left == (des_xsize_remaining - AWLEN))? 1 :0 ;
+                    WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
+                    //WVALID <= ((WLAST && WREADY) || empty) ? 0 : 1;
+                  if(WVALID && WREADY && WLAST)
                         des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
-                    if (WREADY && des_left > 0 && !empty) begin
-                        WVALID <= 1;
-                        WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
-                        des_left  <= des_left - 1;
-                        fifo_rptr <= fifo_rptr + 1;
+                    if (WREADY && des_left > 0 && WVALID&& !empty) begin
+                                           
+                    WDATA     <= fifo_mem[fifo_rptr + 1] & wdata_mask;
+                    des_left  <= des_left - 1;
+                    fifo_rptr <= fifo_rptr + 1;
                     end
-                end               
+                    end
+             
+             
+              //begin
+                    
+//                    WLAST  <= (des_left == (des_xsize_remaining - AWLEN))? 1 :0 ;
+//                    if(WVALID && WREADY && WLAST)
+//                        des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
+//                    if (WREADY && des_left > 0 && !empty) begin
+//                        WVALID <= 1;
+//                        WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
+//                        des_left  <= des_left - 1;
+//                        fifo_rptr <= fifo_rptr + 1;
+//                    end
+//                end               
                 W_B: begin
                     BREADY <= 1;
                     if (BRESP >= 2) begin
