@@ -89,7 +89,7 @@ module data_fsm #(
     output reg  [3:0]           AWLEN,
     
     input  wire                 WREADY,
-    output wire                  WVALID,
+    output reg                 WVALID,
     output reg  [31:0]    WDATA,
     output wire                 WLAST,
     
@@ -155,7 +155,7 @@ module data_fsm #(
     reg       case1, case2, case3, case4, case5, case6;
     
     wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
-    wire empty = (fifo_wptr == fifo_rptr);
+    wire empty = (fifo_wptr == fifo_rptr+1);
 
 
    
@@ -178,10 +178,11 @@ module data_fsm #(
 
     reg [3:0] rd_state, wr_state, wr_next_st, rd_next_st;
     reg       bus_error_w, bus_error_r, done_signal, wr_start;
+    
+//assign WVALID = ((wr_state == W_W )&&(!empty)) ? 1 : 0;
 
-
-assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_left ? 1 : 0) : 0;
-  assign WVALID = ((WLAST && WREADY) || empty) ? 0 : 1;
+//assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_left ? 1 : 0) : 0;
+  assign  WLAST = ((wr_state == W_W )&&((DESADDR_UPDATED - AWADDR) /** 2**transize*/ == (AWLEN -1) * 2**transize))?1:0;
     always @(posedge clk or negedge resetn)
     begin
         if(!resetn)
@@ -670,7 +671,7 @@ assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == d
                 end
             endcase
             
-            if(rd_state == RD_R && fifo_wptr == {2'b00,AWLEN})
+            if(rd_state == RD_R/* && fifo_wptr == {2'b00,AWLEN}*/&& RLAST)
                 wr_start <= 1;
         end
     end
@@ -681,7 +682,7 @@ always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
         
          AWVALID      <= 0;
-            //WVALID       <= 0;
+            WVALID       <= 0;
             BREADY       <= 0;
             DONE <= 0;
        fifo_rptr   <= 0;
@@ -701,7 +702,7 @@ always @(posedge clk or negedge resetn) begin
     end 
     else begin
             AWVALID      <= 0;
-           // WVALID       <= 0;
+           WVALID       <= 0;
             BREADY       <= 0;
            DONE         <= stop_cmd_partsel? 1: 0;
            trig_out_req <= 0;
@@ -714,7 +715,7 @@ always @(posedge clk or negedge resetn) begin
             
             case (wr_state)
                 W_IDLE: begin
-                AWADDR <= des_addr_reg;
+               // AWADDR <= des_addr_reg;
                     des_xsize_remaining <= desxsize_reg;
                     if (stat_error_intr_reg == 0) begin
                         awr_error      <= 0;
@@ -745,7 +746,7 @@ always @(posedge clk or negedge resetn) begin
                 end
                 W_AW: begin
                     AWVALID <= 1;
-                    AWADDR  <= (des_xsize_remaining == des_left) ? AWADDR : des_addr_reg + (desxsize_reg - des_xsize_remaining)  * (2**transize);
+                    AWADDR  <= /*(des_xsize_remaining == des_left) ? AWADDR :*/ des_addr_reg + (desxsize_reg - des_xsize_remaining)  * (2**transize);
                     if(des_trig_req_type_reg == 'd0) 
                         AWLEN <= 'd0;
                     else if(des_trig_req_type == 'd1)
@@ -758,8 +759,9 @@ always @(posedge clk or negedge resetn) begin
              W_W:
              begin
                  // WLAST  <= (des_left == (des_xsize_remaining - AWLEN))? 1 :0 ;
+                WVALID <= (!empty) ? 1 : 0;
                     WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
-                    //WVALID <= ((WLAST && WREADY) || empty) ? 0 : 1;
+                    //WVALID <= ((des_left == (des_xsize_remaining - AWLEN+1) && WREADY) || fifo_wptr == fifo_rptr) ? 0 : 1;
                   if(WVALID && WREADY && WLAST)
                         des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
                     if (WREADY && des_left > 0 && WVALID&& !empty) begin
