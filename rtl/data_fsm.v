@@ -157,7 +157,8 @@ module data_fsm #(
     wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
     wire empty = (fifo_wptr == fifo_rptr);
 
-
+    reg [4:0] wr_pause_state_q;
+    reg [4:0] rd_pause_state_q;
    
     assign config_error = config_error_size | config_error_src | config_error_des | config_error_trigout | 
                           config_error_inc | config_error_x_type | config_error_case3 | config_error_case6;
@@ -299,14 +300,19 @@ module data_fsm #(
         if(!resetn) begin
             rd_state <= 'd0;
             wr_state <= 'd0;
+            wr_pause_state_q <= 'd0;
+            rd_pause_state_q <= 'd0;
             end
         else begin
+            rd_pause_state_q <= rd_pause_state;
+            wr_pause_state_q <= wr_pause_state;
             rd_state <= rd_next_st;
             wr_state <= wr_next_st;
             end
     end
 
     always @(*) begin
+        rd_pause_state =(rd_next_st != RD_PAUSED )? rd_next_st :rd_pause_state_q; 
         rd_next_st = rd_state;
         if (stop_cmd_partsel) begin
             rd_next_st = RD_IDLE;
@@ -409,6 +415,7 @@ module data_fsm #(
 
 // Next State Logic
     always @(*) begin
+     wr_pause_state = (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state_q; 
         wr_next_st = wr_state;
         if (stop_cmd_partsel) begin
             wr_next_st = W_IDLE;
@@ -475,7 +482,7 @@ module data_fsm #(
               STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
             {config_error_size, config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
-            rd_pause_state <= RD_IDLE;
+            //rd_pause_state <= RD_IDLE;
             fifo_wptr       <= 0;
           // fifo_rptr       <= 0;
             src_left        <= 0;
@@ -506,7 +513,7 @@ module data_fsm #(
             STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
             STAT_DESTRIGINWAIT_DATA  <= 1'b0;
 
-                rd_pause_state <=(rd_next_st != RD_PAUSED )? rd_next_st :rd_pause_state; 
+               // rd_pause_state <=(rd_next_st != RD_PAUSED )? rd_next_st :rd_pause_state; 
             case (rd_state)
                 RD_IDLE: begin
                     done_signal <= 0;
@@ -707,7 +714,7 @@ module data_fsm #(
     // wr_fsm_seq
 always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
-           wr_pause_state <= W_IDLE;
+           //wr_pause_state <= W_IDLE;
          AWVALID      <= 0;
             WVALID       <= 0;
             BREADY       <= 0;
@@ -739,7 +746,7 @@ always @(posedge clk or negedge resetn) begin
             //STAT_SRCTRIGINWAIT_DATA <= 1'b0;
            // STAT_DESTRIGINWAIT_DATA <= 1'b0;
 
-                wr_pause_state <= (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state; 
+               // wr_pause_state <= (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state; 
             case (wr_state)
                 W_IDLE: begin
                // AWADDR <= des_addr_reg;
