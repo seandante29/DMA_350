@@ -170,13 +170,25 @@ module data_fsm #(
     assign DESXSIZE_INITIAL = {16'd0, desxsize_reg};
 
  
-    localparam RD_IDLE       = 4'd0, RD_WAIT      = 4'd1, RD_CONFIG  = 4'd2, RD_WAIT_TRIG = 4'd3, 
-               RD_AR         = 4'd4, RD_R         = 4'd5, RD_WRAP_FILL = 4'd6, RD_ERROR_ST  = 4'd7, 
-               RD_PAUSED     = 4'd8;
-    localparam W_IDLE        = 4'd9, W_AW         = 4'd10, W_W        = 4'd11, W_B         = 4'd12, 
-               W_TRIG_OUT    = 4'd13, W_DONE_ST   = 4'd14, W_ERROR_ST = 4'd15;    
-
-    reg [3:0] rd_state, wr_state, wr_next_st, rd_next_st;
+    localparam RD_IDLE       = 5'd0,
+               RD_WAIT       = 5'd1,
+               RD_CONFIG     = 5'd2,
+               RD_WAIT_TRIG  = 5'd3,
+               RD_AR         = 5'd4,
+               RD_R          = 5'd5,
+               RD_WRAP_FILL  = 5'd6,
+               RD_ERROR_ST   = 5'd7,
+               RD_PAUSED     = 5'd8;
+    
+    localparam W_IDLE        = 5'd9,
+               W_AW          = 5'd10,
+               W_W           = 5'd11,
+               W_B           = 5'd12,
+               W_TRIG_OUT    = 5'd13,
+               W_DONE_ST     = 5'd14,
+               W_ERROR_ST    = 5'd15,
+               W_PAUSED      = 5'd16;
+    reg [4:0] rd_state, wr_state, wr_next_st, rd_next_st,wr_pause_state, rd_pause_state;
     reg       bus_error_w, bus_error_r, done_signal, wr_start;
     
 //assign WVALID = ((wr_state == W_W )&&(!empty)) ? 1 : 0;
@@ -298,6 +310,9 @@ module data_fsm #(
         rd_next_st = rd_state;
         if (stop_cmd_partsel) begin
             rd_next_st = RD_IDLE;
+        end
+        else if(pause_cmd_partsel)begin
+            rd_next_st = RD_PAUSED;
         end else begin
             case (rd_state)
                 RD_IDLE:
@@ -308,6 +323,10 @@ module data_fsm #(
                             rd_next_st = RD_WAIT;
                     end else
                         rd_next_st = RD_IDLE;
+                        
+                RD_PAUSED:
+                    if(resume_cmd_partsel)
+                            rd_next_st = rd_pause_state;
             
                 RD_WAIT: 
                     if (stat_error_intr_reg) 
@@ -393,15 +412,22 @@ module data_fsm #(
         wr_next_st = wr_state;
         if (stop_cmd_partsel) begin
             wr_next_st = W_IDLE;
-        end else begin
+        end 
+        else if(pause_cmd_partsel)begin
+            wr_next_st = W_PAUSED;
+        end
+        else begin
             case (wr_state)
             W_IDLE:
                 if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
                     if(done_signal)  
                         wr_next_st = W_DONE_ST;
-                else if(wr_start)
+                    else if(wr_start)
                         wr_next_st = W_AW;
-    end
+                end
+             W_PAUSED:
+                    if(resume_cmd_partsel)
+                            wr_next_st = wr_pause_state;
              W_AW:
                 if (AWVALID && AWREADY)
                     wr_next_st = W_W;
@@ -449,7 +475,7 @@ module data_fsm #(
               STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
             {config_error_size, config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
-
+            rd_pause_state <= RD_IDLE;
             fifo_wptr       <= 0;
           // fifo_rptr       <= 0;
             src_left        <= 0;
@@ -480,6 +506,7 @@ module data_fsm #(
             STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
             STAT_DESTRIGINWAIT_DATA  <= 1'b0;
 
+                rd_pause_state <=(rd_next_st != RD_PAUSED )? rd_next_st :rd_pause_state; 
             case (rd_state)
                 RD_IDLE: begin
                     done_signal <= 0;
@@ -680,7 +707,7 @@ module data_fsm #(
     // wr_fsm_seq
 always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
-        
+           wr_pause_state <= W_IDLE;
          AWVALID      <= 0;
             WVALID       <= 0;
             BREADY       <= 0;
@@ -711,8 +738,8 @@ always @(posedge clk or negedge resetn) begin
             STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
             //STAT_SRCTRIGINWAIT_DATA <= 1'b0;
            // STAT_DESTRIGINWAIT_DATA <= 1'b0;
-            
-            
+
+                wr_pause_state <= (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state; 
             case (wr_state)
                 W_IDLE: begin
                // AWADDR <= des_addr_reg;
