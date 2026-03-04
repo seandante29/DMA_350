@@ -91,7 +91,7 @@ module data_fsm #(
     input  wire                 WREADY,
     output reg                 WVALID,
     output reg  [31:0]    WDATA,
-    output wire                 WLAST,
+    output reg                 WLAST,
     
     input  wire                 BVALID,
     input  wire [1:0]           BRESP,
@@ -155,7 +155,7 @@ module data_fsm #(
     reg       case1, case2, case3, case4, case5, case6;
     
     wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
-    wire empty = (fifo_wptr == fifo_rptr+1);
+    wire empty = (fifo_wptr == fifo_rptr);
 
 
    
@@ -182,7 +182,7 @@ module data_fsm #(
 //assign WVALID = ((wr_state == W_W )&&(!empty)) ? 1 : 0;
 
 //assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_left ? 1 : 0) : 0;
-  assign  WLAST = ((wr_state == W_W )&&((DESADDR_UPDATED - AWADDR) /** 2**transize*/ == (AWLEN -1) * 2**transize))?1:0;
+ // assign  WLAST = ((wr_state == W_W )&&((DESADDR_UPDATED - AWADDR)== (AWLEN -1) * 2**transize))?1:0;
     always @(posedge clk or negedge resetn)
     begin
         if(!resetn)
@@ -689,7 +689,7 @@ always @(posedge clk or negedge resetn) begin
         des_left    <= 0;
            trig_out_req <= 0;
            STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
-          // WLAST <= 0;
+           WLAST <= 0;
            awr_error<=0;
            AWLEN <= 'd0;
            AWADDR <= 0;
@@ -758,19 +758,19 @@ always @(posedge clk or negedge resetn) begin
                
              W_W:
              begin
-                 // WLAST  <= (des_left == (des_xsize_remaining - AWLEN))? 1 :0 ;
-                WVALID <= (!empty) ? 1 : 0;
-                    WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
+                 WLAST  <= (des_left == (des_xsize_remaining - AWLEN))? 1 :0 ;
+                WVALID <= ((empty) || WLAST) ? 0 : 1;
+                   // WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
                     //WVALID <= ((des_left == (des_xsize_remaining - AWLEN+1) && WREADY) || fifo_wptr == fifo_rptr) ? 0 : 1;
                   if(WVALID && WREADY && WLAST)
                         des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
-                    if (WREADY && des_left > 0 && WVALID&& !empty) begin
+                    if (WREADY && des_left > 0 && !empty && !WLAST) begin
                                            
-                    WDATA     <= fifo_mem[fifo_rptr + 1] & wdata_mask;
+                    WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
                     des_left  <= des_left - 1;
                     fifo_rptr <= fifo_rptr + 1;
                     end
-                    end
+                    end                     
              
              
               //begin
