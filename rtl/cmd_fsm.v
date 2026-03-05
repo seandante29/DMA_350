@@ -16,11 +16,11 @@ module cmd_fsm (
     output reg [31:0]ARADDR,
     // R signals
     input [3:0]RID,
-    input [127:0]RDATA_I,//32
+    input [31:0]RDATA_I,//32
     input [1:0]RRESP,
     input RLAST,
     input RVALID,
-    output reg RREADY,
+    output  RREADY, //combo
     output reg [31:0]RDATA_O,//32
     output reg [31:0] LINK_HEADER,
     output reg [4:0] wptr,
@@ -49,6 +49,7 @@ module cmd_fsm (
     localparam R      = 4'b0100;  
     localparam COUNT  = 4'b1000;
     
+    assign RREADY = (current_state == R)? 1:0;
     always @(posedge clk or negedge resetn)
     begin
         if(!resetn) begin
@@ -117,7 +118,7 @@ module cmd_fsm (
         else if(current_state == COUNT)begin
             count1 = 0;
             for( i = 1 ; i < 31 ; i = i + 1) 
-                count1 = count1 + RDATA_I[i];
+                count1 = count1 + LINK_HEADER[i];
         end	
     end
     
@@ -152,7 +153,7 @@ module cmd_fsm (
             ARSIZE <= 'd2;
             ARBURST <=0;
             ARVALID <=0;
-            RREADY <= 0;
+           // RREADY <= 0;
             RDATA_O <= 0;
             LINKHDRERR <= 0;
             LINK_HEADER <= 0;
@@ -175,7 +176,7 @@ module cmd_fsm (
                     ARSIZE <= 'd2;
                     ARBURST <=0;
                     ARVALID <=0;
-                    RREADY <= 0;
+                 //   RREADY <= 0;
                     if(~STAT_ERROR_PARTSEL)
                     begin
                         BUSERR <= 0;
@@ -195,7 +196,7 @@ module cmd_fsm (
                     ARSIZE <= 'd2;
                     CMD_DONE <= 0;
                     ARVALID <= 1;          
-                    RREADY <= 0;
+                  //  RREADY <= 0;
                     if (count == 0) begin
                         ARADDR <= LINKADDR;
                         ARLEN <= 0;
@@ -203,13 +204,14 @@ module cmd_fsm (
                     else begin
                         ARADDR <= LINKADDR + 4;
                         ARLEN <= count - 1;
+                        ARBURST <= 1;  //changes done
                     end
                 end
                 
                 R:
                 begin
                     CMD_DONE <= 0;
-                    RREADY  <= 1;
+                  //  RREADY  <= 1;
                     ARVALID <= 0;  
                     if(RREADY && RVALID) begin
                         if(count!=0)begin
@@ -245,6 +247,7 @@ module cmd_fsm (
                 
                 COUNT : begin
                     CMD_DONE <= 0;
+                //    RREADY <= 0;
                 end
                 
                 default:
@@ -255,7 +258,7 @@ module cmd_fsm (
                     ARSIZE <= 3'b111;
                     ARBURST <=0;
                     ARVALID <=0;
-                    RREADY <= 0;
+                   // RREADY <= 0;
                 end
             endcase 
         end
