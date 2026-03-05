@@ -1,7 +1,7 @@
 module dma_channel
     #(
     parameter WIDTH = 32,
-    parameter DATA_W = 128 )
+    parameter DATA_W =  32)
     (
     input wire clk,resetn,                 
     // reg bank signals
