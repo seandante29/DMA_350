@@ -7,8 +7,6 @@ module apb_reg #(parameter DATA_WIDTH = 32,
         //APB signals
         input wire clk,
         input wire resetn,
-        input wire PCLK,
-        input wire PRESETn,
         input wire [ ADDR_WIDTH-1 : 0 ] PADDR, 
         input wire PWRITE,
         input wire PENABLE,
@@ -51,8 +49,8 @@ module apb_reg #(parameter DATA_WIDTH = 32,
       
       
       apb_slave dut0
-      (.PCLK(PCLK),
-       .PRESETn(PRESETn),
+         (.PCLK(clk),
+        .PRESETn(resetn),
        .PADDR(PADDR),
        .PWRITE(PWRITE),
        .PSEL(PSEL),
