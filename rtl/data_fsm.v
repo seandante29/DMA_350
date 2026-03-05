@@ -125,7 +125,7 @@ module data_fsm #(
     
 
     wire       ERROR;
-
+    wire [31:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
 
     // multiple reads
     reg [15:0] src_xsize_remaining;   
@@ -169,7 +169,8 @@ module data_fsm #(
     assign DESADDR_INITIAL  = des_addr_reg;
     assign SRCXSIZE_INITIAL = {16'd0, srcxsize_reg};
     assign DESXSIZE_INITIAL = {16'd0, desxsize_reg};
-
+    assign src_xaddr_inc_sign = $signed(src_xaddr_inc);
+    assign des_xaddr_inc_sign = $signed(des_xaddr_inc);
  
     localparam RD_IDLE       = 5'd0,
                RD_WAIT       = 5'd1,
@@ -241,9 +242,9 @@ module data_fsm #(
                 if(RVALID) begin
                     if(src_xaddr_inc == 1)
                     begin
-                        SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg   - (src_left-(desxsize_reg - srcxsize_reg))) *( 2**transize))) 
+                        SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg   - (src_left-(desxsize_reg - srcxsize_reg))) *( 2**transize)*(src_xaddr_inc_sign))) 
                                                     : src_addr_reg +((desxsize_reg -src_left)%srcxsize_reg)
-                                                    :src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize)) ;
+                                                    :src_addr_reg + ((srcxsize_reg - src_left) *( 2**transize)*(src_xaddr_inc_sign)) ;
                     end
                     else
                         SRCADDR_UPDATED <=  src_addr_reg;
@@ -254,7 +255,7 @@ module data_fsm #(
                 if(WREADY)
                     if(des_xaddr_inc == 1)
                     begin
-                        DESADDR_UPDATED <= des_addr_reg + ((desxsize_reg - des_left) * ( 2**transize));
+                        DESADDR_UPDATED <= des_addr_reg + ((desxsize_reg - des_left) * (( 2**transize)*des_xaddr_inc_sign));
                     end
                     else
                         DESADDR_UPDATED <=  des_addr_reg;
@@ -563,7 +564,7 @@ module data_fsm #(
                     srcxsize_reg <= srcxsize;
                     desxsize_reg <= desxsize;
 
-                    config_error_inc  <= ((x_type > 3) | (src_xaddr_inc > 1 | (des_xaddr_inc > 1)) ? 1 : 0);
+                    //config_error_inc  <= ((x_type > 3) | (src_xaddr_inc > 1 | (des_xaddr_inc > 1)) ? 1 : 0);
                     config_error_size <= (transize > 4) | (srcxsize > 'd256) | (desxsize > 'd256);
                     
                     if (use_src_trigin) begin
@@ -647,12 +648,12 @@ module data_fsm #(
                     else if(src_trig_req_type == 'd1)
                         ARLEN <= ((src_xsize_remaining - 1) > src_max_burst_len) ? src_max_burst_len : src_xsize_remaining - 1;
                     
-                    ARBURST <= (src_xaddr_inc[0]) ? 2'b01 : 2'b00;
+                    ARBURST <= (src_xaddr_inc > 0) ? 2'b01 : 2'b00;
                     ARSIZE  <= transize;
                     ARID    <= 0;
                     ARVALID <= 1;
                    // ARADDR <= (src_xaddr_inc == 'd0) ? src_addr_reg : (src_xsize_remaining == srcxsize_reg)? src_addr_reg : (ARVALID && ARREADY) ? ARADDR + ((ARLEN + 1) * 2**transize) : ARADDR;
-                    ARADDR <= (case6 && x_type == 'd2 && src_xsize_remaining == 0)? SRCADDR_INITIAL: ((src_xsize_remaining == src_left) && case6 && x_type == 2) ? ARADDR : src_addr_reg + (srcxsize_reg - src_xsize_remaining)  * (2**transize);
+                    ARADDR <= (case6 && x_type == 'd2 && src_xsize_remaining == 0)? SRCADDR_INITIAL: ((src_xsize_remaining == src_left) && case6 && x_type == 2) ? ARADDR : src_addr_reg + (srcxsize_reg - src_xsize_remaining)  * ((2**transize)*src_xaddr_inc_sign);
                    	src_xsize_remaining <= (case6 && x_type == 'd2 && src_xsize_remaining == 0) ? (srcxsize_reg > src_left) ? src_left : srcxsize_reg : (src_xsize_remaining);
                     end
         
@@ -780,12 +781,12 @@ always @(posedge clk or negedge resetn) begin
                 end
                 W_AW: begin
                     AWVALID <= 1;
-                    AWADDR  <= /*(des_xsize_remaining == des_left) ? AWADDR :*/ des_addr_reg + (desxsize_reg - des_xsize_remaining)  * (2**transize);
+                    AWADDR  <= /*(des_xsize_remaining == des_left) ? AWADDR :*/ des_addr_reg + (desxsize_reg - des_xsize_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
                     if(des_trig_req_type_reg == 'd0) 
                         AWLEN <= 'd0;
                     else if(des_trig_req_type == 'd1)
                     AWLEN <= ((des_xsize_remaining - 1) > des_max_burst_len) ? des_max_burst_len : des_xsize_remaining - 1;//(case6 && x_type == 1)? srcxsize - 1: desxsize - 1;
-                    AWBURST <= (des_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
+                    AWBURST <= (des_xaddr_inc != 'b0) ? 2'b01 : 2'b00;
                     AWSIZE  <= transize;
                     AWID    <= 0;
                 end
