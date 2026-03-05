@@ -1,6 +1,6 @@
 module data_fsm #(
     parameter ADDR_W = 32,
-    parameter DATA_W = 128,  //128
+    parameter DATA_W = 32,  //128
     parameter ID_W   = 4
     )(
     input  wire              clk,
@@ -67,7 +67,7 @@ module data_fsm #(
     
     input wire              [3:0] RID,
     input  wire              RVALID,
-    input  wire [127 : 0]    RDATA, //128
+    input  wire [31 : 0]    RDATA, //128
     input  wire [1:0]        RRESP,
     input  wire              RLAST,
     output reg               RREADY,
@@ -126,7 +126,7 @@ module data_fsm #(
     integer i;
     reg [15:0] srcxsize_reg,desxsize_reg;
     // FIFO memory
-    reg [127:0] fifo_mem [0:255];
+    reg [31:0] fifo_mem [0:255];
     reg [7:0]   fifo_wptr;
     reg [7:0]   fifo_rptr;
     integer j;
@@ -159,7 +159,7 @@ module data_fsm #(
     assign DESADDR_INITIAL = des_addr_reg;
     assign SRCXSIZE_INITIAL = {16'd0,srcxsize_reg};
     assign DESXSIZE_INITIAL = {16'd0,desxsize_reg};
-    assign WLAST = (state == W && WVALID) ? ((des_left == 1)? 1 : 0) : 0;
+    assign WLAST = (state == W) ? ((des_left == 1)? 1 : 0) : 0;
 
     always @(posedge clk or negedge resetn)
     begin
@@ -576,7 +576,7 @@ module data_fsm #(
          W: begin
                     //WVALID_reg <= 1;
                     WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
-                    WVALID <= (WLAST && WREADY) ? 0 : 1;
+                    WVALID <= 1;
                    // if( !WVALID)  des_left  <= des_left - 1;
                    // WLAST  <= (des_left == 1);// have changed
                     if (WREADY && des_left > 0 && WVALID) begin
