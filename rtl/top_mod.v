@@ -1,6 +1,6 @@
 module top_mod#( 
     parameter WIDTH = 32,
-    parameter DATA_W = 128,
+    parameter DATA_W = 32,
     parameter DATA_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
     parameter STRB_WIDTH =  DATA_WIDTH/8
@@ -8,8 +8,6 @@ module top_mod#(
     (// apb_reg interface
     input wire clk,
     input wire resetn,
-    input wire PCLK,
-    input wire PRESETn,
     input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
     input wire PWRITE,
     input wire PENABLE,
@@ -247,8 +245,6 @@ module top_mod#(
      dut2 (
     .clk        (clk),
     .resetn     (resetn),
-    .PCLK       (clk),     // single clock
-    .PRESETn    (resetn),
     .PADDR      (PADDR),
     .PWRITE     (PWRITE),
     .PSEL       (PSEL),
