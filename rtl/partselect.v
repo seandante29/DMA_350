@@ -21,7 +21,7 @@ module partselect (
     output wire [2:0]  transize,
     output wire [15:0] srcxsize,
     output wire [15:0] desxsize,
-    output wire [31:2] linkaddr,
+    output wire [31:0] linkaddr,
     output wire        linkaddren,
     // COMMAND OUTPUTS
     output wire        enable_cmd,
@@ -65,7 +65,7 @@ module partselect (
     assign desxsize = CH_XSIZE[31:16];
     assign srcxsize = CH_XSIZE[15:0];
     // CH_LINKADDR
-    assign linkaddr   = CH_LINKADDR[31:2];
+    assign linkaddr   = (CH_LINKADDR & 32'hFFFFFFFC);
     assign linkaddren = CH_LINKADDR[0];
     // CH_CMD
     assign trigout_ack_sw      = CH_CMD[24];
