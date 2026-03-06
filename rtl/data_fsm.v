@@ -63,6 +63,15 @@ module data_fsm #(
     input  wire [3:0]           src_max_burst_len,
     input  wire [3:0]           des_max_burst_len,
 
+
+
+    // template
+    
+    input wire [4:0] des_tmplt_size,
+    input wire [4:0] src_tmplt_size,
+    input wire [31:0] des_tmplt,
+    input wire [31:0] src_tmplt,
+    
     // AXI READ
     input  wire                 ARREADY,
     output reg                  ARVALID,
@@ -122,11 +131,13 @@ module data_fsm #(
     output reg                  STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, 
     output reg                  STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA
 );
-    
+    reg [31:0]                        initial_tmplt_addr_src;
+
 
     wire       ERROR;
     wire [31:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
-
+    reg [4:0] count_src_tmplt;//
+    reg [4:0] count_des_tmplt;//
     // multiple reads
     reg [15:0] src_xsize_remaining;   
     reg [15:0] des_xsize_remaining; 
@@ -144,7 +155,9 @@ module data_fsm #(
     reg [31:0] fifo_mem [0:31];
     reg [5:0]   fifo_wptr;
     reg [5:0]   fifo_rptr;
-    integer     j;
+    integer     j,k,l;
+    
+    reg [4:0] m;
 
     reg config_error_size, config_error_src, config_error_des, config_error_trigout;
     reg config_error_inc, config_error_x_type, config_error_case3, config_error_case6;
@@ -197,6 +210,38 @@ module data_fsm #(
 
 //assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_left ? 1 : 0) : 0;
  // assign  WLAST = ((wr_state == W_W )&&((DESADDR_UPDATED - AWADDR)== (AWLEN -1) * 2**transize))?1:0;
+    
+    //
+       always@(*) begin
+        if(rd_state == RD_IDLE  ) 
+            count_src_tmplt = 0;
+        if(rd_state == RD_CONFIG && count_src_tmplt == 0 )
+        
+        k = src_tmplt_size;
+        while(src_tmplt[k] != 1)
+            k = k - 1;
+           // count_src_tmplt = k;
+            
+//            for( k = src_tmplt_size ; k >= 0; k = k - 1) 
+//                if(src_tmplt[k])
+//                    count_src_tmplt = k;
+      end
+      
+      always@(*) begin
+        if(rd_state == RD_IDLE  ) 
+            count_des_tmplt = 0;
+        if(rd_state == RD_CONFIG && count_des_tmplt == 0 )
+            for( l = 0 ; l < des_tmplt_size ; l = l + 1) 
+                count_des_tmplt = count_des_tmplt + des_tmplt[l];
+      end
+      
+//      always@(*) begin
+//      if(rd_state == RD_R )
+//      for (m=0; m < src_tmplt_size; m=m+1)                  	       
+//        if(RLAST && src_tmplt[m] == 0)
+//            m = m + 1;
+//      end
+    //
     always @(posedge clk or negedge resetn)
     begin
         if(!resetn)
@@ -269,6 +314,7 @@ module data_fsm #(
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin 
             {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA,STAT_DONE_DATA} <= 'b0;
+            
         end else begin 
             if (disable_cmd_partsel || stop_cmd_partsel)
                 ENABLECMD_DATA <= 1;
@@ -378,11 +424,12 @@ module data_fsm #(
             end
                 RD_AR:
                 begin
-                  
-                   
-                    
-                    if (ARVALID && ARREADY)
+               
+                    if (ARVALID && ARREADY) begin
+                        if(src_tmplt [m] == 1 || src_tmplt_size == 0) 
                         rd_next_st = RD_R;
+                        
+                        end
                     else
                         rd_next_st = RD_AR;
               end
@@ -390,13 +437,16 @@ module data_fsm #(
                     if ((RRESP == 2 || RRESP == 3) && RVALID)
                         rd_next_st = RD_ERROR_ST;
                     else if (RVALID && RREADY && RLAST) begin
-                        if(src_left > 'd1)
+                    
+//                        if(count_src_tmplt > 0)//
+//                            rd_next_st = RD_AR;
+                         if(src_left > 'd1)
                             rd_next_st = RD_AR;
-                       
                         else if (( fill_count > 1) && ( (x_type == 3) && (case6  || case2)))
                             rd_next_st = RD_WRAP_FILL;
                         else 
                             rd_next_st = RD_IDLE; end
+                            
                     else
                         rd_next_st = RD_R;
                         
@@ -496,6 +546,7 @@ module data_fsm #(
             des_trigack_type <= 'd0;
             wr_start <= 'd0;
             reg1 <= 0;
+            m <= 0;
             reg2 <= 0;
             for(j=0; j<32; j=j+1) begin
                 fifo_mem[j] <= 'd0;
@@ -513,7 +564,8 @@ module data_fsm #(
            // STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
             STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
             STAT_DESTRIGINWAIT_DATA  <= 1'b0;
-
+             if( m == src_tmplt_size -1 )
+                   initial_tmplt_addr_src  <= ARADDR + ((src_tmplt_size + 1) - k) *(2**transize);
                // rd_pause_state <=(rd_next_st != RD_PAUSED )? rd_next_st :rd_pause_state; 
             case (rd_state)
                 RD_IDLE: begin
@@ -558,7 +610,7 @@ module data_fsm #(
                         if (i < ((8'd1 << transize) << 3))
                             wdata_mask[i] <= 1'b1;
                     end
-                    
+                      initial_tmplt_addr_src <= SRC_ADDR;
                     src_addr_reg <= SRC_ADDR;
                     des_addr_reg <= des_ADDR;
                     srcxsize_reg <= srcxsize;
@@ -643,7 +695,9 @@ module data_fsm #(
                 
                 RD_AR: begin                   
                     //ARLEN   <= (src_trig_req_type == 'd0) ? 'd0 :  ;
-                    if(src_trig_req_type_reg == 'd0) 
+                    if(src_tmplt_size > 0)
+                        ARLEN <= 'd0;
+                    else if(src_trig_req_type_reg == 'd0) 
                         ARLEN <= 'd0;
                     else if(src_trig_req_type == 'd1)
                         ARLEN <= ((src_xsize_remaining - 1) > src_max_burst_len) ? src_max_burst_len : src_xsize_remaining - 1;
@@ -653,7 +707,32 @@ module data_fsm #(
                     ARID    <= 0;
                     ARVALID <= 1;
                    // ARADDR <= (src_xaddr_inc == 'd0) ? src_addr_reg : (src_xsize_remaining == srcxsize_reg)? src_addr_reg : (ARVALID && ARREADY) ? ARADDR + ((ARLEN + 1) * 2**transize) : ARADDR;
-                    ARADDR <= (case6 && x_type == 'd2 && src_xsize_remaining == 0)? SRCADDR_INITIAL: ((src_xsize_remaining == src_left) && case6 && x_type == 2) ? ARADDR : src_addr_reg + (srcxsize_reg - src_xsize_remaining)  * ((2**transize)*src_xaddr_inc_sign);
+                   // ARADDR <= (case6 && x_type == 'd2 && src_xsize_remaining == 0)? SRCADDR_INITIAL: ((src_xsize_remaining == src_left) && case6 && x_type == 2) ? ARADDR : src_addr_reg + (srcxsize_reg - src_xsize_remaining)  * ((2**transize)*src_xaddr_inc_sign);
+                   	
+                   	if(src_tmplt_size != 0)begin
+//                  	    for (m=0; m<src_tmplt_size; m=m+1)
+                            if(src_tmplt[m] == 0)
+                                m <= m + 1;
+                          
+                            if(m >= src_tmplt_size)
+                                   m <= 0;
+                            
+                 	        if(src_tmplt[m] )
+                   	            ARADDR <= initial_tmplt_addr_src + m * (2**transize);                   	         
+                   	end
+                   	
+                   	else if (case6 && x_type == 'd2 && src_xsize_remaining == 0) begin
+                        ARADDR <= SRCADDR_INITIAL;
+                    end
+                    else if ((src_xsize_remaining == src_left) && case6 && x_type == 2) begin
+                        ARADDR <= ARADDR;
+                    end
+                    else begin
+                        ARADDR <= src_addr_reg + 
+                                  (srcxsize_reg - src_xsize_remaining) * 
+                                  ((2**transize) * src_xaddr_inc_sign);
+                    end 
+                    
                    	src_xsize_remaining <= (case6 && x_type == 'd2 && src_xsize_remaining == 0) ? (srcxsize_reg > src_left) ? src_left : srcxsize_reg : (src_xsize_remaining);
                     end
         
@@ -665,6 +744,11 @@ module data_fsm #(
                         RREADY <= 1;
                     if (RVALID && RREADY && RLAST) begin
                             src_xsize_remaining <= src_xsize_remaining - (ARLEN + 1);
+                            if(src_tmplt_size != 0) begin
+                                 m <= m + 1;
+                            
+                                if(m >= src_tmplt_size)
+                                       m <= 0;end
                     end                
                     if ( RVALID && RREADY && src_left > 0 && !full) begin
                    
