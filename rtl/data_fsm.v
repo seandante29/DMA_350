@@ -131,7 +131,7 @@ module data_fsm #(
     output reg                  STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, 
     output reg                  STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA
 );
-    reg [31:0]                        initial_tmplt_addr_src;
+    reg [31:0]                        initial_tmplt_addr_src,initial_tmplt_addr_des;
 
 
     wire       ERROR;
@@ -155,9 +155,9 @@ module data_fsm #(
     reg [31:0] fifo_mem [0:31];
     reg [5:0]   fifo_wptr;
     reg [5:0]   fifo_rptr;
-    integer     j,k,l;
+    integer     j,k,p;
     
-    reg [4:0] m;
+    reg [4:0] m,l;
 
     reg config_error_size, config_error_src, config_error_des, config_error_trigout;
     reg config_error_inc, config_error_x_type, config_error_case3, config_error_case6;
@@ -213,9 +213,8 @@ module data_fsm #(
     
     //
        always@(*) begin
-        if(rd_state == RD_IDLE  ) 
-            count_src_tmplt = 0;
-        if(rd_state == RD_CONFIG && count_src_tmplt == 0 )
+       
+        if(rd_state == RD_CONFIG  )
         
         k = src_tmplt_size;
         while(src_tmplt[k] != 1)
@@ -228,11 +227,11 @@ module data_fsm #(
       end
       
       always@(*) begin
-        if(rd_state == RD_IDLE  ) 
-            count_des_tmplt = 0;
-        if(rd_state == RD_CONFIG && count_des_tmplt == 0 )
-            for( l = 0 ; l < des_tmplt_size ; l = l + 1) 
-                count_des_tmplt = count_des_tmplt + des_tmplt[l];
+       
+        if(rd_state == RD_CONFIG  )
+            p = des_tmplt_size;
+        while(des_tmplt[p] != 1)
+            p = p - 1;
       end
       
 //      always@(*) begin
@@ -488,6 +487,7 @@ module data_fsm #(
                             wr_next_st = wr_pause_state;
              W_AW:
                 if (AWVALID && AWREADY)
+                    if(des_tmplt [l] == 1 || des_tmplt_size == 0) 
                     wr_next_st = W_W;
             
             W_W:
@@ -566,6 +566,7 @@ module data_fsm #(
             STAT_DESTRIGINWAIT_DATA  <= 1'b0;
              if( m == src_tmplt_size -1 )
                    initial_tmplt_addr_src  <= ARADDR + ((src_tmplt_size + 1) - k) *(2**transize);
+                  
                // rd_pause_state <=(rd_next_st != RD_PAUSED )? rd_next_st :rd_pause_state; 
             case (rd_state)
                 RD_IDLE: begin
@@ -812,6 +813,7 @@ always @(posedge clk or negedge resetn) begin
            awr_error<=0;
            AWLEN <= 'd0;
            AWADDR <= 0;
+           l <= 0;
            des_xsize_remaining <= 0;
            WDATA <= 0;
            AWID <= 0;
@@ -830,11 +832,13 @@ always @(posedge clk or negedge resetn) begin
             STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
             //STAT_SRCTRIGINWAIT_DATA <= 1'b0;
            // STAT_DESTRIGINWAIT_DATA <= 1'b0;
-
+        if( l == des_tmplt_size -1 )
+                   initial_tmplt_addr_des  <= AWADDR + ((des_tmplt_size + 1) - p) *(2**transize);
                // wr_pause_state <= (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state; 
             case (wr_state)
                 W_IDLE: begin
                // AWADDR <= des_addr_reg;
+                     initial_tmplt_addr_des <= des_ADDR;
                     des_xsize_remaining <= desxsize_reg;
                     if (stat_error_intr_reg == 0) begin
                         awr_error      <= 0;
@@ -865,8 +869,23 @@ always @(posedge clk or negedge resetn) begin
                 end
                 W_AW: begin
                     AWVALID <= 1;
-                    AWADDR  <= /*(des_xsize_remaining == des_left) ? AWADDR :*/ des_addr_reg + (desxsize_reg - des_xsize_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
-                    if(des_trig_req_type_reg == 'd0) 
+                    
+                    if(des_tmplt_size != 0)begin
+//                  	    for (m=0; m<src_tmplt_size; m=m+1)
+                            if(des_tmplt[l] == 0)
+                                l <= l + 1;
+                          
+                            if(l >= des_tmplt_size)
+                                   l <= 0;
+                            
+                 	        if(des_tmplt[l] )
+                   	            AWADDR <= initial_tmplt_addr_des + l * (2**transize);                   	         
+                   	end
+                   	else
+                         AWADDR  <= /*(des_xsize_remaining == des_left) ? AWADDR :*/ des_addr_reg + (desxsize_reg - des_xsize_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
+                     if(des_tmplt_size > 0)
+                        AWLEN <= 'd0;
+                     else if(des_trig_req_type_reg == 'd0) 
                         AWLEN <= 'd0;
                     else if(des_trig_req_type == 'd1)
                     AWLEN <= ((des_xsize_remaining - 1) > des_max_burst_len) ? des_max_burst_len : des_xsize_remaining - 1;//(case6 && x_type == 1)? srcxsize - 1: desxsize - 1;
@@ -881,8 +900,14 @@ always @(posedge clk or negedge resetn) begin
                 WVALID <= ((empty) || WLAST) ? 0 : 1;
                    // WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
                     //WVALID <= ((des_left == (des_xsize_remaining - AWLEN+1) && WREADY) || fifo_wptr == fifo_rptr) ? 0 : 1;
-                  if(WVALID && WREADY && WLAST)
+                  if(WVALID && WREADY && WLAST) begin
                         des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
+                        if(des_tmplt_size != 0) begin
+                                 l <= l + 1;
+                            
+                                if(l >= des_tmplt_size)
+                                       l <= 0;end
+                        end
                     if (WREADY && des_left > 0 && !empty && !WLAST) begin
                                            
                     WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
