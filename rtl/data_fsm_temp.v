@@ -547,21 +547,21 @@ module data_fsm #(
                 end
                 
                WAIT_TRIG: begin
-                    if (use_src_trigin && use_des_trigin) begin  
-                            if (src_trigin_type == 2'b10 && src_trigin)  begin
+                  //  if (use_src_trigin && use_des_trigin) begin  
+                        if (use_src_trigin && src_trigin_type == 2'b10 && src_trigin)  begin
                                 src_trigack <= 1;
-                            end
-                          if  (des_trigin_type == 2'b10 && des_trigin) begin
+                        end
+                        if (use_des_trigin && des_trigin_type == 2'b10 && des_trigin) begin
                                 des_trigack <= 1;
-                            end
-                          if (!((src_trigin_type == 2'b00 && src_trigin_sw)|| (src_trigin_type == 2'b10 && src_trigin))) begin
+                        end
+                        if (use_src_trigin && !((src_trigin_type == 2'b00 && src_trigin_sw)|| (src_trigin_type == 2'b10 && src_trigin))) begin
                             STAT_SRCTRIGINWAIT_DATA <= 1'b1;
-                          end
-                          if (!((des_trigin_type == 2'b00 && des_trigin_sw == 1)||(des_trigin_type == 2'b10 && des_trigin == 1))) begin
+                        end
+                        if (use_des_trigin && !((des_trigin_type == 2'b00 && des_trigin_sw == 1)||(des_trigin_type == 2'b10 && des_trigin == 1))) begin
                             STAT_DESTRIGINWAIT_DATA <= 1'b1;
                         end
-                    end
-                end
+                    //end
+               end
                 
                 AR: begin
                     ARVALID <= 1;
