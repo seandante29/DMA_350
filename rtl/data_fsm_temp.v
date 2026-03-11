@@ -417,11 +417,11 @@ module data_fsm #(
             else  
             ENABLECMD_DATA    <= 0;
             
-            if (disable_cmd_partsel) begin
-                DISABLECMD_DATA <= 1;
-                STAT_DISABLE_DATA <= 1;
-            end
-            else if( stat_disable_intr_reg == 0)begin
+//            if (disable_cmd_partsel) begin
+//                DISABLECMD_DATA <= 1;
+//                //STAT_DISABLE_DATA <= 1;
+//            end
+          if( stat_disable_intr_reg == 0)begin
                 STAT_DISABLE_DATA  <= 0;
                 DISABLECMD_DATA <= 0;
             end
@@ -658,6 +658,9 @@ module data_fsm #(
                 DONE_ST: begin
                     DONE <= 1;
                     STAT_DONE_DATA <= !link_en ? 1 : 0;
+                    if (disable_cmd_partsel) begin
+                        DISABLECMD_DATA <= 1;
+                        STAT_DISABLE_DATA <= 1;end 
                 end 
                 
                 PAUSED: begin
