@@ -55,7 +55,7 @@ module data_fsm #(
     input  wire [31:0]      fillval,
     input  wire  [15:0]            src_xaddr_inc,
     input  wire   [15:0]           des_xaddr_inc,
-    
+    input wire stop_cmd_apb,
     // AXI READ
     input  wire              ARREADY,
     output reg               ARVALID,
@@ -231,7 +231,7 @@ module data_fsm #(
     // Next State Logic
     always @(*) begin
         next_st = state;
-        if (stop_cmd_partsel) begin
+        if (stop_cmd_apb) begin
             next_st = IDLE;
         end else begin
             case (state)
@@ -399,7 +399,7 @@ module data_fsm #(
             AWVALID      <= 0;
             WVALID       <= 0;
             BREADY       <= 0;
-            DONE         <= stop_cmd_partsel? 1: 0;
+            DONE         <= stop_cmd_apb? 1: 0;
             trig_out_req <= 0;
             src_trigack  <= 0;
             des_trigack  <= 0;
@@ -412,7 +412,7 @@ module data_fsm #(
             STAT_SRCTRIGINWAIT_DATA <= 1'b0;
             STAT_DESTRIGINWAIT_DATA <= 1'b0;
             
-            if (disable_cmd_partsel || stop_cmd_partsel )
+            if (disable_cmd_partsel || stop_cmd_apb )
             ENABLECMD_DATA    <= 1;
             else  
             ENABLECMD_DATA    <= 0;
@@ -426,8 +426,9 @@ module data_fsm #(
                 DISABLECMD_DATA <= 0;
             end
             
-            if (stop_cmd_partsel) begin
+            if (stop_cmd_apb) begin
                 STAT_STOP_DATA    <= 1;
+                
                 STOPCMD_DATA <= 1;
             end
             else if(stat_stop_intr_reg == 0) begin
@@ -564,12 +565,13 @@ module data_fsm #(
                end
                 
                 AR: begin
-                    ARVALID <= 1;
+                    ARVALID <= (!stop_cmd_apb)?1:0;
                     ARADDR  <= src_addr_reg;
                 end
                 
                 R: begin
-                    if (fifo_wptr + 1 != fifo_rptr)
+                
+                    if ((fifo_wptr + 1 != fifo_rptr)&& (!stop_cmd_apb))
                         RREADY <= 1;
                     else
                         RREADY <= 0;
@@ -613,13 +615,13 @@ module data_fsm #(
                 end
                 
                 AW: begin
-                    AWVALID <= 1;
+                    AWVALID <= (!stop_cmd_apb)?1:0;
                     AWADDR  <= des_addr_reg;
                 end
          W: begin
                     //WVALID_reg <= 1;
                    // WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
-                    WVALID <= (WREADY && WLAST) ? 0 : 1;
+                    WVALID <= ((WREADY && WLAST)||(stop_cmd_apb)) ? 0 : 1;
                     WLAST <= (des_left == 1)? 1 : 0;
                     WSTRB <= ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0];
                    // if( !WVALID)  des_left  <= des_left - 1;
@@ -635,7 +637,7 @@ module data_fsm #(
                 end
                 
                 B: begin
-                    BREADY <= 1;
+                    BREADY <=(!stop_cmd_apb)?1:0;
                   //  BID <= 0;
                     if (BRESP >= 2) begin
                         awr_error<= 1;
