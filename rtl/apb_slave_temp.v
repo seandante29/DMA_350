@@ -44,11 +44,11 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     always@(*)begin
       if(current_state == ACCESS_ST && PREADY && PWRITE == 0 && PENABLE )
          begin
-         if((PADDR == 'h1010))
+         if((cfg_addr == 'h1010))
                       PRDATA = SRCADDR_UPDATED;
-         else if((PADDR == 'h1018))
+         else if((cfg_addr == 'h1018))
                       PRDATA = DESADDR_UPDATED;
-         else if((PADDR == 'h1020))
+         else if((cfg_addr == 'h1020))
                      PRDATA = XSIZE_UPDATED;
           else
                       PRDATA = cfg_rdata;
@@ -68,7 +68,8 @@ if(PWRITE)
     PREADY =1;
 else 
     begin
-    if(((PADDR == 'h1004)&&count == 6)||((PADDR == 'h1010)&&count == 0) ||(((PADDR == 'h1018)&&count == 0))||(((PADDR == 'h1020)&&count == 0)))
+//    if(((PADDR == 'h1004)&&count == 6)||((PADDR == 'h1010)&&count == 0) ||(((PADDR == 'h1018)&&count == 0))||(((PADDR == 'h1020)&&count == 0)))
+    if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 0) ||(((cfg_addr == 'h1018)&&count == 0))||(((cfg_addr == 'h1020)&&count == 0)))
     PREADY =1;
     else 
     PREADY =0;
@@ -133,7 +134,7 @@ PREADY =0;
             PSLVERR   <= 1'b0; 
             if(current_state== ACCESS_ST)
                 begin
-                if((PADDR == 'h1004))
+                if((cfg_addr == 'h1004))
                     count <= count+1;
                 end
               else
