@@ -38,6 +38,7 @@ module top_mod#(
     input wire AWREADY,
     input wire BVALID,
     input wire [1:0] BRESP,
+    input wire[3:0] BID,
     output wire [3:0] ARID,
     output wire [3:0] ARLEN,
     output wire[2:0] ARSIZE,
@@ -56,8 +57,7 @@ module top_mod#(
     output wire WLAST_D,
     output wire BREADY_D,
     output  wire IRQ,
-    output wire [(DATA_W/8)-1:0] WSTRB,
-    output wire [3:0] BID
+    output wire [(DATA_W/8)-1:0] WSTRB
     );
     wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
     wire  [(WIDTH * 15) -1:0] reg_chn_out;
@@ -113,7 +113,9 @@ module top_mod#(
     wire chn_trigout_wr_en_o;
     wire chn_linkaddr_wr_en_o;
     wire [31:0] cfg_WRKREGPTR;
-    
+    wire [31:0] SRCADDR_UPDATED;
+    wire [31:0]  DESADDR_UPDATED;
+    wire [31:0]  XSIZE_UPDATED;
     dma_channel #(
     .WIDTH(WIDTH),
     .DATA_W(DATA_W)
@@ -210,7 +212,11 @@ module top_mod#(
     .wrkregval_rd(wrkregval_rd),
     .cfg_WRKREGPTR(cfg_WRKREGPTR),
      .WSTRB(WSTRB),
-     .BID(BID) );
+     .BID(BID),
+     .SRCADDR_UPDATED(SRCADDR_UPDATED),
+     .DESADDR_UPDATED(DESADDR_UPDATED),
+     .XSIZE_UPDATED(XSIZE_UPDATED) );
+    
     ////////////////////////////////////////////////////////////////////////////////
     trigger_matrix dut1(
     .STAT_ERR(stat_err),
@@ -292,8 +298,10 @@ module top_mod#(
     .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
     .src_des_xsize_updated(src_des_xsize_updated),
     .wrkregval_rd(wrkregval_rd),
-    .cfg_WRKREGPTR(cfg_WRKREGPTR)
-  );
+    .cfg_WRKREGPTR(cfg_WRKREGPTR),
+    .SRCADDR_UPDATED(SRCADDR_UPDATED),
+    .DESADDR_UPDATED(DESADDR_UPDATED),
+    .XSIZE_UPDATED(XSIZE_UPDATED));
     
     
 endmodule 
