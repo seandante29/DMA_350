@@ -116,6 +116,7 @@ module top_mod#(
     wire [31:0] SRCADDR_UPDATED;
     wire [31:0]  DESADDR_UPDATED;
     wire [31:0]  XSIZE_UPDATED;
+    wire stop_cmd_apb;
     dma_channel #(
     .WIDTH(WIDTH),
     .DATA_W(DATA_W)
@@ -215,7 +216,8 @@ module top_mod#(
      .BID(BID),
      .SRCADDR_UPDATED(SRCADDR_UPDATED),
      .DESADDR_UPDATED(DESADDR_UPDATED),
-     .XSIZE_UPDATED(XSIZE_UPDATED) );
+     .XSIZE_UPDATED(XSIZE_UPDATED),
+      .stop_cmd_apb(stop_cmd_apb) );
     
     ////////////////////////////////////////////////////////////////////////////////
     trigger_matrix dut1(
@@ -301,8 +303,8 @@ module top_mod#(
     .cfg_WRKREGPTR(cfg_WRKREGPTR),
     .SRCADDR_UPDATED(SRCADDR_UPDATED),
     .DESADDR_UPDATED(DESADDR_UPDATED),
-    .XSIZE_UPDATED(XSIZE_UPDATED));
+    .XSIZE_UPDATED(XSIZE_UPDATED),
+     .stop_cmd_apb(stop_cmd_apb));
     
     
 endmodule 
-
