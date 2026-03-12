@@ -24,7 +24,8 @@ module apb_slave #( parameter DATA_WIDTH = 32,
      output reg cfg_wr_en,cfg_rd_en,// to reg bank
     input wire [31:0] SRCADDR_UPDATED,
     input wire [31:0]  DESADDR_UPDATED,
-    input wire [31:0]  XSIZE_UPDATED
+    input wire [31:0]  XSIZE_UPDATED,
+    output wire stop_cmd_apb
      );
     localparam IDLE_ST   = 3'b001;
     localparam SETUP_ST  = 3'b010;
@@ -38,6 +39,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
+    assign stop_cmd_apb = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && PADDR == 'h1000 && PWDATA[3])?1:0;
     wire RO_error = (( cfg_addr == 'h1080 | cfg_addr == 'h108C | cfg_addr == 'h1090 ) & PWRITE_q);
     wire address_error = (! (cfg_addr >='h1000 && cfg_addr <='h1090));
  //   assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
