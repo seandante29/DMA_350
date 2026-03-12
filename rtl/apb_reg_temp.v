@@ -39,6 +39,7 @@ module apb_reg #(parameter DATA_WIDTH = 32,
         input wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
         input wire [WIDTH -1:0] wrkregval_rd,
         output wire [WIDTH-1:0] cfg_WRKREGPTR,
+        output wire stop_cmd_apb,
         input  wire [31:0] SRCADDR_UPDATED,
         input wire [31:0]  DESADDR_UPDATED,
         input wire [31:0]  XSIZE_UPDATED
@@ -71,7 +72,8 @@ module apb_reg #(parameter DATA_WIDTH = 32,
        .cfg_rd_en(cfg_rd_en),
        .SRCADDR_UPDATED(SRCADDR_UPDATED),
        .DESADDR_UPDATED(DESADDR_UPDATED),
-       .XSIZE_UPDATED(XSIZE_UPDATED)
+       .XSIZE_UPDATED(XSIZE_UPDATED),
+       .stop_cmd_apb(stop_cmd_apb)
        );
       // .RLAST(RLAST));
        
