@@ -54,7 +54,7 @@ module dma_channel
     input wire BVALID,
     input wire [1:0] BRESP,
     input wire[3:0] BID,
-    
+    input wire stop_cmd_apb,
     //trig matrix o/p's as i/p's to channel
     input wire SRCTRIGINSELERR, DESTRIGINSELERR, TRIGOUTSELERR,
     input wire src_trig_req,
@@ -518,7 +518,8 @@ module dma_channel
      .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
      .DESXSIZE_INITIAL(DESXSIZE_INITIAL),
      .WSTRB(WSTRB),
-     .BID(BID)
+     .BID(BID),
+     .stop_cmd_apb(stop_cmd_apb)
      );
     
 
