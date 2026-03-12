@@ -87,7 +87,7 @@ module data_fsm #(
     output reg  [DATA_W-1:0] WDATA,
     output  reg                 WLAST, //REG before
     
-    output reg [3:0] BID,
+    input wire [3:0] BID,
     input  wire              BVALID,
     input  wire [1:0]        BRESP,
     output reg               BREADY,
@@ -296,12 +296,12 @@ module data_fsm #(
                 end
                 else if (!use_src_trigin && !use_des_trigin)
                     next_st = AR;
-                else if(!use_src_trigin)
-                    if ((src_trigin_type == 2'b00 && src_trigin_sw)||(src_trigin_type == 2'b10 && src_trigin))
-                         next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;
-                 else if(!use_des_trigin)
-                    if ((des_trigin_type == 2'b00 && des_trigin_sw)||(des_trigin_type == 2'b10 && des_trigin))
-                        next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;
+                else if(!use_src_trigin && use_des_trigin) begin
+                 if ((des_trigin_type == 2'b00 && des_trigin_sw)||(des_trigin_type == 2'b10 && des_trigin))
+                         next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;end
+                 else if(!use_des_trigin && use_src_trigin) begin
+                 if ((src_trigin_type == 2'b00 && src_trigin_sw)||(src_trigin_type == 2'b10 && src_trigin)) 
+                        next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;end
                        
                 else
                     next_st = WAIT_TRIG;
@@ -377,7 +377,7 @@ module data_fsm #(
         STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
         {config_error_size,config_error_transize,config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
         {regvalerr_src,regvalerr_des,regvalerr_trigout,WSTRB} <= 'd0;
-        BID <= 0;
+        //BID <= 0;
         WLAST <= 0;
         fifo_wptr   <= 0;
         fifo_rptr   <= 0;
@@ -636,7 +636,7 @@ module data_fsm #(
                 
                 B: begin
                     BREADY <= 1;
-                    BID <= 0;
+                  //  BID <= 0;
                     if (BRESP >= 2) begin
                         awr_error<= 1;
                         bus_error <= 1;
