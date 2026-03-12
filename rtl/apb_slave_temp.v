@@ -12,7 +12,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
      input wire PENABLE,
      input wire [ DATA_WIDTH-1 : 0 ]PWDATA,
      input wire [ STRB_WIDTH-1 : 0 ] PSTRB,
-     output wire [ DATA_WIDTH-1 : 0 ]PRDATA,
+     output reg [ DATA_WIDTH-1 : 0 ]PRDATA,
    //  output wire PREADY,
      output reg PREADY,
      output reg PSLVERR,
@@ -21,7 +21,10 @@ module apb_slave #( parameter DATA_WIDTH = 32,
      input wire [ DATA_WIDTH-1 : 0 ]cfg_rdata,//from reg to apb
      output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,// to reg bank
      output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,// to reg bank
-     output reg cfg_wr_en,cfg_rd_en// to reg bank
+     output reg cfg_wr_en,cfg_rd_en,// to reg bank
+    input wire [31:0] SRCADDR_UPDATED,
+    input wire [31:0]  DESADDR_UPDATED,
+    input wire [31:0]  XSIZE_UPDATED
      );
     localparam IDLE_ST   = 3'b001;
     localparam SETUP_ST  = 3'b010;
@@ -38,8 +41,21 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     wire RO_error = (( cfg_addr == 'h1080 | cfg_addr == 'h108C | cfg_addr == 'h1090 ) & PWRITE_q);
     wire address_error = (! (cfg_addr >='h1000 && cfg_addr <='h1090));
  //   assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
-    assign PRDATA = (current_state == ACCESS_ST && PREADY && PWRITE == 0 && PENABLE) ? cfg_rdata : 0;
-    
+    always@(*)begin
+      if(current_state == ACCESS_ST && PREADY && PWRITE == 0 && PENABLE )
+         begin
+         if((PADDR == 'h1010))
+                      PRDATA = SRCADDR_UPDATED;
+         else if((PADDR == 'h1018))
+                      PRDATA = DESADDR_UPDATED;
+         else if((PADDR == 'h1020))
+                     PRDATA = XSIZE_UPDATED;
+          else
+                      PRDATA = cfg_rdata;
+    end
+    else
+                        PRDATA = 0;
+    end
     reg [3:0]count;
 
 
@@ -52,7 +68,7 @@ if(PWRITE)
     PREADY =1;
 else 
     begin
-    if(((PADDR == 'h1004)&&count == 'd10)||((PADDR == 'h1010)&&count == 6) ||(((PADDR == 'h1018)&&count == 6)) || (((PADDR == 'h1020)&&count == 6)))
+    if(((PADDR == 'h1004)&&count == 6)||((PADDR == 'h1010)&&count == 0) ||(((PADDR == 'h1018)&&count == 0))||(((PADDR == 'h1020)&&count == 0)))
     PREADY =1;
     else 
     PREADY =0;
@@ -117,7 +133,7 @@ PREADY =0;
             PSLVERR   <= 1'b0; 
             if(current_state== ACCESS_ST)
                 begin
-                if((PADDR == 'h1004)||(PADDR =='h1010)||(PADDR == 'h1018) || (PADDR == 'h1020))
+                if((PADDR == 'h1004))
                     count <= count+1;
                 end
               else
@@ -156,4 +172,5 @@ PREADY =0;
         end
     end 
 endmodule
-      
+     
+ 
