@@ -61,26 +61,23 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     reg [3:0]count;
 
 
-//assign PREADY = (current_state == ACCESS_ST)? ((((PADDR == 'h4)&&count != 4))&&PWRITE == 0)?0:1:0;
-  always@(*)
-  begin
-  if(current_state == ACCESS_ST)
-begin
-if(PWRITE)
-    PREADY =1;
-else 
+    always@(*)
     begin
-//    if(((PADDR == 'h1004)&&count == 6)||((PADDR == 'h1010)&&count == 0) ||(((PADDR == 'h1018)&&count == 0))||(((PADDR == 'h1020)&&count == 0)))
-    if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 0) ||(((cfg_addr == 'h1018)&&count == 0))||(((cfg_addr == 'h1020)&&count == 0)))
-    PREADY =1;
-    else 
-    PREADY =0;
+        if(current_state == ACCESS_ST)
+        begin
+            if(PWRITE)
+                PREADY =1;
+            else 
+            begin
+                if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 0) ||(((cfg_addr == 'h1018)&&count == 0))||(((cfg_addr == 'h1020)&&count == 0)))
+                    PREADY =1;
+                else 
+                    PREADY =0;
+            end
+        end
+        else
+            PREADY =0;
     end
-    end
-else
-PREADY =0;
-  
-  end
     
     always@(posedge PCLK or negedge PRESETn)
     begin
@@ -155,16 +152,12 @@ PREADY =0;
                 
                 ACCESS_ST:
                 begin
-                                    cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
-
+                    cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
                     PSLVERR <= strobe_error_q | RO_error | address_error;
                     if(PWRITE_q) begin
                         cfg_wdata <= PWDATA_q;
                         cfg_wr_en <= 1'b1;
                     end
-                    //else begin
-                     //   PRDATA    <= cfg_rdata;
-                    //end
                 end
                 
                 default:
