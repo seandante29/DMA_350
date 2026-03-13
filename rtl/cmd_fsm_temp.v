@@ -15,7 +15,7 @@ module cmd_fsm (
     output reg [1:0] ARBURST,
     output reg ARVALID,
     output reg [31:0]ARADDR,
-    output wire [3:0] ARQOS,
+    output reg [3:0] ARQOS,
 
     // R signals
     input [3:0]RID,
