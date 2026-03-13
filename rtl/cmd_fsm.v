@@ -37,8 +37,8 @@ module cmd_fsm (
     
     reg wr_en_reg;
     reg [3:0] current_state, next_state;
-    reg [3:0] count;   
-    reg [3:0] count1;
+    reg [4:0] count;   
+    reg [4:0] count1;
     reg data_done_reg;
     reg link_enable_reg;
     reg STAT_ERROR_reg;
