@@ -1,13 +1,16 @@
 module top_mod#( 
     parameter WIDTH = 32,
-    parameter DATA_W = 32,
+    parameter DATA_W = 128,
     parameter DATA_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
-    parameter STRB_WIDTH =  DATA_WIDTH/8
+    parameter STRB_WIDTH =  DATA_WIDTH/8,
+    parameter DEPTH = 145
 )
     (// apb_reg interface
     input wire clk,
     input wire resetn,
+    input wire PCLK,
+    input wire PRESETn,
     input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
     input wire PWRITE,
     input wire PENABLE,
@@ -38,7 +41,6 @@ module top_mod#(
     input wire AWREADY,
     input wire BVALID,
     input wire [1:0] BRESP,
-    input wire[3:0] BID,
     output wire [3:0] ARID,
     output wire [3:0] ARLEN,
     output wire[2:0] ARSIZE,
@@ -56,10 +58,7 @@ module top_mod#(
     output wire [DATA_W -1 :0] WDATA_D,
     output wire WLAST_D,
     output wire BREADY_D,
-    output wire [3:0] AWQOS,
-    output wire [3:0] ARQOS,
-    output  wire IRQ,
-    output wire [(DATA_W/8)-1:0] WSTRB
+    output  wire IRQ
     );
     wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
     wire  [(WIDTH * 15) -1:0] reg_chn_out;
@@ -115,13 +114,11 @@ module top_mod#(
     wire chn_trigout_wr_en_o;
     wire chn_linkaddr_wr_en_o;
     wire [31:0] cfg_WRKREGPTR;
-    wire [31:0] SRCADDR_UPDATED;
-    wire [31:0]  DESADDR_UPDATED;
-    wire [31:0]  XSIZE_UPDATED;
-    wire stop_cmd_apb;
+    
     dma_channel #(
     .WIDTH(WIDTH),
-    .DATA_W(DATA_W)
+    .DATA_W(DATA_W),
+    .DEPTH(DEPTH)
     ) dut0 (
     // Clock and Reset
     .clk                (clk),
@@ -213,17 +210,8 @@ module top_mod#(
     .trigout_sel        (trigout_sel),
     .src_des_xsize_updated(src_des_xsize_updated),
     .wrkregval_rd(wrkregval_rd),
-    .cfg_WRKREGPTR(cfg_WRKREGPTR),
-    .WSTRB(WSTRB),
-    .BID(BID),
-    .AWQOS(AWQOS),
-    .ARQOS(ARQOS),
-    .SRCADDR_UPDATED(SRCADDR_UPDATED),
-    .DESADDR_UPDATED(DESADDR_UPDATED),
-    .XSIZE_UPDATED(XSIZE_UPDATED),
-    .stop_cmd_apb(stop_cmd_apb) );
+    .cfg_WRKREGPTR(cfg_WRKREGPTR) );
     
-    ////////////////////////////////////////////////////////////////////////////////
     trigger_matrix dut1(
     .STAT_ERR(stat_err),
     .trig0_req(trig0_req),
@@ -252,7 +240,6 @@ module top_mod#(
     .SRCTRIGINSELERR(SRCTRIGINSELERR), 
     .DESTRIGINSELERR(DESTRIGINSELERR), 
     .TRIGOUTSELERR(TRIGOUTSELERR)
-   
     );
     
      apb_reg #(.DATA_WIDTH (DATA_WIDTH),
@@ -262,6 +249,8 @@ module top_mod#(
      dut2 (
     .clk        (clk),
     .resetn     (resetn),
+    .PCLK       (clk),     // single clock
+    .PRESETn    (resetn),
     .PADDR      (PADDR),
     .PWRITE     (PWRITE),
     .PSEL       (PSEL),
@@ -304,11 +293,8 @@ module top_mod#(
     .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
     .src_des_xsize_updated(src_des_xsize_updated),
     .wrkregval_rd(wrkregval_rd),
-    .cfg_WRKREGPTR(cfg_WRKREGPTR),
-    .SRCADDR_UPDATED(SRCADDR_UPDATED),
-    .DESADDR_UPDATED(DESADDR_UPDATED),
-    .XSIZE_UPDATED(XSIZE_UPDATED),
-     .stop_cmd_apb(stop_cmd_apb));
+    .cfg_WRKREGPTR(cfg_WRKREGPTR)
+  );
     
     
 endmodule 
