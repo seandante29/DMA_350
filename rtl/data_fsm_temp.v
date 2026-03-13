@@ -423,7 +423,7 @@ module data_fsm #(
             case (state)
                 IDLE: begin
                     if (stat_error_intr_reg == 0) begin
-                        {config_error_size,config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6 }<= 0;
+                        {config_error_size,config_error_src, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6, config_error_transize}<= 0;
                         ard_error      <= 0;
                         arpoison_error <= 0;
                         awr_error      <= 0;
