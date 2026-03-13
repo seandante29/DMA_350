@@ -84,7 +84,8 @@ module dma_channel
     output wire [DATA_W -1 :0] WDATA_D,
     output wire WLAST_D,
     output wire BREADY_D,
-    
+    output wire [3:0] AWQOS,
+    output wire [3:0] ARQOS,
     output wire [1:0]  src_trigin_type,
     output wire [7:0]  src_trigin_sel,
     output wire [1:0]  des_trigin_type,
@@ -196,6 +197,7 @@ module dma_channel
     wire ARVALID_D;
     wire [31:0]ARADDR_D;
     wire RREADY_D ;
+	wire [3:0] ARQOS_D;
     
     wire [3:0] ARID_CMD;
     wire [3:0] ARLEN_CMD;
@@ -204,10 +206,11 @@ module dma_channel
     wire ARVALID_CMD;
     wire [31:0]ARADDR_CMD;
     wire RREADY_CMD ;
+	wire [3:0] ARQOS_CMD;
     
-    wire [46 : 0] AR_D   = {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D};
-    wire [46 : 0] AR_CMD = {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD};
-    assign {ARVALID, ARADDR, ARSIZE, ARBURST, ARID, ARLEN,RREADY} = CMD_DONE?AR_D:AR_CMD;
+	wire [46 : 0] AR_D   = {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D,ARQOS_D};
+	wire [46 : 0] AR_CMD = {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD,ARQOS_CMD};
+	assign {ARVALID, ARADDR, ARSIZE, ARBURST, ARID, ARLEN,RREADY,ARQOS} = CMD_DONE?AR_D:AR_CMD;
     
     internal_reg  #(.WIDTH (32),.DEPTH ( 145)) dut0
     (
@@ -335,6 +338,7 @@ module dma_channel
       .ARBURST(ARBURST_CMD),
       .ARVALID(ARVALID_CMD),
       .ARADDR(ARADDR_CMD),
+	  .ARQOS(ARQOS_CMD),
       .RID(RID),
       .RDATA_I(RDATA_I),
       .RRESP(RRESP),
@@ -475,7 +479,8 @@ module dma_channel
     .ARBURST(ARBURST_D),
     .ARID(ARID_D),
     .ARLEN(ARLEN_D),
-	  .RID(RID),
+	.ARQOS(ARQOS_D),
+	.RID(RID),
     .RVALID(RVALID),
     .RDATA(RDATA_I),
     .RRESP(RRESP),
@@ -488,7 +493,8 @@ module dma_channel
     .AWBURST(AWBURST_D),
     .AWLEN(AWLEN_D),
     .AWID(AWID_D),
-    .WREADY(WREADY),
+	.AWQOS(AWQOS_D),
+	.WREADY(WREADY),
     .WVALID(WVALID_D),
     .WDATA(WDATA_D),
     .WLAST(WLAST_D),
