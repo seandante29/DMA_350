@@ -64,7 +64,7 @@ module data_fsm #(
     output reg  [1:0]        ARBURST,
     output reg  [ID_W-1:0]   ARID,
     output reg  [3:0]        ARLEN,
-    output wire [3:0] ARQOS,
+    output reg [3:0] ARQOS,
     
     input wire              [3:0] RID,
     input  wire              RVALID,
@@ -81,7 +81,7 @@ module data_fsm #(
     output reg  [1:0]        AWBURST,
     output reg  [ID_W-1:0]   AWID,
     output reg  [3:0] AWLEN,
-    output wire [3:0] AWQOS,
+    output reg [3:0] AWQOS,
     
     
     input  wire              WREADY,
