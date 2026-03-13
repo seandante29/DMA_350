@@ -64,6 +64,7 @@ module data_fsm #(
     output reg  [1:0]        ARBURST,
     output reg  [ID_W-1:0]   ARID,
     output reg  [3:0]        ARLEN,
+    output wire [3:0] ARQOS,
     
     input wire              [3:0] RID,
     input  wire              RVALID,
@@ -80,6 +81,7 @@ module data_fsm #(
     output reg  [1:0]        AWBURST,
     output reg  [ID_W-1:0]   AWID,
     output reg  [3:0] AWLEN,
+    output wire [3:0] AWQOS,
     
     
     input  wire              WREADY,
@@ -371,7 +373,7 @@ module data_fsm #(
     always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
         {ARVALID, RREADY, AWVALID, WVALID, BREADY,case1,case2,case3,case4,case5,case6,des_addr_reg,src_addr_reg,wdata_mask,
-        DONE, trig_out_req,  ard_error,WDATA,AWADDR,ARADDR,AWSIZE,AWBURST,AWLEN,desxsize_reg,ARID,ARSIZE,ARBURST,srcxsize_reg,ARLEN,AWID,
+        DONE, trig_out_req,  ard_error,WDATA,AWADDR,ARADDR,AWSIZE,AWBURST,AWLEN,AWQOS,ARQOS,desxsize_reg,ARID,ARSIZE,ARBURST,srcxsize_reg,ARLEN,AWID,
         arpoison_error, awr_error, bus_error,cmd_done_reg} <= 0;
         {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA,
         STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA} <= 'b0;
@@ -411,7 +413,9 @@ module data_fsm #(
             STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
             STAT_SRCTRIGINWAIT_DATA <= 1'b0;
             STAT_DESTRIGINWAIT_DATA <= 1'b0;
-            
+            AWQOS <= 0;
+            ARQOS <= 0;
+        
             if (disable_cmd_partsel || stop_cmd_apb )
             ENABLECMD_DATA    <= 1;
             else  
