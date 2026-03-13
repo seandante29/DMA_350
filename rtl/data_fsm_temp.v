@@ -460,6 +460,8 @@ module data_fsm #(
                 
                 WAIT:
                 begin
+                    STAT_SRCTRIGINWAIT_DATA <= 1'b1;
+                    STAT_DESTRIGINWAIT_DATA <= 1'b1;
                     reg1<=1;
                     reg2<=reg1;
                     if(reg2) begin
@@ -473,6 +475,8 @@ module data_fsm #(
                 end 
                 
                 CONFIG: begin
+                    STAT_SRCTRIGINWAIT_DATA <= 1'b1;
+                    STAT_DESTRIGINWAIT_DATA <= 1'b1;
                     wdata_mask <= {DATA_W{1'b0}};
                     for (i = 0; i < DATA_W; i = i + 1) begin
                         if (i < ((8'd1 << transize) << 3))
