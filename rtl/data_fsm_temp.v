@@ -19,6 +19,7 @@ module data_fsm #(
     input wire               stat_disable_intr_reg,
     input wire               stat_stop_intr_reg,
     input  wire              cmd_done,
+    
     // Triggers
     input  wire              use_src_trigin,
     input  wire [1:0]        src_trigin_type,
@@ -52,10 +53,11 @@ module data_fsm #(
     input  wire [15:0]       srcxsize,
     input  wire [15:0]       desxsize,
     input  wire [2:0]        x_type,
-    input  wire [31:0]      fillval,
-    input  wire  [15:0]            src_xaddr_inc,
-    input  wire   [15:0]           des_xaddr_inc,
-    input wire stop_cmd_apb,
+    input  wire [31:0]       fillval,
+    input  wire [15:0]       src_xaddr_inc,
+    input  wire [15:0]       des_xaddr_inc,
+    input wire               stop_cmd_apb,
+    
     // AXI READ
     input  wire              ARREADY,
     output reg               ARVALID,
@@ -64,9 +66,9 @@ module data_fsm #(
     output reg  [1:0]        ARBURST,
     output reg  [ID_W-1:0]   ARID,
     output reg  [3:0]        ARLEN,
-    output reg [3:0] ARQOS,
+    output reg  [3:0]        ARQOS,
     
-    input wire              [3:0] RID,
+    input wire  [3:0]        RID,
     input  wire              RVALID,
     input  wire [DATA_W - 1 : 0]    RDATA, //128
     input  wire [1:0]        RRESP,
@@ -80,40 +82,37 @@ module data_fsm #(
     output reg  [2:0]        AWSIZE,
     output reg  [1:0]        AWBURST,
     output reg  [ID_W-1:0]   AWID,
-    output reg  [3:0] AWLEN,
-    output reg [3:0] AWQOS,
+    output reg  [3:0]        AWLEN,
+    output reg [3:0]         AWQOS,
     
     
     input  wire              WREADY,
     output reg               WVALID,
     output reg  [DATA_W-1:0] WDATA,
-    output  reg                 WLAST, //REG before
+    output reg               WLAST, //REG before
     
-    input wire [3:0] BID,
+    input wire [3:0]         BID,
     input  wire              BVALID,
     input  wire [1:0]        BRESP,
     output reg               BREADY,
     
     // Status
     output reg               DONE,
-    
-    
     output reg [31:0] SRCADDR_UPDATED,
     output reg [31:0]  DESADDR_UPDATED,
     output reg [31:0]  XSIZE_UPDATED,
     output reg wr_en_for_updated,
-    
     output wire [31:0] SRCADDR_INITIAL,
     output wire [31:0] DESADDR_INITIAL,
     output wire [31:0] SRCXSIZE_INITIAL,
     output wire [31:0] DESXSIZE_INITIAL,
     // Error flags
-    output wire               config_error,
+    output wire              config_error,
     output reg               ard_error,
     output reg               arpoison_error,
     output reg               awr_error,
     output reg               bus_error,
-    output wire               regvalerr,
+    output wire              regvalerr,
     output reg               ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA,// FROM DATA FSM TO INTERNAL REGISTER 
     output reg               STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA, 
     output reg               STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, 
@@ -168,15 +167,16 @@ module data_fsm #(
 
     always@(*) begin
         DESADDR_UPDATED_wire = des_addr_reg;
-    if(state == W  && des_left !=0) begin 
-                if(WREADY)
-                    if(des_xaddr_inc == 1)
-                    begin
-                        DESADDR_UPDATED_wire = des_addr_reg + ((desxsize_reg - des_left) * ( 2**transize));
-                    end
-                    else
-                        DESADDR_UPDATED_wire =  des_addr_reg;
-       end        end
+        if(state == W  && des_left !=0) begin 
+            if(WREADY)
+                if(des_xaddr_inc == 1)
+                begin
+                    DESADDR_UPDATED_wire = des_addr_reg + ((desxsize_reg - des_left) * ( 2**transize));
+                end
+            else
+            DESADDR_UPDATED_wire =  des_addr_reg;
+        end        
+    end 
                 
     always @(posedge clk or negedge resetn)
     begin
@@ -267,23 +267,6 @@ module data_fsm #(
                 else
                     next_st = WAIT_TRIG;
                 end
-            
-            
-//            WAIT_TRIG:
-//                if (config_error)
-//                    next_st = ERROR_ST;
-//                else if (pause_cmd_partsel)
-//                    next_st = PAUSED;
-//                else if (use_src_trigin && use_des_trigin) begin  
-//                    if ((src_trigin_type == 2'b00 && src_trigin_sw) && (des_trigin_type == 2'b00 && des_trigin_sw))
-//                        next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR; 
-//                    else if ((src_trigin_type == 2'b10 && src_trigin) && (des_trigin_type == 2'b10 && des_trigin))
-//                        next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;  
-//                end
-//                else if (!use_src_trigin || !use_des_trigin)
-//                    next_st = AR;
-//                else
-//                    next_st = WAIT_TRIG;
 
         WAIT_TRIG:
                 if (config_error)
@@ -292,19 +275,19 @@ module data_fsm #(
                     next_st = PAUSED;
                 else if (use_src_trigin && use_des_trigin) begin  
                     if (((src_trigin_type == 2'b00 && src_trigin_sw)||(src_trigin_type == 2'b10 && src_trigin)) &&
-                    ((des_trigin_type == 2'b00 && des_trigin_sw)||(des_trigin_type == 2'b10 && des_trigin)))
-                        next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;
-                    
+                        ((des_trigin_type == 2'b00 && des_trigin_sw)||(des_trigin_type == 2'b10 && des_trigin)))
+                        next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;    
                 end
                 else if (!use_src_trigin && !use_des_trigin)
                     next_st = AR;
                 else if(!use_src_trigin && use_des_trigin) begin
-                 if ((des_trigin_type == 2'b00 && des_trigin_sw)||(des_trigin_type == 2'b10 && des_trigin))
-                         next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;end
-                 else if(!use_des_trigin && use_src_trigin) begin
-                 if ((src_trigin_type == 2'b00 && src_trigin_sw)||(src_trigin_type == 2'b10 && src_trigin)) 
-                        next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;end
-                       
+                    if ((des_trigin_type == 2'b00 && des_trigin_sw)||(des_trigin_type == 2'b10 && des_trigin))
+                         next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;
+                end
+                else if(!use_des_trigin && use_src_trigin) begin
+                     if ((src_trigin_type == 2'b00 && src_trigin_sw)||(src_trigin_type == 2'b10 && src_trigin)) 
+                            next_st = (case2 && x_type == 'd3) ? WRAP_FILL : AR;
+                end
                 else
                     next_st = WAIT_TRIG;
             
@@ -421,20 +404,16 @@ module data_fsm #(
             else  
             ENABLECMD_DATA    <= 0;
             
-//            if (disable_cmd_partsel) begin
-//                DISABLECMD_DATA <= 1;
-//                //STAT_DISABLE_DATA <= 1;
-//            end
-          if( stat_disable_intr_reg == 0)begin
+            if( stat_disable_intr_reg == 0)begin
                 STAT_DISABLE_DATA  <= 0;
                 DISABLECMD_DATA <= 0;
-            end
+            end 
             
             if (stop_cmd_apb) begin
                 STAT_STOP_DATA    <= 1;
-                
                 STOPCMD_DATA <= 1;
             end
+            
             else if(stat_stop_intr_reg == 0) begin
                 STAT_STOP_DATA    <= 0;
                 STOPCMD_DATA <= 0;
@@ -482,16 +461,13 @@ module data_fsm #(
                         if (i < ((8'd1 << transize) << 3))
                             wdata_mask[i] <= 1'b1;
                     end
-                    
                     src_addr_reg <= SRC_ADDR;
                     des_addr_reg <= des_ADDR;
-                    
                     srcxsize_reg <= srcxsize;
                     ARLEN   <= (case5) ? desxsize - 1 : srcxsize - 1;
                     ARBURST <= (src_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
                     ARSIZE  <= transize;
                     ARID    <= 0;
-                    
                     desxsize_reg <= desxsize;
                     AWLEN <= (case6 && x_type == 1)? srcxsize - 1: desxsize - 1;
                     AWBURST <= (des_xaddr_inc == 'b1) ? 2'b01 : 2'b00;
@@ -499,7 +475,6 @@ module data_fsm #(
                     AWID    <= 0;
                     config_error_inc <= ((x_type > 3) |(src_xaddr_inc>1| (des_xaddr_inc>1))? 1 : 0);
                     config_error_size <= /*(transize > 4) |*/ (srcxsize > 'd256) | (desxsize > 'd256);
-                    
                     config_error_transize <= (DATA_W) < ((2**transize)* 8);
                     
                     if (use_src_trigin) begin
@@ -556,7 +531,6 @@ module data_fsm #(
                 end
                 
                WAIT_TRIG: begin
-                  //  if (use_src_trigin && use_des_trigin) begin  
                         if (use_src_trigin && src_trigin_type == 2'b10 && src_trigin)  begin
                                 src_trigack <= 1;
                         end
@@ -569,7 +543,6 @@ module data_fsm #(
                         if (use_des_trigin && !((des_trigin_type == 2'b00 && des_trigin_sw == 1)||(des_trigin_type == 2'b10 && des_trigin == 1))) begin
                             STAT_DESTRIGINWAIT_DATA <= 1'b1;
                         end
-                    //end
                end
                 
                 AR: begin
@@ -626,27 +599,21 @@ module data_fsm #(
                     AWVALID <= (!stop_cmd_apb)?1:0;
                     AWADDR  <= des_addr_reg;
                 end
-         W: begin
-                    //WVALID_reg <= 1;
-                   // WDATA     <= fifo_mem[fifo_rptr] & wdata_mask;
+                
+                W: begin
                     WVALID <= ((WREADY && WLAST)||(stop_cmd_apb)) ? 0 : 1;
                     WLAST <= (des_left == 1)? 1 : 0;
                     WSTRB <= ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0];
-                   // if( !WVALID)  des_left  <= des_left - 1;
-                   // WLAST  <= (des_left == 1);// have changed
                     if (WREADY && des_left > 0 && !(WREADY && WLAST)) begin
-                       // WDATA   = fifo_mem[fifo_rptr] & wdata_mask;
                        WDATA     <= fifo_mem[fifo_rptr ] & wdata_mask;
                        WSTRB <= ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0];//+ 2**transize
-                      // WSTRB <= ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0];//+ 2**transize
-                        des_left  <= des_left - 1;
-                        fifo_rptr <= fifo_rptr + 1;
+                       des_left  <= des_left - 1;
+                       fifo_rptr <= fifo_rptr + 1;
                     end
-                end
+                end 
                 
                 B: begin
                     BREADY <=(!stop_cmd_apb)?1:0;
-                  //  BID <= 0;
                     if (BRESP >= 2) begin
                         awr_error<= 1;
                         bus_error <= 1;
@@ -655,8 +622,7 @@ module data_fsm #(
                 
                 TRIG_OUT: begin
                     if (use_trigout && trigout_type == 'b10)
-                    trig_out_req <= 1;
-                    
+                        trig_out_req <= 1;
                     if (use_trigout && !trig_out_ack_sw && trigout_type == 'b00)
                         STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
                     else if (use_trigout && !trig_out_ack && trigout_type == 'b10)
