@@ -56,6 +56,8 @@ module top_mod#(
     output wire [DATA_W -1 :0] WDATA_D,
     output wire WLAST_D,
     output wire BREADY_D,
+    output wire [3:0] AWQOS,
+    output wire [3:0] ARQOS,
     output  wire IRQ,
     output wire [(DATA_W/8)-1:0] WSTRB
     );
@@ -212,12 +214,14 @@ module top_mod#(
     .src_des_xsize_updated(src_des_xsize_updated),
     .wrkregval_rd(wrkregval_rd),
     .cfg_WRKREGPTR(cfg_WRKREGPTR),
-     .WSTRB(WSTRB),
-     .BID(BID),
-     .SRCADDR_UPDATED(SRCADDR_UPDATED),
-     .DESADDR_UPDATED(DESADDR_UPDATED),
-     .XSIZE_UPDATED(XSIZE_UPDATED),
-      .stop_cmd_apb(stop_cmd_apb) );
+    .WSTRB(WSTRB),
+    .BID(BID),
+    .AWQOS(AWQOS),
+    .ARQOS(ARQOS),
+    .SRCADDR_UPDATED(SRCADDR_UPDATED),
+    .DESADDR_UPDATED(DESADDR_UPDATED),
+    .XSIZE_UPDATED(XSIZE_UPDATED),
+    .stop_cmd_apb(stop_cmd_apb) );
     
     ////////////////////////////////////////////////////////////////////////////////
     trigger_matrix dut1(
