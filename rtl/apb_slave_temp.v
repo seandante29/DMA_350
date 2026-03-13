@@ -39,7 +39,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
-    assign stop_cmd_apb = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && PADDR == 'h1000 && PWDATA[3])?1:0;
+     assign stop_cmd_apb = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && PADDR == 'h1000 && PWDATA[3] && (!PWDATA[0]))?1:0;
     wire RO_error = (( cfg_addr == 'h1080 | cfg_addr == 'h108C | cfg_addr == 'h1090 ) & PWRITE_q);
     wire address_error = (! (cfg_addr >='h1000 && cfg_addr <='h1090));
  //   assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
