@@ -3,7 +3,7 @@ module internal_reg #(parameter WIDTH = 32,
  (
  input wire clk,resetn,
  //input wire wr_en,
- input wire [(WIDTH * 18) -1:0] data_in,
+ input wire [(WIDTH * 19) -1:0] data_in,
  
  //
      input wire [31:0] SRCADDR_UPDATED,
@@ -48,7 +48,7 @@ module internal_reg #(parameter WIDTH = 32,
  
  
  // to reg bank
- output wire [(WIDTH*14)-1 : 0] chn_reg_out,
+ output wire [(WIDTH*15)-1 : 0] chn_reg_out,
  // to partselect module
  output  wire [31:0] CH_CTRL_O,
  output  wire [31:0] CH_INTREN_O,
@@ -68,6 +68,7 @@ module internal_reg #(parameter WIDTH = 32,
  output wire [31:0] CH_TMPLTCFG_O,
  output wire [31:0] CH_SRCTMPLT_O,
  output wire [31:0] CH_DESTMPLT_O,
+ output wire [31:0] CH_AUTOCFG_O,
  output  wire IRQ,
 output wire stat_done_intr_reg,//data fsm
 output wire stat_disable_intr_reg ,
@@ -219,7 +220,8 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
    intr_mem[76] <= data_in [(WIDTH * 15) -1 : (WIDTH*14)];
    intr_mem[80] <= data_in [(WIDTH * 16) -1 : (WIDTH*15)];
    intr_mem[84] <= data_in [(WIDTH * 17) -1 : (WIDTH*16)];
-   intr_mem[120]<= (resetn_posedge_1 && boot_en) ? {boot_addr,1'b0,boot_en}:data_in [(WIDTH * 15) -1 : (WIDTH*14)];
+   intr_mem[116] <= data_in [(WIDTH * 18) -1 : (WIDTH*17)];
+   intr_mem[120]<= (resetn_posedge_1 && boot_en) ? {boot_addr,1'b0,boot_en}:data_in [(WIDTH * 19) -1 : (WIDTH*18)];
    
    intr_mem[144] <= {6'd0,regval_error,LINKHDERR,6'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},AXIWRRESPERR,11'd0,
          TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,config_error,{BUSERR|BUSERR_CMDFSM}};
