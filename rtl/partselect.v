@@ -19,6 +19,7 @@ module partselect (
  input wire [31:0] CH_DESTMPLT,
  input wire [31:0] CH_DESTRANSCFG,
  input wire [31:0] CH_SRCTRANSCFG,
+ input wire [31:0] CH_AUTOCFG,
 // CONTROL / CONFIG OUTPUTS
     output wire        use_trigout,
     output wire        use_des_trigin,
@@ -66,7 +67,13 @@ module partselect (
     output wire        stat_done,
     output wire        stat_err,
     output wire [3:0] src_max_burst_len,
-    output wire [3:0] des_max_burst_len 
+    output wire [3:0] des_max_burst_len,
+    
+    
+    output wire cmd_restart_en,//
+    output wire [15:0] cmd_restart_cnt,//
+    output wire [2:0] reg_reload_type,// 
+    output wire [2:0] done_type
 //    output wire        stat_disable_part,
 //    output wire         stat_stop_part
     /*,
@@ -140,6 +147,11 @@ assign des_trigin_blk_size = CH_DESTRIGINCFG[23:16];
 
 assign des_max_burst_len = CH_DESTRANSCFG[19:16];
 assign src_max_burst_len = CH_SRCTRANSCFG[19:16];
+
+assign cmd_restart_en = CH_AUTOCFG [16];
+assign cmd_restart_cnt = CH_AUTOCFG [15:0];
+assign reg_reload_type = CH_CTRL[20:18];
+assign done_type = CH_CTRL[23:21];
 // ERROR_INFO
 /*
 assign cfgconflerr        = ERROR_INFO[26];
