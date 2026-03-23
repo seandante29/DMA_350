@@ -1,46 +1,71 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 01/05/2026 02:46:58 PM
+// Design Name: 
+// Module Name: top_mod
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+/////////////////////////////////////////////
 
 module apb_reg #(parameter DATA_WIDTH = 32,
          ADDR_WIDTH = 32,
          STRB_WIDTH =  DATA_WIDTH/8,
          WIDTH = 32)
      (
-        //APB signals
-        input wire clk,
-        input wire resetn,
-        input wire PCLK,
-        input wire PRESETn,
-        input wire [ ADDR_WIDTH-1 : 0 ] PADDR, 
-        input wire PWRITE,
-        input wire PENABLE,
-        input wire PSEL,
-        input  wire [(WIDTH*12)-1 : 0] chn_reg_in,
-        input wire [DATA_WIDTH-1 : 0] PWDATA,
-        input wire [STRB_WIDTH-1 : 0] PSTRB,
-        output wire [DATA_WIDTH-1 : 0] PRDATA,
-        output wire PREADY,
-        output wire PSLVERR,
-        output wire [WIDTH-1 : 0] cfg_CH_CMD,
-        output wire [WIDTH-1 : 0] cfg_CH_STATUS,
-        output wire [WIDTH-1 : 0] cfg_CH_INTREN,
-        output wire [WIDTH-1 : 0] cfg_CH_CTRL,
-        output wire [WIDTH-1 : 0] cfg_CH_SRCADDR,
-        output wire [WIDTH-1 : 0] cfg_CH_DESADDR,
-        output wire [WIDTH-1 : 0] cfg_CH_XSIZE,
-        output wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG,
-        output wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG,
-        output wire [WIDTH-1 : 0] cfg_CH_XADDRINC,
-        output wire [WIDTH-1 : 0] cfg_CH_FILLVAL,
-        output wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
-        output wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
-        output wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
-        output wire [WIDTH-1 : 0] cfg_LINKADDR,
-        output wire chn_cmd_wr_en_o, chn_stat_wr_en_o, chn_intren_wr_en_o,
-            chn_ctrl_wr_en_o,chn_srcaddr_wr_en_o, chn_desaddr_wr_en_o, chn_xsize_wr_en_o, chn_srctrans_wr_en_o,
-            chn_destrans_wr_en_o,chn_xaddrinc_wr_en_o,chn_fillval_wr_en_o,chn_srctrigin_wr_en_o,chn_destrigin_wr_en_o,
-            chn_trigout_wr_en_o,chn_linkaddr_wr_en_o,
+     //APB signals
+      input wire clk,
+      input wire resetn,
+      input wire PCLK,
+      input wire PRESETn,
+      input wire [ ADDR_WIDTH-1 : 0 ] PADDR, // 
+      input wire PWRITE,
+      input wire PENABLE,
+      input wire PSEL,
+      input  wire [(WIDTH*14)-1 : 0] chn_reg_in,
+      input wire reg_wr_en,
+      input wire [DATA_WIDTH-1 : 0] PWDATA,
+      input wire [STRB_WIDTH-1 : 0] PSTRB,
+      output wire [DATA_WIDTH-1 : 0] PRDATA,
+      output wire PREADY,
+      output wire PSLVERR,
+      output wire [WIDTH-1 : 0] cfg_CH_CMD,
+	  output wire [WIDTH-1 : 0] cfg_CH_STATUS,
+	  output wire [WIDTH-1 : 0] cfg_CH_INTREN,
+	  output wire [WIDTH-1 : 0] cfg_CH_CTRL,
+      output wire [WIDTH-1 : 0] cfg_CH_SRCADDR,
+	  output wire [WIDTH-1 : 0] cfg_CH_DESADDR,
+	  output wire [WIDTH-1 : 0] cfg_CH_XSIZE,
+	  output wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG,
+	  output wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG,
+	  output wire [WIDTH-1 : 0] cfg_CH_XADDRINC,
+	  output wire [WIDTH-1 : 0] cfg_CH_FILLVAL,
+	  output wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
+	  output wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
+	  output wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
+	  output wire [WIDTH-1 : 0] cfg_LINKADDR,
+	  output wire chn_cmd_wr_en_o, chn_stat_wr_en_o, chn_intren_wr_en_o,
+      chn_ctrl_wr_en_o,chn_srcaddr_wr_en_o, chn_desaddr_wr_en_o, chn_xsize_wr_en_o, chn_srctrans_wr_en_o,
+      chn_destrans_wr_en_o,chn_xaddrinc_wr_en_o,chn_fillval_wr_en_o,chn_srctrigin_wr_en_o,chn_destrigin_wr_en_o,
+      chn_trigout_wr_en_o,chn_linkaddr_wr_en_o,
         input wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
         input wire [WIDTH -1:0] wrkregval_rd,
-        output wire [WIDTH-1:0] cfg_WRKREGPTR
+        output wire [WIDTH-1:0] cfg_WRKREGPTR,
+          output wire [31:0] cfg_CH_SRCTMPLT,
+      output wire [31:0] cfg_CH_DESTMPLT,
+      output wire [31:0] cfg_CH_TMPLTCFG,
+      output wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o
       );
       
       wire cfg_rd_en;
@@ -69,14 +94,16 @@ module apb_reg #(parameter DATA_WIDTH = 32,
        .cfg_rd_en(cfg_rd_en));
        
        register_bank dut1
-        (.clk(clk),
-        .resetn(resetn),
-        .cfg_rd_en(cfg_rd_en),
-        .cfg_wr_en(cfg_wr_en),
-        .cfg_data_in(cfg_wdata),
-        .addr_in(cfg_addr),
-        .chn_reg_in(chn_reg_in),
-        .cfg_data_out(cfg_data_out),
+         (.clk(clk),
+         .resetn(resetn),
+         .cfg_rd_en(cfg_rd_en),
+         .cfg_wr_en(cfg_wr_en),
+        // .chn_wr_en_i(chn_wr_en_i),
+         .cfg_data_in(cfg_wdata),
+         .addr_in(cfg_addr),
+         .chn_reg_in(chn_reg_in),
+         .cfg_data_out(cfg_data_out),
+//         .reg_wr_en(reg_wr_en),
         .cfg_CH_CMD            (cfg_CH_CMD),
         .cfg_CH_STATUS         (cfg_CH_STATUS),
         .cfg_CH_INTREN         (cfg_CH_INTREN),
@@ -91,7 +118,11 @@ module apb_reg #(parameter DATA_WIDTH = 32,
         .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
         .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
         .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
-        .cfg_LINKADDR          (cfg_LINKADDR),  
+        .cfg_LINKADDR          (cfg_LINKADDR),
+        .cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
+        .cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
+        .cfg_CH_TMPLTCFG(cfg_CH_TMPLTCFG),
+        
         .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
         .chn_stat_wr_en_o      (chn_stat_wr_en_o),
         .chn_intren_wr_en_o    (chn_intren_wr_en_o),
@@ -107,8 +138,11 @@ module apb_reg #(parameter DATA_WIDTH = 32,
         .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
         .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
         .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+        .chn_srctmplt_wr_en_o(chn_srctmplt_wr_en_o),
+        .chn_destmplt_wr_en_o(chn_destmplt_wr_en_o),
+        .chn_tmpltcfg_wr_en_o(chn_tmpltcfg_wr_en_o),
         .src_des_xsize_updated(src_des_xsize_updated),
         .wrkregval_rd(wrkregval_rd),
         .cfg_WRKREGPTR(cfg_WRKREGPTR)
-        );
+         );
 endmodule
