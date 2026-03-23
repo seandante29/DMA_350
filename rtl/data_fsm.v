@@ -50,6 +50,13 @@ module data_fsm #(
     output reg                  trig_out_req,
     input  wire                 trig_out_ack,
 
+
+    //
+    input wire cmd_restart_en,//
+    input wire [15:0] cmd_restart_cnt,//
+    input wire [2:0] reg_reload_type,//
+    input wire [2:0] done_type,
+    
     // Config
     input  wire [ADDR_W-1:0]    SRC_ADDR,
     input  wire [ADDR_W-1:0]    des_ADDR,
@@ -173,6 +180,9 @@ module data_fsm #(
     reg [4:0] wr_pause_state_q;
     reg [4:0] rd_pause_state_q;
    
+    reg src_xsize_reload,des_xsize_reload;
+    reg [31:0] src_addr_reload,des_addr_reload;
+    
     assign config_error = config_error_size | config_error_src | config_error_des | config_error_trigout | 
                           config_error_inc | config_error_x_type | config_error_case3 | config_error_case6;
     assign regvalerr    = regvalerr_src | regvalerr_des | regvalerr_trigout;
@@ -448,8 +458,12 @@ module data_fsm #(
                             rd_next_st = RD_AR;
                         else if (( fill_count > 1) && ( (x_type == 3) && (case6  || case2)))
                             rd_next_st = RD_WRAP_FILL;
-                        else 
-                            rd_next_st = RD_IDLE; end
+                        else if((cmd_restart_en || cmd_restart_cnt != 0) && (src_left == 0))
+                            rd_next_st = RD_CONFIG; 
+                         else
+                        rd_next_st = RD_IDLE;    
+                            
+                            end
                             
                     else
                         rd_next_st = RD_R;
@@ -457,6 +471,8 @@ module data_fsm #(
                 RD_WRAP_FILL:
                     if (src_left == 0 && fill_count == 0)
                         rd_next_st = RD_IDLE;
+                    else if((cmd_restart_en || cmd_restart_cnt != 0) && (src_left == 0))
+                            rd_next_st = RD_CONFIG; 
                     else
                         rd_next_st = RD_WRAP_FILL;
                 
@@ -597,6 +613,12 @@ module data_fsm #(
                     reg2 <= reg1;
                     srcxsize_reg <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
                     desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+                    src_addr_reg <= SRC_ADDR;
+                    des_addr_reg <= des_ADDR;
+                   src_xsize_reload <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
+                   des_xsize_reload <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+                   src_addr_reload <= SRC_ADDR;
+                   des_addr_reload <= des_ADDR;
 //                    if(reg2) begin
 //                        case1 <= (srcxsize == 0 && desxsize == 0);
 //                        case2 <= (srcxsize == 0 && desxsize > 0);
@@ -608,7 +630,39 @@ module data_fsm #(
                 end 
                 
                 RD_CONFIG: begin
-                
+                   
+                   
+//                   src_xsize_reload <= srcxsize_reg;
+//                   des_xsize_reload <= desxsize_reg;
+//                   src_addr_reload <= src_addr_reg;
+//                   des_addr_reload <= des_addr_reg;
+                   if(cmd_restart_en || cmd_restart_cnt != 0)
+                        if(reg_reload_type == 0)begin
+                        srcxsize_reg <= 0;
+                        desxsize_reg <= 0;
+                        src_addr_reg <= 0;
+                        des_addr_reg <= 0;
+                        end
+                        else if(reg_reload_type == 1) begin
+                        srcxsize_reg <= src_xsize_reload;
+                        desxsize_reg <= des_xsize_reload;end
+                        
+                        else if(reg_reload_type == 3)begin
+                        srcxsize_reg <= src_xsize_reload;
+                        desxsize_reg <= des_xsize_reload;
+                        src_addr_reg <= src_addr_reload;end
+                        
+                        else if(reg_reload_type == 5)begin
+                        srcxsize_reg <= src_xsize_reload;
+                        desxsize_reg <= des_xsize_reload;
+                        des_addr_reg <= des_addr_reload;end
+                        
+                        else if(reg_reload_type == 7)begin
+                        srcxsize_reg <= src_xsize_reload;
+                        desxsize_reg <= des_xsize_reload;
+                        src_addr_reg <= src_addr_reload;
+                        des_addr_reg <= des_addr_reload;end
+                        
                    des_trig_req_type_reg <= 'd1;
                    src_trig_req_type_reg <= 'd1;
                     if (case1 || x_type == 0) done_signal <= 1;
@@ -618,11 +672,11 @@ module data_fsm #(
                         if (i < ((8'd1 << transize) << 3))
                             wdata_mask[i] <= 1'b1;
                     end
-                      initial_tmplt_addr_src <= SRC_ADDR;
-                    src_addr_reg <= SRC_ADDR;
-                    des_addr_reg <= des_ADDR;
-                    srcxsize_reg <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
-                    desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+                      initial_tmplt_addr_src <= src_addr_reg;//SRC_ADDR;
+//                    src_addr_reg <= SRC_ADDR;
+//                    des_addr_reg <= des_ADDR;
+//                    srcxsize_reg <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
+//                    desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
 
                     //config_error_inc  <= ((x_type > 3) | (src_xaddr_inc > 1 | (des_xaddr_inc > 1)) ? 1 : 0);
                     config_error_size <= (transize > 4) | (srcxsize > 'd256) | (desxsize > 'd256);
