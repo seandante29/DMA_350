@@ -1,5 +1,7 @@
 
-module cmd_fsm (
+module cmd_fsm
+#(parameter DATA_W = 128)
+ (
     input clk, 
     input resetn,
     input [31:0]LINKADDR,// fro intern reg
@@ -10,7 +12,7 @@ module cmd_fsm (
     // AR signals
     input ARREADY,
     output reg [3:0] ARID,
-    output reg [3:0] ARLEN,
+    output reg [7:0] ARLEN,
     output reg[2:0] ARSIZE,
     output reg [1:0] ARBURST,
     output reg ARVALID,
@@ -19,7 +21,7 @@ module cmd_fsm (
 
     // R signals
     input [3:0]RID,
-    input [31:0]RDATA_I,//32
+    input [DATA_W - 1:0]RDATA_I,//32
     input [1:0]RRESP,
     input RLAST,
     input RVALID,
@@ -37,15 +39,22 @@ module cmd_fsm (
     output reg BUSERR,//any axi error assterts this
     input wire STAT_ERROR_PARTSEL
     );
-    
+    reg [5:0] temp_wptr,temp_rptr;
+    reg [DATA_W - 1 : 0] fifo_temp [0:31]; 
     reg wr_en_reg;
     reg [3:0] current_state, next_state;
-    reg [3:0] count;   
-    reg [3:0] count1;
+    reg [7:0] count;   
+    reg [7:0] count1;
+    reg [7:0] count2;
     reg data_done_reg;
     reg link_enable_reg;
     reg STAT_ERROR_reg;
     integer i;
+    
+    reg [$clog2(DATA_W/32)-1:0] chunk_cnt;
+reg [DATA_W-1:0] aligned_data;
+wire [$clog2(DATA_W/8)-1:0] byte_offset;
+
     wire cmd_error = (LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
     localparam IDLE   = 4'b0001;
     localparam AR     = 4'b0010;
@@ -115,13 +124,15 @@ module cmd_fsm (
     end
     
     always@(*) begin
+        aligned_data = RDATA_I >> (byte_offset * 8);
         count1 = count;
         if(current_state == IDLE  ) 
             count1 = 0; 
         else if(current_state == COUNT)begin
             count1 = 0;
-            for( i = 1 ; i < 31 ; i = i + 1) 
-                count1 = count1 + LINK_HEADER[i];
+            for( i = 0 ; i < 32 ; i = i + 1) 
+                if(!(i == 0 || i == 1 || i == 23||i == 25 || i == 27))
+                    count1 = count1 + LINK_HEADER[i];
         end 
     end
     
@@ -141,12 +152,68 @@ module cmd_fsm (
             wr_en_reg <= wr_en;
     end
     
+//    always@(posedge clk or negedge resetn) begin
+//        if(!resetn)
+//        RDATA_O <= 0;
+//        else
+//            if(ARLEN == temp_wptr) begin
+//                RDATA_O <= fifo_temp[temp_rptr];
+//                temp_rptr <= temp_rptr + 1;
+//                end
+//    end
+
+assign byte_offset = ARADDR[$clog2(DATA_W/8)-1:0];
+
+always @(posedge clk or negedge resetn) begin
+    if (!resetn) begin
+        RDATA_O   <= 32'd0;
+        CMD_DONE <= 0;
+        temp_rptr <= 0;
+        chunk_cnt <= 0;
+        wptr <= 0;
+        count2 <= 0;
+    end
+    else begin
+        CMD_DONE <= 1;
+        if(current_state == IDLE)
+        CMD_DONE <= ( (data_done || count2 > 0) ? 0 : 1) ;
+        else if (current_state == AR || current_state == COUNT )
+         CMD_DONE <= 0;
+         else if (current_state == R)
+        CMD_DONE <= ( (count2==1) ? 1 : CMD_DONE) ;
+
+        if(count1 > 0 && current_state == AR)
+            count2 <= count1  ;
+        if(current_state == AR) begin
+            wptr <= (count1 == 0)? 0 :wptr;
+            chunk_cnt <= byte_offset/4;
+        end 
+        // FIFO not empty
+        else if (temp_rptr != temp_wptr && count2 !='h0) begin
+            
+            // align data for narrow / unaligned transfer
+            count2 <= count2 -1 ;
+           // if(count2 == 1) CMD_DONE = 1; 
+            // output 32-bit chunk
+            RDATA_O <= fifo_temp[temp_rptr][chunk_cnt*32 +: 32];//aligned_data[chunk_cnt*32 +: 32];
+            wptr <= wptr + 1;
+            // chunk progression
+            if (chunk_cnt == (DATA_W/32 - 1)) begin
+                chunk_cnt <= 0;
+                temp_rptr <= temp_rptr + 1;   // move to next FIFO word
+            end 
+            else begin
+                chunk_cnt <= chunk_cnt + 1;
+            end
+        end
+    end
+end
     // ERROR HANDLING ISSUE 
     always@(posedge clk or negedge resetn)
     begin
         if(!resetn)
         begin
-            CMD_DONE <= 0; //done signal to data fsm
+            //CMD_DONE <= 0; //done signal to data fsm
             AXIRDRESPERR <= 0;//address out of range error
             AXIRDPOISERR <= 0;//corrupted data error
             BUSERR <= 0;//any axi error assterts this
@@ -162,24 +229,28 @@ module cmd_fsm (
             LINK_HEADER <= 0;
             STAT_CMD_DONE <= 1'b0;
             cmd_done_1 <= 1'b0;
-            wptr <= 0;
+            
         end
         else
         begin
-            CMD_DONE <= 1'b1; 
+            //CMD_DONE <= 1'b1; 
             cmd_done_1 <= 1'b0;
             STAT_CMD_DONE <= cmd_done_1 ;
+            
             ARQOS <= 0;
             case(current_state)
             
                 IDLE:
                 begin
+                    cmd_done_1 <= (!CMD_DONE && count2 ==0 ) ;
                     ARADDR <= 0;
                     ARID   <= 1;
                     ARLEN  <= 0;
                     ARSIZE <= 'd2;
                     ARBURST <=0;
                     ARVALID <=0;
+                    temp_wptr <= 0;
+                    temp_rptr <= 0;
                     if(~STAT_ERROR_PARTSEL)
                     begin
                         BUSERR <= 0;
@@ -188,7 +259,7 @@ module cmd_fsm (
                         LINKHDRERR <= 0;
                     end
                     if(data_done) begin
-                        CMD_DONE <= 0; 
+                        //CMD_DONE <= 0; 
                     end
                     if(wr_en_reg)         
                         LINK_HEADER <= 0;
@@ -196,41 +267,43 @@ module cmd_fsm (
                 
                 AR: 
                 begin
-                    ARSIZE <= 'd2;
-                    CMD_DONE <= 0;
+                    ARSIZE <= ($clog2(DATA_W/8)) ;//
+                    //CMD_DONE <= 0;
                     ARVALID <= 1;          
                     if (count == 0) begin
                         ARADDR <= LINKADDR;
                         ARLEN <= 0;
+                         ARBURST <= 1;
                     end
                     else begin
                         ARADDR <= LINKADDR + 4;
-                        ARLEN <= count - 1;
+                        ARLEN <= (count - 1 + (byte_offset/4))/(DATA_W/32) ;
                         ARBURST <= 1;  //changes done
                     end
                 end
                 
                 R:
                 begin
-                    CMD_DONE <= 0;
+                    //CMD_DONE <= 0;
                     ARVALID <= 0;  
                     if(RREADY && RVALID) begin
                         if(count!=0)begin
-                            RDATA_O <= RDATA_I [31:0];
-                            wptr <= wptr + 1; 
+                            fifo_temp[temp_wptr] <= RDATA_I ;
+                            //wptr <= wptr + 1; 
+                            temp_wptr <= temp_wptr +1;
                         end
-                        else if(RLAST  && !(|RDATA_I[31:0]))
+                        else if(RLAST  && !(|((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 'hffffFFFF))
                             LINKHDRERR <= 1;
-                        else if(RLAST  && (|RDATA_I[31:0]) && count ==0)begin 
-                            LINK_HEADER <= RDATA_I[31:0];
-                            wptr <= 0;
+                        else if(RLAST  && (|((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 'hffffFFFF) && count ==0)begin 
+                            LINK_HEADER <=(((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 'hffffFFFF);// RDATA_I >> (byte_offset * 8);
+                            temp_wptr <= 0; 
                         end
-                    
+                        
                         if((RRESP == 2'b00 || RRESP == 2'b01) && RLAST) 
                         begin
                             if(count!=0) begin
-                                CMD_DONE <= 1'b1;
-                                cmd_done_1 <= 1'b1;
+                                //CMD_DONE <= 1'b1;
+                                //cmd_done_1 <=(count2 ==1 ) 1'b1: 0;
                             end
                         end
                         else if(RRESP == 2'b11)    
@@ -247,7 +320,7 @@ module cmd_fsm (
                 end
                 
                 COUNT : begin
-                    CMD_DONE <= 0;               
+                    //CMD_DONE <= 0;               
                 end
                 
                 default:
@@ -264,3 +337,4 @@ module cmd_fsm (
     end
     
 endmodule   
+ 
