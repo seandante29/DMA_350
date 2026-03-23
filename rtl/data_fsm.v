@@ -99,7 +99,7 @@ module data_fsm #(
     
     input  wire                 WREADY,
     output reg                 WVALID,
-    output reg  [31:0]    WDATA,
+    output reg  [31:0]         WDATA,
     output reg                 WLAST,
     
     input  wire                 BVALID,
@@ -165,7 +165,7 @@ module data_fsm #(
 
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
     reg [3:0] state, next_st;
-    reg       case1, case2, case3, case4, case5, case6;
+    wire       case1, case2, case3, case4, case5, case6;
     
     wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
     wire empty = (fifo_wptr == fifo_rptr);
@@ -184,7 +184,12 @@ module data_fsm #(
     assign DESXSIZE_INITIAL = {16'd0, desxsize_reg};
     assign src_xaddr_inc_sign = $signed(src_xaddr_inc);
     assign des_xaddr_inc_sign = $signed(des_xaddr_inc);
- 
+    assign case1 = (srcxsize_reg == 0 && desxsize_reg == 0);
+    assign case2 = (srcxsize_reg == 0 && desxsize_reg > 0);
+    assign case3 = (srcxsize_reg > 0 && desxsize_reg == 0);
+    assign case4 = (srcxsize_reg == desxsize_reg && srcxsize_reg > 0);
+    assign case5 = ((srcxsize_reg > desxsize_reg) && (desxsize_reg != 0));
+    assign case6 = ((srcxsize_reg < desxsize_reg) && (srcxsize_reg != 0));
     localparam RD_IDLE       = 5'd0,
                RD_WAIT       = 5'd1,
                RD_CONFIG     = 5'd2,
@@ -526,7 +531,7 @@ module data_fsm #(
     
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin
-            {ARVALID, RREADY, case1, case2, case3, case4, case5, case6, des_addr_reg, src_addr_reg, wdata_mask,
+            {ARVALID, RREADY,des_addr_reg, src_addr_reg, wdata_mask,
             ard_error, ARADDR, desxsize_reg, ARID, ARSIZE, ARBURST, srcxsize_reg, ARLEN,src_xsize_remaining,src_trig_req_type_reg,des_trig_req_type_reg,
              arpoison_error, bus_error_r, cmd_done_reg} <= 0;
             { STAT_RESUMEWAIT_DATA,
@@ -590,14 +595,16 @@ module data_fsm #(
                 RD_WAIT: begin
                     reg1 <= 1;
                     reg2 <= reg1;
-                    if(reg2) begin
-                        case1 <= (srcxsize == 0 && desxsize == 0);
-                        case2 <= (srcxsize == 0 && desxsize > 0);
-                        case3 <= (srcxsize > 0 && desxsize == 0);
-                        case4 <= (srcxsize == desxsize && srcxsize > 0);
-                        case5 <= ((srcxsize > desxsize) && (desxsize != 0));
-                        case6 <= ((srcxsize < desxsize) && (srcxsize != 0));
-                    end
+                    srcxsize_reg <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
+                    desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+//                    if(reg2) begin
+//                        case1 <= (srcxsize == 0 && desxsize == 0);
+//                        case2 <= (srcxsize == 0 && desxsize > 0);
+//                        case3 <= (srcxsize > 0 && desxsize == 0);
+//                        case4 <= (srcxsize == desxsize && srcxsize > 0);
+//                        case5 <= ((srcxsize > desxsize) && (desxsize != 0));
+//                        case6 <= ((srcxsize < desxsize) && (srcxsize != 0));
+//                    end
                 end 
                 
                 RD_CONFIG: begin
@@ -614,8 +621,8 @@ module data_fsm #(
                       initial_tmplt_addr_src <= SRC_ADDR;
                     src_addr_reg <= SRC_ADDR;
                     des_addr_reg <= des_ADDR;
-                    srcxsize_reg <= srcxsize;
-                    desxsize_reg <= desxsize;
+                    srcxsize_reg <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
+                    desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
 
                     //config_error_inc  <= ((x_type > 3) | (src_xaddr_inc > 1 | (des_xaddr_inc > 1)) ? 1 : 0);
                     config_error_size <= (transize > 4) | (srcxsize > 'd256) | (desxsize > 'd256);
@@ -653,22 +660,22 @@ module data_fsm #(
                     end else if (case3)
                         config_error_case3 <= 1;
                     else if (case4 || case5) begin
-                        src_left <= desxsize;
+                        src_left <= (src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size;
                     end else if (case6) begin
                         case (x_type)
                             0: begin src_left <= 0; end
-                            1: begin src_left <= srcxsize; end
-                            2: begin src_left <= desxsize; end
-                            3: begin src_left <= srcxsize; end
+                            1: begin src_left <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size; end
+                            2: begin src_left <= (src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size; end
+                            3: begin src_left <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size; end
                             default: begin src_left <= srcxsize; config_error_case6 <= 1; end
                         endcase
                     end
-                    fill_count <= ((srcxsize < desxsize) && x_type == 3 && (case2 || case6)) ? ((desxsize - srcxsize) & 16'hFFFF) : 0;
+                    //fill_count <= ((srcxsize < desxsize) && x_type == 3 && (case2 || case6)) ? ((desxsize - srcxsize) & 16'hFFFF) : 0;//
                 end
                 
                 RD_WAIT_TRIG: begin
-                 src_xsize_remaining <= srcxsize_reg;
-                    
+                 src_xsize_remaining <= (src_trigin_blk_size > srcxsize_reg )? srcxsize_reg:src_trigin_blk_size;
+                    fill_count <= ((src_left < des_left) && x_type == 3 && (case2 || case6)) ? ((des_left - src_left) & 16'hFFFF) : 0;//
                     if (use_src_trigin && use_des_trigin) begin 
                     src_trig_req_type_reg <= src_trig_req_type;
                     des_trig_req_type_reg <= des_trig_req_type; 
@@ -723,22 +730,23 @@ module data_fsm #(
                    	            ARADDR <= initial_tmplt_addr_src + m * (2**transize);      end             	         
                    	end
                    	
-                   	else if (case6 && x_type == 'd2 && src_xsize_remaining == 0) begin
+                   	else if (case6 && x_type == 'd2 && ((src_xsize_remaining == 0) || (src_left == srcxsize_reg))) begin
                         ARADDR <= SRCADDR_INITIAL;
                          ARVALID <= 1;
                     end
-                    else if ((src_xsize_remaining == src_left) && case6 && x_type == 2) begin
-                        ARADDR <= ARADDR;
-                         ARVALID <= 1;
-                    end
+//                    else if ((src_xsize_remaining == src_left) && case6 && x_type == 2 && (ARVALID)) begin
+//                        ARADDR <= ARADDR;
+//                         ARVALID <= 1;
+//                    end
                     else begin
                      ARVALID <= 1;
-                        ARADDR <= src_addr_reg + 
+                        ARADDR <= (ARVALID)?ARADDR : src_addr_reg + 
                                   (srcxsize_reg - src_xsize_remaining) * 
                                   ((2**transize) * src_xaddr_inc_sign);
                     end 
                     
                    	src_xsize_remaining <= (case6 && x_type == 'd2 && src_xsize_remaining == 0) ? (srcxsize_reg > src_left) ? src_left : srcxsize_reg : (src_xsize_remaining);
+                   	srcxsize_reg <= (case6 && x_type == 'd2 && src_xsize_remaining == 0) ? (srcxsize_reg > src_left) ? src_left : srcxsize_reg : (srcxsize_reg);
                     end
         
 
@@ -843,7 +851,7 @@ always @(posedge clk or negedge resetn) begin
                 W_IDLE: begin
                // AWADDR <= des_addr_reg;
                      initial_tmplt_addr_des <= des_ADDR;
-                    des_xsize_remaining <= desxsize_reg;
+                    des_xsize_remaining <= (des_trigin_blk_size > desxsize_reg)? desxsize_reg : des_trigin_blk_size;
                     if (stat_error_intr_reg == 0) begin
                         awr_error      <= 0;
                         bus_error_w      <= 0;
@@ -855,19 +863,19 @@ always @(posedge clk or negedge resetn) begin
                     end 
                     else if (case2) begin
                         if (x_type == 3) begin
-                            des_left <= desxsize;
+                            des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
                         end 
                     end 
                     else if (case4 || case5) begin
-                        des_left <= desxsize;
+                        des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
                     end 
                     else if (case6) begin
                         case (x_type)
                             0: begin des_left <= 0; end
-                            1: begin des_left <= srcxsize; end
-                            2: begin des_left <= desxsize; end
-                            3: begin des_left <= desxsize; end
-                            default:begin  des_left <= desxsize;  end
+                            1: begin des_left <= (des_trigin_blk_size > srcxsize)? srcxsize : des_trigin_blk_size; end
+                            2: begin des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size; end
+                            3: begin des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size; end
+                            default:begin  des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;  end
                         endcase
                     end
                 end
