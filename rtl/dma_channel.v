@@ -18,6 +18,7 @@ module dma_channel
     input wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
     input wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
     input wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
+    input wire [WIDTH-1 : 0] cfg_CH_AUTOCFG,
     input wire [WIDTH-1 : 0] cfg_LINKADDR,
     input wire [WIDTH-1 : 0] cfg_WRKREGPTR,
      input wire [31:0] cfg_CH_SRCTMPLT,
@@ -46,13 +47,14 @@ module dma_channel
     input wire chn_srctrigin_wr_en_o,
     input wire chn_destrigin_wr_en_o,
     input wire chn_trigout_wr_en_o,
+    input wire chn_autocfg_wr_en_o,
     input wire chn_linkaddr_wr_en_o,
     input wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,
 
 
 
     //inter reg signals    
-    output wire [(WIDTH*14)-1 : 0] chn_reg_out,              
+    output wire [(WIDTH*15)-1 : 0] chn_reg_out,              
     output wire reg_wr_en,         
     output  wire IRQ,
     //cmd fsm signal
@@ -149,13 +151,13 @@ module dma_channel
       wire [7:0]des_trigin_blk_size;
     wire [7:0]src_trigin_blk_size;
 
-        
+    
 wire [31:0] SRCADDR_INITIAL;
 wire [31:0] DESADDR_INITIAL;
 wire [31:0] SRCXSIZE_INITIAL;
 wire [31:0] DESXSIZE_INITIAL;
 wire cmd_done_1;
-wire [(WIDTH * 18) -1:0]  mux_logic_in;
+wire [(WIDTH * 19) -1:0]  mux_logic_in;
 
 // wires to part select
 
@@ -177,7 +179,12 @@ wire [(WIDTH * 18) -1:0]  mux_logic_in;
  wire [31:0] CH_DESTMPLT_O;
  wire [31:0] CH_SRCTMPLT_O;
  wire [31:0] CH_TMPLTCFG_O;
+ wire [31:0] CH_AUTOCFG_O;
  
+ wire cmd_restart_en;
+ wire [15:0] cmd_restart_cnt;
+ wire [2:0] reg_reload_type;
+ wire [2:0] done_type;
  ///
     wire [31:0] SRCADDR_UPDATED;
     wire [31:0]  DESADDR_UPDATED;
@@ -261,7 +268,7 @@ assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o  ||
                         chn_srcaddr_wr_en_o || chn_desaddr_wr_en_o || chn_xsize_wr_en_o 
                         || chn_srctrans_wr_en_o || chn_destrans_wr_en_o || chn_xaddrinc_wr_en_o || 
                         chn_fillval_wr_en_o || chn_srctrigin_wr_en_o || chn_destrigin_wr_en_o || 
-                        chn_trigout_wr_en_o || chn_linkaddr_wr_en_o;
+                        chn_trigout_wr_en_o || chn_linkaddr_wr_en_o || chn_autocfg_wr_en_o || chn_srctmplt_wr_en_o || chn_destmplt_wr_en_o || chn_tmpltcfg_wr_en_o;
 
 wire cmd_done_stop;
 
@@ -322,6 +329,7 @@ wire cmd_done_stop;
   .CH_SRCADDR_O(CH_SRCADDR_O),
   .CH_DESADDR_O(CH_DESADDR_O),
   .CH_FILLVAL_O(CH_FILLVAL_O),
+  .CH_AUTOCFG_O(CH_AUTOCFG_O),
   .stat_done_intr_reg(stat_done_intr_reg),
   .stat_disable_intr_reg(stat_disable_intr_reg),
   .stat_stopped_intr_reg (stat_stopped_intr_reg ),
@@ -358,6 +366,7 @@ wire cmd_done_stop;
     .CH_TMPLTCFG(CH_TMPLTCFG_O),
 .CH_SRCTMPLT(CH_SRCTMPLT_O),
 .CH_DESTMPLT(CH_DESTMPLT_O),
+.CH_AUTOCFG(CH_AUTOCFG_O),
     .use_trigout(use_trigout),
     .use_des_trigin(use_des_trigin),
     .use_src_trigin(use_src_trigin),
@@ -399,7 +408,12 @@ wire cmd_done_stop;
      .src_trigin_blk_size(src_trigin_blk_size),
      .des_trigin_blk_size(des_trigin_blk_size),
      .des_max_burst_len(des_max_burst_len),
-     .src_max_burst_len(src_max_burst_len)
+     .src_max_burst_len(src_max_burst_len),
+     .cmd_restart_en(cmd_restart_en),
+    .cmd_restart_cnt(cmd_restart_cnt),
+    .reg_reload_type(reg_reload_type),
+    .done_type(done_type)
+     
 );
 
  cmd_fsm dut2(.clk(clk), 
@@ -467,6 +481,7 @@ wire cmd_done_stop;
        .CH_TMPLTCFG(CH_TMPLTCFG_O),
        .CH_DESTMPLT(CH_DESTMPLT_O),
        .CH_SRCTMPLT(CH_SRCTMPLT_O),
+       .CH_AUTOCFG(CH_AUTOCFG_O),
                .SRCADDR_INITIAL(SRCADDR_INITIAL),
      .DESADDR_INITIAL(DESADDR_INITIAL),
      .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
@@ -490,6 +505,7 @@ wire cmd_done_stop;
         .cfg_CH_TMPLTCFG(cfg_CH_TMPLTCFG),
         .cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
         .cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
+        .cfg_CH_AUTOCFG (cfg_CH_AUTOCFG),
         
         .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
         .chn_stat_wr_en_o      (chn_stat_wr_en_o),
@@ -509,6 +525,7 @@ wire cmd_done_stop;
         .chn_tmpltcfg_wr_en_o (chn_tmpltcfg_wr_en_o),
         .chn_destmplt_wr_en_o (chn_destmplt_wr_en_o),
         .chn_srctmplt_wr_en_o (chn_srctmplt_wr_en_o),
+        .chn_autocfg_wr_en_o (chn_autocfg_wr_en_o),
         .mux_out_reg(mux_logic_in)
        );               
       
@@ -519,6 +536,10 @@ wire cmd_done_stop;
     .DESADDR_UPDATED(DESADDR_UPDATED),
     .XSIZE_UPDATED(XSIZE_UPDATED),
     .LINKHDERR(LINKHDERR),
+    .cmd_restart_en(cmd_restart_en),
+    .cmd_restart_cnt(cmd_restart_cnt),
+    .reg_reload_type(reg_reload_type),
+    .done_type(done_type),
          .src_trigin_blk_size(src_trigin_blk_size),
      .des_trigin_blk_size(des_trigin_blk_size),
     .wr_en_for_updated(wr_en_for_updated),
