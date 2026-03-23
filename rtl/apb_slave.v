@@ -9,18 +9,24 @@ module apb_slave #( parameter DATA_WIDTH = 32,
      input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
      input wire PWRITE,
      input wire PSEL,
+     input wire enable_cmd_to_apb,
      input wire PENABLE,
      input wire [ DATA_WIDTH-1 : 0 ]PWDATA,
      input wire [ STRB_WIDTH-1 : 0 ] PSTRB,
      output reg [ DATA_WIDTH-1 : 0 ]PRDATA,
-     output wire PREADY,
+   //  output wire PREADY,
+     output reg PREADY,
      output reg PSLVERR,
      
      //REGISTER BANK signals
      input wire [ DATA_WIDTH-1 : 0 ]cfg_rdata,//from reg to apb
      output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,// to reg bank
      output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,// to reg bank
-     output reg cfg_wr_en,cfg_rd_en// to reg bank
+     output reg cfg_wr_en,cfg_rd_en,// to reg bank
+    input wire [31:0] SRCADDR_UPDATED,
+    input wire [31:0]  DESADDR_UPDATED,
+    input wire [31:0]  XSIZE_UPDATED,
+    output wire stop_cmd_apb
      );
     localparam IDLE_ST   = 3'b001;
     localparam SETUP_ST  = 3'b010;
@@ -34,9 +40,49 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
+     assign stop_cmd_apb = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && PADDR == 'h1000 && PWDATA[3] && enable_cmd_to_apb)?1:0;
     wire RO_error = (( cfg_addr == 'h1080 | cfg_addr == 'h108C | cfg_addr == 'h1090 ) & PWRITE_q);
     wire address_error = (! (cfg_addr >='h1000 && cfg_addr <='h1090));
-    assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
+ //   assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
+    always@(*)begin
+      if(current_state == ACCESS_ST && PREADY && PWRITE == 0 && PENABLE )
+         begin
+         if((cfg_addr == 'h1010))
+                      PRDATA = SRCADDR_UPDATED;
+         else if((cfg_addr == 'h1018))
+                      PRDATA = DESADDR_UPDATED;
+         else if((cfg_addr == 'h1020))
+                     PRDATA = XSIZE_UPDATED;
+          else
+                      PRDATA = cfg_rdata;
+    end
+    else
+                        PRDATA = 0;
+    end
+    reg [3:0]count;
+
+
+       always@(*)
+    begin
+        if(current_state == ACCESS_ST)
+        begin
+            if(PWRITE)
+                PREADY =1;
+            else 
+            begin
+                if((cfg_addr == 'h1004)||(cfg_addr == 'h1010)||(cfg_addr == 'h1018)||(cfg_addr == 'h1020))
+                    if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 0) ||(((cfg_addr == 'h1018)&&count == 0))||(((cfg_addr == 'h1020)&&count == 0)))
+                        PREADY =1;
+                    else 
+                        PREADY =0;
+                else 
+                    PREADY =1;
+            end
+        end
+        else
+            PREADY =0;
+    end
+ 
     
     always@(posedge PCLK or negedge PRESETn)
     begin
@@ -62,7 +108,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
             
             ACCESS_ST:
             begin
-                next_state = (PREADY) ? (PSEL ? SETUP_ST : IDLE_ST) : ACCESS_ST; 
+                next_state = (PREADY && PENABLE) ? (PSEL ? SETUP_ST : IDLE_ST) : ACCESS_ST; 
             end
             
             default: 
@@ -76,6 +122,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     begin
         if(!PRESETn)
         begin
+            count<=0;
             PWRITE_q <= 1'b0;
             PWDATA_q <= {DATA_WIDTH{1'b0}};
             PSLVERR   <= 'd0;
@@ -84,12 +131,18 @@ module apb_slave #( parameter DATA_WIDTH = 32,
             cfg_rd_en <= 1'b0;               
             cfg_addr  <= {ADDR_WIDTH{1'b0}}; 
             cfg_wdata <= {DATA_WIDTH{1'b0}}; 
-            PRDATA <= 'd0;
         end
         else begin
             cfg_wr_en <= 1'b0;
             cfg_rd_en <= 1'b0;
             PSLVERR   <= 1'b0; 
+            if(current_state== ACCESS_ST)
+                begin
+                if((cfg_addr == 'h1004))
+                    count <= count+1;
+                end
+              else
+              count<=0;
             case(current_state)
             
                 SETUP_ST:
@@ -104,13 +157,11 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                 
                 ACCESS_ST:
                 begin
+                    cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
                     PSLVERR <= strobe_error_q | RO_error | address_error;
                     if(PWRITE_q) begin
                         cfg_wdata <= PWDATA_q;
                         cfg_wr_en <= 1'b1;
-                    end
-                    else begin
-                        PRDATA    <= cfg_rdata;
                     end
                 end
                 
@@ -123,3 +174,4 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     end 
 endmodule
      
+ 
