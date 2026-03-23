@@ -68,7 +68,7 @@ module dma_channel
     
     // to sys mem
     output wire [3:0] ARID,
-    output wire [3:0] ARLEN,
+    output wire [7:0] ARLEN,
     output wire[2:0] ARSIZE,
     output wire [1:0] ARBURST,
     output wire ARVALID,
@@ -76,7 +76,7 @@ module dma_channel
     output wire RREADY,      
     
     output wire [3:0] AWID_D,
-    output wire [3:0] AWLEN_D,
+    output wire [7:0] AWLEN_D,
     output wire[2:0] AWSIZE_D,
     output wire [1:0] AWBURST_D,
     output wire AWVALID_D,
@@ -101,7 +101,8 @@ module dma_channel
     output wire [(DATA_W/8)-1:0] WSTRB,
     output   wire [31:0] SRCADDR_UPDATED,
     output wire [31:0]  DESADDR_UPDATED,
-   output wire [31:0]  XSIZE_UPDATED
+   output wire [31:0]  XSIZE_UPDATED,
+   output wire enable_cmd_to_apb
     
     );
     
@@ -192,7 +193,7 @@ module dma_channel
 
     
     wire [3:0] ARID_D;
-    wire [3:0] ARLEN_D;
+    wire [7:0] ARLEN_D;
     wire[2:0] ARSIZE_D;
     wire [1:0] ARBURST_D;
     wire ARVALID_D;
@@ -201,7 +202,7 @@ module dma_channel
 	wire [3:0] ARQOS_D;
     
     wire [3:0] ARID_CMD;
-    wire [3:0] ARLEN_CMD;
+    wire [7:0] ARLEN_CMD;
     wire[2:0] ARSIZE_CMD;
     wire [1:0] ARBURST_CMD;
     wire ARVALID_CMD;
@@ -209,9 +210,10 @@ module dma_channel
     wire RREADY_CMD ;
 	wire [3:0] ARQOS_CMD;
     
-	wire [50 : 0] AR_D   = {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D,ARQOS_D};
-	wire [50 : 0] AR_CMD = {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD,ARQOS_CMD};
+	wire [54 : 0] AR_D   = {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D,ARQOS_D};
+	wire [54 : 0] AR_CMD = {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD,ARQOS_CMD};
 	assign {ARVALID, ARADDR, ARSIZE, ARBURST, ARID, ARLEN,RREADY,ARQOS} = CMD_DONE?AR_D:AR_CMD;
+    assign enable_cmd_to_apb = enable_cmd;
     
     internal_reg  #(.WIDTH (WIDTH),.DEPTH ( DEPTH)) dut0
     (
@@ -324,7 +326,11 @@ module dma_channel
     .stat_err(stat_err)
 );
 
- cmd_fsm dut2(.clk(clk), 
+ cmd_fsm #(
+    .DATA_W(DATA_W)
+//    ,.ADDR_W(ADDR_W),
+//    .ID_W(ID_W)
+    ) dut2(.clk(clk), 
       .resetn(resetn),
       .STAT_ERROR_PARTSEL(stat_err),
       .LINKADDR(linkaddr),
@@ -495,7 +501,7 @@ module dma_channel
         .AWBURST(AWBURST_D),
         .AWLEN(AWLEN_D),
         .AWID(AWID_D),
-        .AWQOS(AWQOS_D),
+        .AWQOS(AWQOS),
         .WREADY(WREADY),
         .WVALID(WVALID_D),
         .WDATA(WDATA_D),
