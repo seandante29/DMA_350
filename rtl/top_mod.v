@@ -116,7 +116,7 @@ module top_mod#(
     wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
     wire reg_wr_en;
       wire  [(WIDTH * 15) -1:0] reg_chn_out;
-      wire [(WIDTH*14)-1 : 0] chn_reg_out;
+      wire [(WIDTH*15)-1 : 0] chn_reg_out;
      // wire ch_wr_en_o;
       // from channel to trigger matrix
    wire        use_src_trigin;
@@ -163,6 +163,7 @@ wire [WIDTH-1 : 0] cfg_CH_FILLVAL;
 wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG;
 wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG;
 wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG;
+wire [WIDTH-1 : 0] cfg_CH_AUTOCFG;
 wire [WIDTH-1 : 0] cfg_LINKADDR;
 wire [WIDTH-1:0] wrkregval_rd;
 
@@ -181,6 +182,7 @@ wire chn_srctrigin_wr_en_o;
 wire chn_destrigin_wr_en_o;
 wire chn_trigout_wr_en_o;
 wire chn_linkaddr_wr_en_o;
+wire chn_autocfg_wr_en_o;
 
 wire [31:0] cfg_WRKREGPTR;
     
@@ -214,6 +216,8 @@ wire [31:0] cfg_WRKREGPTR;
     .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
     .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
     .cfg_LINKADDR          (cfg_LINKADDR),
+    .cfg_CH_AUTOCFG(cfg_CH_AUTOCFG),
+    .chn_autocfg_wr_en_o(chn_autocfg_wr_en_o),
 .chn_srctmplt_wr_en_o(chn_srctmplt_wr_en_o),
         .chn_destmplt_wr_en_o(chn_destmplt_wr_en_o),
         .chn_tmpltcfg_wr_en_o(chn_tmpltcfg_wr_en_o),
@@ -400,6 +404,8 @@ wire [31:0] cfg_WRKREGPTR;
     .cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
         .cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
         .cfg_CH_TMPLTCFG(cfg_CH_TMPLTCFG),
+        .cfg_CH_AUTOCFG(cfg_CH_AUTOCFG),
+    .chn_autocfg_wr_en_o(chn_autocfg_wr_en_o),
 .chn_srctmplt_wr_en_o(chn_srctmplt_wr_en_o),
         .chn_destmplt_wr_en_o(chn_destmplt_wr_en_o),
         .chn_tmpltcfg_wr_en_o(chn_tmpltcfg_wr_en_o),
