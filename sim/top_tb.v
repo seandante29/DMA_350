@@ -427,7 +427,7 @@ top_mod #(
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h100C;
-    PWDATA  = 32'h0E021402;
+    PWDATA  = 32'h0E0E1402;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
@@ -485,10 +485,12 @@ RDATA_I = 'hABC0;
 RDATA_I = 'hABC1;
 #10
 RDATA_I = 'hABC2;
-
+RLAST = 'b1;
+#10 RLAST = 'b0;RVALID = 'b0;
 
       ARREADY = 'b1;
 #30 ARREADY = 'b0;
+RVALID = 'b1;
 RDATA_I = 'hABC3;
 #10
 RDATA_I = 'hABC4;
