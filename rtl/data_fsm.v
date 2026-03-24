@@ -140,7 +140,7 @@ module data_fsm #(
 );
     reg [31:0]                        initial_tmplt_addr_src,initial_tmplt_addr_des;
 
-
+    reg [15:0] restart_cnt_reg;
     wire       ERROR;
     wire [31:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
     reg [4:0] count_src_tmplt;//
@@ -180,7 +180,8 @@ module data_fsm #(
     reg [4:0] wr_pause_state_q;
     reg [4:0] rd_pause_state_q;
    
-    reg src_xsize_reload,des_xsize_reload;
+    reg DONE_temp;
+    reg [15:0]src_xsize_reload,des_xsize_reload;
     reg [31:0] src_addr_reload,des_addr_reload;
     
     assign config_error = config_error_size | config_error_src | config_error_des | config_error_trigout | 
@@ -287,7 +288,8 @@ module data_fsm #(
             else if (case6 && x_type == 1) begin
                 XSIZE_UPDATED <= {des_left + (desxsize_reg - srcxsize_reg), src_left};
             end
-            
+            else if((cmd_restart_en || restart_cnt_reg != 0) && (src_left == 0 && DONE_temp) && (reg_reload_type != 0))
+                 XSIZE_UPDATED <= {des_xsize_reload,src_xsize_reload};
             else begin
                 XSIZE_UPDATED <= {des_left, src_left};
             end 
@@ -458,20 +460,26 @@ module data_fsm #(
                             rd_next_st = RD_AR;
                         else if (( fill_count > 1) && ( (x_type == 3) && (case6  || case2)))
                             rd_next_st = RD_WRAP_FILL;
-                        else if((cmd_restart_en || cmd_restart_cnt != 0) && (src_left == 0))
-                            rd_next_st = RD_CONFIG; 
+                       
+                            
+                         else if((cmd_restart_en || restart_cnt_reg != 0))
+                          rd_next_st = RD_R; 
                          else
                         rd_next_st = RD_IDLE;    
                             
-                            end
-                            
+                            end   
+                    else if((cmd_restart_en || restart_cnt_reg != 0))begin
+                            rd_next_st = RD_R;
+                            if((src_left == 0 && DONE_temp))
+                                rd_next_st = RD_CONFIG; 
+                            end   
                     else
                         rd_next_st = RD_R;
                         
                 RD_WRAP_FILL:
                     if (src_left == 0 && fill_count == 0)
                         rd_next_st = RD_IDLE;
-                    else if((cmd_restart_en || cmd_restart_cnt != 0) && (src_left == 0))
+                    else if((cmd_restart_en || restart_cnt_reg != 0) && (src_left == 0))
                             rd_next_st = RD_CONFIG; 
                     else
                         rd_next_st = RD_WRAP_FILL;
@@ -569,6 +577,7 @@ module data_fsm #(
             reg1 <= 0;
             m <= 0;
             reg2 <= 0;
+            restart_cnt_reg <= 0;
             for(j=0; j<32; j=j+1) begin
                 fifo_mem[j] <= 'd0;
             end
@@ -615,10 +624,11 @@ module data_fsm #(
                     desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
                     src_addr_reg <= SRC_ADDR;
                     des_addr_reg <= des_ADDR;
-                   src_xsize_reload <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
-                   des_xsize_reload <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+                   src_xsize_reload <= srcxsize;//(src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
+                   des_xsize_reload <= desxsize;//(des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
                    src_addr_reload <= SRC_ADDR;
                    des_addr_reload <= des_ADDR;
+                   restart_cnt_reg <= cmd_restart_cnt;
 //                    if(reg2) begin
 //                        case1 <= (srcxsize == 0 && desxsize == 0);
 //                        case2 <= (srcxsize == 0 && desxsize > 0);
@@ -636,7 +646,7 @@ module data_fsm #(
 //                   des_xsize_reload <= desxsize_reg;
 //                   src_addr_reload <= src_addr_reg;
 //                   des_addr_reload <= des_addr_reg;
-                   if(cmd_restart_en || cmd_restart_cnt != 0)
+                   if((cmd_restart_en || cmd_restart_cnt != 0) && src_left == 0)
                         if(reg_reload_type == 0)begin
                         srcxsize_reg <= 0;
                         desxsize_reg <= 0;
@@ -805,11 +815,15 @@ module data_fsm #(
         
 
                 RD_R: begin
+                if(src_left == 0 && DONE_temp)
+                                restart_cnt_reg <= restart_cnt_reg - 1;
                     if (full)
                         RREADY <= 0;
                     else
                         RREADY <= 1;
                     if (RVALID && RREADY && RLAST) begin
+//                            if(src_left == 0)
+//                                restart_cnt_reg <= restart_cnt_reg - 1;
                             src_xsize_remaining <= src_xsize_remaining - (ARLEN + 1);
                             if(src_tmplt_size != 0) begin
                                  m <= m + 1;
@@ -836,8 +850,10 @@ module data_fsm #(
                     end
                     
                 RD_WRAP_FILL: begin
+                     if(src_left == 0)
+                                restart_cnt_reg <= restart_cnt_reg - 1;
                     case (x_type)
-                        2: begin
+                        2: begin                         
                             if ((!(desxsize - src_left < srcxsize)) && src_left > 0) begin
                                 fifo_mem[fifo_wptr[4:0]] <= RDATA;
                                // wrap_rd_ptr         <= (wrap_rd_ptr == srcxsize[7:0]) ? 0 : wrap_rd_ptr + 1;
@@ -884,6 +900,7 @@ always @(posedge clk or negedge resetn) begin
            WDATA <= 0;
            AWID <= 0;
            AWSIZE <= 0;
+           DONE_temp <= 0;
            AWBURST <= 0;
            bus_error_w <= 'd0;
     end 
@@ -903,6 +920,8 @@ always @(posedge clk or negedge resetn) begin
                // wr_pause_state <= (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state; 
             case (wr_state)
                 W_IDLE: begin
+                
+
                // AWADDR <= des_addr_reg;
                      initial_tmplt_addr_des <= des_ADDR;
                     des_xsize_remaining <= (des_trigin_blk_size > desxsize_reg)? desxsize_reg : des_trigin_blk_size;
@@ -1017,7 +1036,8 @@ always @(posedge clk or negedge resetn) begin
                 end
                 
                 W_DONE_ST: begin
-                    DONE <= 1;
+                    DONE <= (restart_cnt_reg !=0 || cmd_restart_en)? 0 : 1;
+                    DONE_temp <= 1;
                     //STAT_DONE_DATA <= !link_en ? 1 : 0;
                 end
             endcase
