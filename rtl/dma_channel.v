@@ -1,6 +1,10 @@
 module dma_channel
 #(parameter WIDTH = 32,
-    parameter DATA_W = 128 )
+  parameter ADDR_W = 32,
+    parameter DATA_W = 128,
+     parameter ID_W   = 4,
+     parameter DEPTH = 145
+      )
 (
     input wire clk,resetn,                 
     // reg bank signals
@@ -74,6 +78,7 @@ module dma_channel
      
      input wire WREADY,
      input wire AWREADY,
+     input wire [ID_W-1:0] BID,
      input wire BVALID,
      input wire [1:0] BRESP,
      
@@ -275,7 +280,7 @@ wire cmd_done_stop;
 
 
 
-    internal_reg  #(.WIDTH (32),.DEPTH ( 145)) dut0
+    internal_reg  #(.WIDTH (WIDTH),.DEPTH ( DEPTH)) dut0
   (
   .clk(clk),
   .resetn(resetn),
@@ -529,7 +534,7 @@ wire cmd_done_stop;
         .mux_out_reg(mux_logic_in)
        );               
       
-    data_fsm dut4(
+    data_fsm #(.ADDR_W(ADDR_W),.DATA_W(DATA_W), .ID_W(ID_W)) dut4(
     .clk(clk),
     .resetn(resetn),
     .SRCADDR_UPDATED(SRCADDR_UPDATED),
@@ -620,6 +625,7 @@ wire cmd_done_stop;
     .WVALID(WVALID_D),
     .WDATA(WDATA_D),
     .WLAST(WLAST_D),
+    .BID(BID),
     .BVALID(BVALID),
     .BRESP(BRESP),
     .BREADY(BREADY_D),
