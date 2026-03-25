@@ -3,9 +3,13 @@ module trigger_matrix (
     input STAT_ERR,
     // External Trigger INPUTS (from peripherals)
     input  wire        trig0_req,
+    input  wire [1:0]  trig0_req_type,
     output reg         trig0_ack,
+    output reg  [1:0]  trig0_ack_type,
     input  wire        trig1_req,
+    input  wire [1:0]  trig1_req_type,
     output reg         trig1_ack,
+    output reg  [1:0]  trig1_ack_type,
     // External Trigger OUTPUTS (to peripherals)
     output reg         trig0_out_req,
     input  wire        trig0_out_ack,
@@ -25,10 +29,14 @@ module trigger_matrix (
     input  wire [5:0]  trigout_sel,        // 0 = trig0, 1 = trig1
     // To DMA Channel (REQ view)
     output reg         src_trig_req,
+    output reg  [1:0]  src_trig_req_type,
     output reg         des_trig_req,
+    output reg  [1:0]  des_trig_req_type,
     // From DMA Channel (ACK decisions)
     input  wire        ch_src_ack,
+    input  wire [1:0]  ch_src_ack_type,
     input  wire        ch_des_ack,
+    input  wire [1:0]  ch_des_ack_type,
     // From DMA Channel (Trigger OUT request)
     input  wire        ch_trigout_req,
     // To DMA Channel (Trigger OUT ACK)
@@ -38,9 +46,13 @@ module trigger_matrix (
 
     always @(*) begin
         src_trig_req      = 1'b0;
+        src_trig_req_type = 2'b00;
         des_trig_req      = 1'b0;
+        des_trig_req_type = 2'b00;
         trig0_ack         = 1'b0;
+        trig0_ack_type    = 2'b00;
         trig1_ack         = 1'b0;
+        trig1_ack_type    = 2'b00;
         trig0_out_req     = 1'b0;
         trig1_out_req     = 1'b0;
         ch_trigout_ack      = 1'b0;
@@ -75,11 +87,15 @@ module trigger_matrix (
         if (use_src_trigin && src_trigin_type == 2'b10 && !SRCTRIGINSELERR) begin
             if (src_trigin_sel == 'b0) begin
                 src_trig_req      = trig0_req;
+                src_trig_req_type = trig0_req_type;
                 trig0_ack         = ch_src_ack;
+                src_trig_req_type = trig0_req_type;
             end
             else if (src_trigin_sel == 'b1) begin
                 src_trig_req      = trig1_req;
+                src_trig_req_type = trig1_req_type;
                 trig1_ack         = ch_src_ack;
+                trig1_ack_type    = ch_src_ack_type;
             end
         end
         
@@ -87,11 +103,15 @@ module trigger_matrix (
         if (use_des_trigin && des_trigin_type == 2'b10 && !DESTRIGINSELERR) begin
             if (des_trigin_sel == 'b0) begin
                 des_trig_req      = trig0_req;
+                des_trig_req_type = trig0_req_type;
                 trig0_ack         = ch_des_ack;
+                trig0_ack_type    = ch_des_ack_type;
             end
             else if (des_trigin_sel == 'b1) begin
                 des_trig_req      = trig1_req;
+                des_trig_req_type = trig1_req_type;
                 trig1_ack         = ch_des_ack;
+                trig1_ack_type    = ch_des_ack_type;
             end
         end
         // TRIGGER OUT routing (DMA → Peripheral)
