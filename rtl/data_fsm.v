@@ -88,7 +88,7 @@ module data_fsm #(
     output reg  [ID_W-1:0]      ARID,
     output reg  [3:0]           ARLEN,
     
-    input  wire [3:0]           RID,
+    input  wire [ID_W-1:0]           RID,
     input  wire                 RVALID,
     input  wire [31:0]         RDATA,
     input  wire [1:0]           RRESP,
@@ -104,11 +104,12 @@ module data_fsm #(
     output reg  [ID_W-1:0]      AWID,
     output reg  [3:0]           AWLEN,
     
-    input  wire                 WREADY,
+    input  wire                WREADY,
     output reg                 WVALID,
     output reg  [31:0]         WDATA,
     output reg                 WLAST,
     
+    input wire [ID_W-1:0]       BID,
     input  wire                 BVALID,
     input  wire [1:0]           BRESP,
     output reg                  BREADY,
@@ -353,8 +354,8 @@ module data_fsm #(
                 STOPCMD_DATA <= 0;
             end
             if(wr_state == W_DONE_ST)
-            STAT_DONE_DATA <= !link_en ? 1 : 0;
-            else
+    STAT_DONE_DATA <= !(link_en || cmd_restart_en || restart_cnt_reg >0 ) ? 1 : 0;
+                else
             STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA : 0;
         end
     end
@@ -471,7 +472,7 @@ module data_fsm #(
                     else if((cmd_restart_en || restart_cnt_reg != 0))begin
                             rd_next_st = RD_R;
                             if((src_left == 0 && DONE_temp))
-                                rd_next_st = RD_CONFIG; 
+                                rd_next_st = RD_WAIT; 
                             end   
                     else
                         rd_next_st = RD_R;
@@ -480,7 +481,7 @@ module data_fsm #(
                     if (src_left == 0 && fill_count == 0)
                         rd_next_st = RD_IDLE;
                     else if((cmd_restart_en || restart_cnt_reg != 0) && (src_left == 0))
-                            rd_next_st = RD_CONFIG; 
+                            rd_next_st = RD_WAIT; 
                     else
                         rd_next_st = RD_WRAP_FILL;
                 
@@ -582,6 +583,7 @@ module data_fsm #(
                 fifo_mem[j] <= 'd0;
             end
         end else begin
+         wr_start <= 'd0;
             ARVALID      <= 0;
             RREADY       <= 0;
             src_trigack  <= 0;
@@ -622,13 +624,18 @@ module data_fsm #(
                     reg2 <= reg1;
                     srcxsize_reg <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
                     desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+                   if((restart_cnt_reg > 0 || cmd_restart_en)&& !DONE_temp)begin
                     src_addr_reg <= SRC_ADDR;
                     des_addr_reg <= des_ADDR;
+                    end
                    src_xsize_reload <= srcxsize;//(src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
                    des_xsize_reload <= desxsize;//(des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
-                   src_addr_reload <= SRC_ADDR;
-                   des_addr_reload <= des_ADDR;
-                   restart_cnt_reg <= cmd_restart_cnt;
+                 //  src_addr_reload <= (restart_cnt_reg == 0)?SRC_ADDR:src_addr_reload;
+                 
+                   src_addr_reload <= SRCADDR_INITIAL;
+                   des_addr_reload <= DESADDR_INITIAL;
+                   
+                   restart_cnt_reg <= (DONE_temp)? (restart_cnt_reg ): cmd_restart_cnt ;
 //                    if(reg2) begin
 //                        case1 <= (srcxsize == 0 && desxsize == 0);
 //                        case2 <= (srcxsize == 0 && desxsize > 0);
@@ -646,7 +653,7 @@ module data_fsm #(
 //                   des_xsize_reload <= desxsize_reg;
 //                   src_addr_reload <= src_addr_reg;
 //                   des_addr_reload <= des_addr_reg;
-                   if((cmd_restart_en || cmd_restart_cnt != 0) && src_left == 0)
+                   if((cmd_restart_en || restart_cnt_reg != 0) && src_left == 0)
                         if(reg_reload_type == 0)begin
                         srcxsize_reg <= 0;
                         desxsize_reg <= 0;
@@ -724,7 +731,10 @@ module data_fsm #(
                     end else if (case3)
                         config_error_case3 <= 1;
                     else if (case4 || case5) begin
-                        src_left <= (src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size;
+                        /*if((cmd_restart_en || cmd_restart_cnt != 0))
+                            src_left <= (src_trigin_blk_size > src_xsize_reload)?src_xsize_reload:src_trigin_blk_size;
+                        else*/
+                            src_left <= (src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size;
                     end else if (case6) begin
                         case (x_type)
                             0: begin src_left <= 0; end
