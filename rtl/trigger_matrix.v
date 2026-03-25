@@ -89,7 +89,7 @@ module trigger_matrix (
                 src_trig_req      = trig0_req;
                 src_trig_req_type = trig0_req_type;
                 trig0_ack         = ch_src_ack;
-                src_trig_req_type = trig0_req_type;
+                trig0_ack_type    = ch_src_ack_type;
             end
             else if (src_trigin_sel == 'b1) begin
                 src_trig_req      = trig1_req;
