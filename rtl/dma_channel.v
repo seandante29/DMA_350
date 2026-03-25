@@ -455,7 +455,7 @@ wire cmd_done_stop;
       .cmd_done_1(cmd_done_1)
       );
       
-      mux_logic  #(.WIDTH (WIDTH))
+      mux_logic  #(.WIDTH (32))
       dut3  (.cmd_data(RDATA_O),
        .clk(clk),
        .resetn(resetn),
