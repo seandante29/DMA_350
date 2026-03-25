@@ -163,6 +163,7 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign CH_TMPLTCFG_O = intr_mem[64];
  assign CH_SRCTRIGINCFG_O = intr_mem [76];
  assign CH_DESTRIGINCFG_O = intr_mem [80];
+ assign CH_AUTOCFG_O = intr_mem [116];
  assign CH_TRIGOUTCFG_O = intr_mem [84];
  assign CH_LINKADDR_O = intr_mem [120];
 
@@ -238,3 +239,4 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  end
    
 endmodule 
+ 
