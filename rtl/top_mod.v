@@ -23,7 +23,10 @@ module top_mod#(
     parameter DATA_W = 128,
     parameter DATA_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
-    parameter STRB_WIDTH =  DATA_WIDTH/8
+    parameter STRB_WIDTH =  DATA_WIDTH/8,
+    parameter ID_W       =4,
+    parameter DEPTH =145,
+    parameter ADDR_W =32  
 )
     (// apb_reg interface
       input wire clk,
@@ -81,6 +84,7 @@ module top_mod#(
      
      input wire WREADY,
      input wire AWREADY,
+     input wire [ID_W-1 : 0] BID,
      input wire BVALID,
      input wire [1:0] BRESP,
  
@@ -189,7 +193,10 @@ wire [31:0] cfg_WRKREGPTR;
     
     dma_channel #(
     .WIDTH(WIDTH),
-    .DATA_W(DATA_W)
+    .DATA_W(DATA_W),
+    .ID_W(ID_W),
+    .DEPTH(DEPTH),
+    .ADDR_W(ADDR_W)
 ) dut0 (
     // Clock and Reset
     .clk                (clk),
@@ -286,6 +293,7 @@ wire [31:0] cfg_WRKREGPTR;
     .WLAST_D            (WLAST_D),
     .WREADY             (WREADY),
     
+    .BID                (BID),
     .BVALID             (BVALID),
     .BRESP              (BRESP),
     .BREADY_D           (BREADY_D),
@@ -329,13 +337,13 @@ wire [31:0] cfg_WRKREGPTR;
         trigger_matrix dut1(
     .STAT_ERR(stat_err),
     .trig0_req(trig0_req),
-    .trig0_req_type(trig0_req_type),
+    //.trig0_req_type(trig0_req_type),
     .trig0_ack(trig0_ack),
-    .trig0_ack_type(trig0_ack_type),
+   // .trig0_ack_type(trig0_ack_type),
     .trig1_req(trig1_req),
-    .trig1_req_type(trig1_req_type),
+    //.trig1_req_type(trig1_req_type),
     .trig1_ack(trig1_ack),
-    .trig1_ack_type(trig1_ack_type),
+  //  .trig1_ack_type(trig1_ack_type),
     .trig0_out_req(trig0_out_req),
     .trig0_out_ack(trig0_out_ack),
     .trig1_out_req(trig1_out_req),
@@ -356,9 +364,9 @@ wire [31:0] cfg_WRKREGPTR;
     .des_trig_req(des_trig_req),
     .des_trig_req_type(des_trig_req_type),
     .ch_src_ack(ch_src_ack), 
-    .ch_src_ack_type(ch_src_ack_type),
+   // .ch_src_ack_type(ch_src_ack_type),
     .ch_des_ack(ch_des_ack),
-    .ch_des_ack_type(ch_des_ack_type),
+   // .ch_des_ack_type(ch_des_ack_type),
     .ch_trigout_req(ch_trigout_req),
     .ch_trigout_ack(ch_trigout_ack),
     .SRCTRIGINSELERR(SRCTRIGINSELERR), 
@@ -369,7 +377,8 @@ wire [31:0] cfg_WRKREGPTR;
      apb_reg #(.DATA_WIDTH (DATA_WIDTH),
         .ADDR_WIDTH (ADDR_WIDTH),
          .STRB_WIDTH (STRB_WIDTH),
-         .WIDTH (WIDTH))
+         .WIDTH (WIDTH),
+         .DEPTH(DEPTH))
      dut2 (
     .clk        (clk),
     .resetn     (resetn),
