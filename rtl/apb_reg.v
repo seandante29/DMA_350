@@ -20,9 +20,10 @@
 /////////////////////////////////////////////
 
 module apb_reg #(parameter DATA_WIDTH = 32,
-         ADDR_WIDTH = 32,
-         STRB_WIDTH =  DATA_WIDTH/8,
-         WIDTH = 32)
+        parameter ADDR_WIDTH = 32,
+       parameter  STRB_WIDTH =  DATA_WIDTH/8,
+       parameter   WIDTH = 32,
+       parameter   DEPTH =145)
      (
      //APB signals
       input wire clk,
@@ -76,7 +77,9 @@ module apb_reg #(parameter DATA_WIDTH = 32,
       wire [DATA_WIDTH-1 : 0] cfg_data_out;
       
       
-      apb_slave dut0
+      apb_slave #(.DATA_WIDTH(DATA_WIDTH),
+                  .ADDR_WIDTH(ADDR_WIDTH),
+                  .STRB_WIDTH(STRB_WIDTH)) dut0
       (.PCLK(PCLK),
        .PRESETn(PRESETn),
        .PADDR(PADDR),
@@ -94,7 +97,9 @@ module apb_reg #(parameter DATA_WIDTH = 32,
        .cfg_wr_en(cfg_wr_en),
        .cfg_rd_en(cfg_rd_en));
        
-       register_bank dut1
+       register_bank #(.DEPTH(DEPTH),
+       .WIDTH(WIDTH)
+                )dut1
          (.clk(clk),
          .resetn(resetn),
          .cfg_rd_en(cfg_rd_en),
