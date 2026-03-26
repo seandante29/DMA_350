@@ -25,9 +25,9 @@ module dma_channel
     input wire [WIDTH-1 : 0] cfg_CH_AUTOCFG,
     input wire [WIDTH-1 : 0] cfg_LINKADDR,
     input wire [WIDTH-1 : 0] cfg_WRKREGPTR,
-     input wire [31:0] cfg_CH_SRCTMPLT,
-      input wire [31:0] cfg_CH_DESTMPLT,
-      input wire [31:0] cfg_CH_TMPLTCFG,
+     input wire [WIDTH-1 : 0] cfg_CH_SRCTMPLT,
+      input wire [WIDTH-1 : 0] cfg_CH_DESTMPLT,
+      input wire [WIDTH-1 : 0] cfg_CH_TMPLTCFG,
     
 //        input wire [1:0] des_trig_req_type,
 //        input wire [1:0] src_trig_req_type,
@@ -63,7 +63,7 @@ module dma_channel
     output  wire IRQ,
     //cmd fsm signal
      input wire ARREADY,
-     input wire RID,
+     input wire [ID_W-1:0] RID,
      input wire [DATA_W-1 : 0]RDATA_I,
      input wire [1:0]RRESP,
      input wire RLAST,
@@ -81,7 +81,7 @@ module dma_channel
      input wire [ID_W-1:0] BID,
      input wire BVALID,
      input wire [1:0] BRESP,
-     
+     input wire stop_cmd_apb,
      //trig matrix o/p's as i/p's to channel
      input wire SRCTRIGINSELERR, DESTRIGINSELERR, TRIGOUTSELERR,
      input wire src_trig_req,
@@ -105,12 +105,12 @@ module dma_channel
      
      
      // to sys mem
-      output wire [3:0] ARID,
-      output wire [3:0] ARLEN,
+      output wire [ID_W -1:0] ARID,
+      output wire [7:0] ARLEN,
       output wire[2:0] ARSIZE,
       output wire [1:0] ARBURST,
       output wire ARVALID,
-      output wire [31:0]ARADDR,
+      output wire [ADDR_W-1 : 0]ARADDR,
       output wire RREADY,      
       
 //      output wire [3:0] ARID_D,
@@ -121,18 +121,19 @@ module dma_channel
 //      output wire [31:0]ARADDR_D,
 //      output wire RREADY_D ,
       
-      output wire [3:0] AWID_D,
-      output wire [3:0] AWLEN_D,
+      output wire [ID_W -1:0] AWID_D,
+      output wire [7:0] AWLEN_D,
       output wire[2:0] AWSIZE_D,
       output wire [1:0] AWBURST_D,
       output wire AWVALID_D,
-      output wire [31:0]AWADDR_D,
+      output wire [ADDR_W-1:0]AWADDR_D,
       output wire WVALID_D,
       output wire [DATA_W -1 :0] WDATA_D,
       output wire WLAST_D,
       output wire BREADY_D,
-
-    output wire [1:0]  src_trigin_type,
+      output wire [3:0] AWQOS,
+      output wire [3:0] ARQOS,
+      output wire [1:0]  src_trigin_type,
         output wire [7:0]  src_trigin_sel,
         output wire [1:0]  des_trigin_type,
         output wire [7:0]  des_trigin_sel,
@@ -142,525 +143,547 @@ module dma_channel
     output wire        use_des_trigin,
     output wire        use_src_trigin,
      output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
-     output wire [WIDTH -1:0]wrkregval_rd   
-      
-                       
+     output wire [WIDTH -1:0]wrkregval_rd,
+    output wire [(DATA_W/8)-1:0] WSTRB,
+    output   wire [WIDTH -1:0] SRCADDR_UPDATED,
+    output wire [WIDTH -1:0]  DESADDR_UPDATED,
+   output wire [WIDTH -1:0]  XSIZE_UPDATED,
+   output wire enable_cmd_to_apb     
+                      
 );
 
-    wire [3:0] src_max_burst_len;
-    wire [3:0] des_max_burst_len;
-   wire [4:0] des_tmplt_size;
-    wire [4:0] src_tmplt_size;
-   wire [31:0] des_tmplt;
-    wire [31:0] src_tmplt;
-      wire [7:0]des_trigin_blk_size;
-    wire [7:0]src_trigin_blk_size;
-
-    
-wire [31:0] SRCADDR_INITIAL;
-wire [31:0] DESADDR_INITIAL;
-wire [31:0] SRCXSIZE_INITIAL;
-wire [31:0] DESXSIZE_INITIAL;
-wire cmd_done_1;
-wire [(WIDTH * 19) -1:0]  mux_logic_in;
-
-// wires to part select
-
- wire [31:0] CH_CTRL_O;
- wire [31:0] CH_INTREN_O;
- wire [31:0] CH_XSIZE_O;
- wire [31:0] CH_LINKADDR_O;
- wire [31:0] CH_CMD_O;
- wire [31:0] CH_STATUS_O;
- wire [31:0] CH_XADDRINC_O;
- wire [31:0] CH_SRCTRANSCFG_O;
- wire [31:0] CH_DESTRANSCFG_O;
- wire [31:0] CH_SRCTRIGINCFG_O;
- wire [31:0] CH_DESTRIGINCFG_O;
- wire [31:0] CH_TRIGOUTCFG_O;
- wire [31:0] CH_SRCADDR_O;
- wire [31:0] CH_DESADDR_O;
- wire [31:0] CH_FILLVAL_O;
- wire [31:0] CH_DESTMPLT_O;
- wire [31:0] CH_SRCTMPLT_O;
- wire [31:0] CH_TMPLTCFG_O;
- wire [31:0] CH_AUTOCFG_O;
- 
- wire cmd_restart_en;
- wire [15:0] cmd_restart_cnt;
- wire [2:0] reg_reload_type;
- wire [2:0] done_type;
- ///
-    wire [31:0] SRCADDR_UPDATED;
-    wire [31:0]  DESADDR_UPDATED;
-    wire [31:0]  XSIZE_UPDATED;
-    wire  wr_en_for_updated;
- //wires to data fsm
- 
-//wire use_trigout;
-//wire use_des_trigin;
-//wire use_src_trigin;
-wire [2:0] x_type;
-wire [2:0] transize;
-wire [15:0] srcxsize;
-wire [15:0] desxsize;
-wire [31:0] linkaddr;
-wire linkaddren;
-wire stop_cmd;
-wire enable_cmd;
-wire disable_cmd;
-wire pause_cmd;
-wire resume_cmd;
-wire src_trigin_sw;
-wire [1:0]  src_trigin_sw_req_type;
-wire des_trigin_sw;
-wire [1:0] des_trigin_sw_req_type;
-wire trigout_ack_sw;
-wire [1:0] src_trigin_mode;
-//wire [1:0] src_trigin_type;
-//wire [7:0] src_trigin_sel;
-wire [1:0] des_trigin_mode;
-//wire [1:0] des_trigin_type;
-//wire [7:0] des_trigin_sel;
-//wire [1:0] trigout_type;
-//wire [5:0] trigout_sel;
-wire [31:0] src_addr;
-wire [31:0] des_addr;
-wire [31:0] fillval;
-wire [15:0] src_xaddr_inc;
-wire [15:0] des_xaddr_inc;
-wire stat_done;
-//wire stat_err; // made it as in output wire for trig matrix
-wire DONE;
-wire wr_en;
-
-// wires to internal reg from data fsm( stat and cmd)
-  wire STAT_TRIGOUTACKWAIT_DATA;
-  wire STAT_DESTRIGINWAIT_DATA;
-  wire STAT_SRCTRIGINWAIT_DATA;
-  wire STAT_RESUMEWAIT_DATA;
-  wire STAT_STOPPED_DATA;
-  wire STAT_PAUSED_DATA;
-  wire STAT_DISABLED_DATA;
-  wire STAT_DONE_DATA;
- 
-  wire ENABLECMD_DATA;
-  wire DISABLECMD_DATA;
-  wire STOPCMD_DATA;
+	wire [3:0] src_max_burst_len;
+	wire [3:0] des_max_burst_len;
+	wire [4:0] des_tmplt_size;
+	wire [4:0] src_tmplt_size;
+	wire [31:0] des_tmplt;
+	wire [31:0] src_tmplt;
+	wire [7:0]des_trigin_blk_size;
+	wire [7:0]src_trigin_blk_size;
 
 
-// wires to cmd fsm
-  //  wire [31:0]LINKADDR;
- // wire data_done;
-   wire [31:0] RDATA_O;
-   wire [31:0] LINK_HEADER;
-   wire [5:0] wptr;
-   wire LINKHDERR;
-   wire CMD_DONE,STAT_CMD_DONE; //done signal to data fsm
-   wire AXIRDRESPERR;//address out of range error
-   wire AXIRDPOISERR;//corrupted data error
-   wire BUSERR;//any axi error assterts this
-    
-    //wires to trig mtx
-    
-    wire [1:0] des_trigin_ack_type;
-    wire [1:0] src_trigin_ack_type;
-    wire trig_out_req;
-    wire des_trigack;
-    wire src_trigack;
-    wire stat_done_intr_reg ,stat_disable_intr_reg,stat_stopped_intr_reg ,stat_err_intr_reg ;
-assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o  || 
-                        chn_srcaddr_wr_en_o || chn_desaddr_wr_en_o || chn_xsize_wr_en_o 
-                        || chn_srctrans_wr_en_o || chn_destrans_wr_en_o || chn_xaddrinc_wr_en_o || 
-                        chn_fillval_wr_en_o || chn_srctrigin_wr_en_o || chn_destrigin_wr_en_o || 
-                        chn_trigout_wr_en_o || chn_linkaddr_wr_en_o || chn_autocfg_wr_en_o || chn_srctmplt_wr_en_o || chn_destmplt_wr_en_o || chn_tmpltcfg_wr_en_o;
+	wire [31:0] SRCADDR_INITIAL;
+	wire [31:0] DESADDR_INITIAL;
+	wire [31:0] SRCXSIZE_INITIAL;
+	wire [31:0] DESXSIZE_INITIAL;
+	wire cmd_done_1;
+	wire [(WIDTH * 19) -1:0]  mux_logic_in;
 
-wire cmd_done_stop;
+	// wires to part select
+
+	wire [31:0] CH_CTRL_O;
+	wire [31:0] CH_INTREN_O;
+	wire [31:0] CH_XSIZE_O;
+	wire [31:0] CH_LINKADDR_O;
+	wire [31:0] CH_CMD_O;
+	wire [31:0] CH_STATUS_O;
+	wire [31:0] CH_XADDRINC_O;
+	wire [31:0] CH_SRCTRANSCFG_O;
+	wire [31:0] CH_DESTRANSCFG_O;
+	wire [31:0] CH_SRCTRIGINCFG_O;
+	wire [31:0] CH_DESTRIGINCFG_O;
+	wire [31:0] CH_TRIGOUTCFG_O;
+	wire [31:0] CH_SRCADDR_O;
+	wire [31:0] CH_DESADDR_O;
+	wire [31:0] CH_FILLVAL_O;
+	wire [31:0] CH_DESTMPLT_O;
+	wire [31:0] CH_SRCTMPLT_O;
+	wire [31:0] CH_TMPLTCFG_O;
+	wire [31:0] CH_AUTOCFG_O;
+
+	wire cmd_restart_en;
+	wire [15:0] cmd_restart_cnt;
+	wire [2:0] reg_reload_type;
+	wire [2:0] done_type;
+	
+	wire  wr_en_for_updated;
+	//wires to data fsm
+
+	//wire use_trigout;
+	//wire use_des_trigin;
+	//wire use_src_trigin;
+	wire [2:0] x_type;
+	wire [2:0] transize;
+	wire [15:0] srcxsize;
+	wire [15:0] desxsize;
+	wire [31:0] linkaddr;
+	wire linkaddren;
+	wire stop_cmd;
+	wire enable_cmd;
+	wire disable_cmd;
+	wire pause_cmd;
+	wire resume_cmd;
+	wire src_trigin_sw;
+	wire [1:0]  src_trigin_sw_req_type;
+	wire des_trigin_sw;
+	wire [1:0] des_trigin_sw_req_type;
+	wire trigout_ack_sw;
+	wire [1:0] src_trigin_mode;
+	//wire [1:0] src_trigin_type;
+	//wire [7:0] src_trigin_sel;
+	wire [1:0] des_trigin_mode;
+	//wire [1:0] des_trigin_type;
+	//wire [7:0] des_trigin_sel;
+	//wire [1:0] trigout_type;
+	//wire [5:0] trigout_sel;
+	wire [31:0] src_addr;
+	wire [31:0] des_addr;
+	wire [31:0] fillval;
+	wire [15:0] src_xaddr_inc;
+	wire [15:0] des_xaddr_inc;
+	wire stat_done;
+	//wire stat_err; // made it as in output wire for trig matrix
+	wire DONE;
+	wire wr_en;
+
+	// wires to internal reg from data fsm( stat and cmd)
+	wire STAT_TRIGOUTACKWAIT_DATA;
+	wire STAT_DESTRIGINWAIT_DATA;
+	wire STAT_SRCTRIGINWAIT_DATA;
+	wire STAT_RESUMEWAIT_DATA;
+	wire STAT_STOPPED_DATA;
+	wire STAT_PAUSED_DATA;
+	wire STAT_DISABLED_DATA;
+	wire STAT_DONE_DATA;
+
+	wire ENABLECMD_DATA;
+	wire DISABLECMD_DATA;
+	wire STOPCMD_DATA;
+
+
+	// wires to cmd fsm
+	//  wire [31:0]LINKADDR;
+	// wire data_done;
+	wire [31:0] RDATA_O;
+	wire [31:0] LINK_HEADER;
+	wire [5:0] wptr;
+	wire LINKHDERR;
+	wire CMD_DONE,STAT_CMD_DONE; //done signal to data fsm
+	wire AXIRDRESPERR;//address out of range error
+	wire AXIRDPOISERR;//corrupted data error
+	wire BUSERR;//any axi error assterts this
+
+	//wires to trig mtx
+
+	wire [1:0] des_trigin_ack_type;
+	wire [1:0] src_trigin_ack_type;
+	wire trig_out_req;
+	wire des_trigack;
+	wire src_trigack;
+	wire stat_done_intr_reg ,stat_disable_intr_reg,stat_stopped_intr_reg ,stat_err_intr_reg ;
+	assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o  || 
+				chn_srcaddr_wr_en_o || chn_desaddr_wr_en_o || chn_xsize_wr_en_o 
+				|| chn_srctrans_wr_en_o || chn_destrans_wr_en_o || chn_xaddrinc_wr_en_o || 
+				chn_fillval_wr_en_o || chn_srctrigin_wr_en_o || chn_destrigin_wr_en_o || 
+				chn_trigout_wr_en_o || chn_linkaddr_wr_en_o || chn_autocfg_wr_en_o || chn_srctmplt_wr_en_o || chn_destmplt_wr_en_o || chn_tmpltcfg_wr_en_o;
+
+
+	wire [3:0] ARID_D;
+	wire [7:0] ARLEN_D;
+	wire[2:0] ARSIZE_D;
+	wire [1:0] ARBURST_D;
+	wire ARVALID_D;
+	wire [31:0]ARADDR_D;
+	wire RREADY_D ;
+	wire [3:0] ARQOS_D;
+
+	wire [3:0] ARID_CMD;
+	wire [7:0] ARLEN_CMD;
+	wire[2:0] ARSIZE_CMD;
+	wire [1:0] ARBURST_CMD;
+	wire ARVALID_CMD;
+	wire [31:0]ARADDR_CMD;
+	wire RREADY_CMD ;
+	wire [3:0] ARQOS_CMD;
+
+	wire [54 : 0] AR_D   = {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D,ARQOS_D};
+	wire [54 : 0] AR_CMD = {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD,ARQOS_CMD};
+	assign {ARVALID, ARADDR, ARSIZE, ARBURST, ARID, ARLEN,RREADY,ARQOS} = CMD_DONE?AR_D:AR_CMD;
+	assign enable_cmd_to_apb = enable_cmd;
 
 
 
 
-    internal_reg  #(.WIDTH (WIDTH),.DEPTH ( DEPTH)) dut0
-  (
-  .clk(clk),
-  .resetn(resetn),
-  .boot_addr(boot_addr),
-  .boot_en(boot_en),
-  .data_in(mux_logic_in),
-  .STAT_CMD_DONE(CMD_DONE),
-  .SRCADDR_UPDATED(SRCADDR_UPDATED),
-  .DESADDR_UPDATED(DESADDR_UPDATED),
-  .XSIZE_UPDATED(XSIZE_UPDATED),
-  .wr_en_for_updated(wr_en_for_updated),
-  .AXIRDRESPERR(AXIRDRESPERR),
-  .AXIRDPOISERR(AXIRDPOISERR),
-  .AXIWRRESPERR(AXIWRRESPERR),
-  .BUSERR(BUSERR),
-  .config_error(config_error),
-  .regval_error(regval_error),
-  .SRCTRIGINSELERR(SRCTRIGINSELERR),
-  .DESTRIGINSELERR(DESTRIGINSELERR),
-  .TRIGOUTSELERR(TRIGOUTSELERR),
-  .AXIRDRESPERR_CMDFSM(AXIRDRESPERR_CMDFSM),
-  .AXIRDPOISERR_CMDFSM(AXIRDPOISERR_CMDFSM),
-  .BUSERR_CMDFSM(BUSERR_CMDFSM),
-  .LINKHDERR(LINKHDERR),
-  .STAT_TRIGOUTACKWAIT_DATA(STAT_TRIGOUTACKWAIT_DATA),
-  .STAT_DESTRIGINWAIT_DATA(STAT_DESTRIGINWAIT_DATA),
-  .STAT_SRCTRIGINWAIT_DATA(STAT_SRCTRIGINWAIT_DATA),
-  .STAT_RESUMEWAIT_DATA(STAT_RESUMEWAIT_DATA),
-  .STAT_STOPPED_DATA(STAT_STOP_DATA),
-  .STAT_PAUSED_DATA(STAT_PAUSED_DATA),
-  .STAT_DISABLED_DATA(STAT_DISABLE_DATA),
-  .STAT_DONE_DATA(STAT_DONE_DATA),
-   .ENABLECMD_DATA(ENABLECMD_DATA),
-   .DISABLECMD_DATA(DISABLECMD_DATA),
-   .STOPCMD_DATA(STOPCMD_DATA),
-  .chn_reg_out(chn_reg_out),
-  //.ch_wr_en_o(ch_wr_en_o),
-   .reg_wr_en(reg_wr_en),
-  .CH_CTRL_O(CH_CTRL_O),
-  .CH_INTREN_O(CH_INTREN_O),
-  .CH_XSIZE_O(CH_XSIZE_O),
-  .CH_LINKADDR_O(CH_LINKADDR_O),
-  .CH_CMD_O(CH_CMD_O),
-  .CH_STATUS_O(CH_STATUS_O),
-  .CH_XADDRINC_O(CH_XADDRINC_O),
-  .CH_SRCTRANSCFG_O(CH_SRCTRANSCFG_O),
-  .CH_DESTRANSCFG_O(CH_DESTRANSCFG_O),
-  .CH_SRCTRIGINCFG_O(CH_SRCTRIGINCFG_O),
-  .CH_DESTRIGINCFG_O(CH_DESTRIGINCFG_O),
-  .CH_TRIGOUTCFG_O(CH_TRIGOUTCFG_O),
-  .CH_SRCADDR_O(CH_SRCADDR_O),
-  .CH_DESADDR_O(CH_DESADDR_O),
-  .CH_FILLVAL_O(CH_FILLVAL_O),
-  .CH_AUTOCFG_O(CH_AUTOCFG_O),
-  .stat_done_intr_reg(stat_done_intr_reg),
-  .stat_disable_intr_reg(stat_disable_intr_reg),
-  .stat_stopped_intr_reg (stat_stopped_intr_reg ),
-  .stat_err_intr_reg (stat_err_intr_reg ),
-  .IRQ(IRQ),
-    .src_des_xsize_updated(src_des_xsize_updated),
-        .SRCADDR_INITIAL(SRCADDR_INITIAL),
-     .DESADDR_INITIAL(DESADDR_INITIAL),
-     .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
-     .DESXSIZE_INITIAL(DESXSIZE_INITIAL),
-     .wrkregval_rd(wrkregval_rd),
-     .cfg_WRKREGPTR(cfg_WRKREGPTR),
-     .CH_TMPLTCFG_O(CH_TMPLTCFG_O),
-     .CH_SRCTMPLT_O(CH_SRCTMPLT_O),
-     .CH_DESTMPLT_O(CH_DESTMPLT_O)
-     
-  );
-  
-  partselect dut1(
-    .CH_CTRL(CH_CTRL_O),
-    .CH_XSIZE(CH_XSIZE_O),
-    .CH_LINKADDR(CH_LINKADDR_O),
-    .CH_CMD(CH_CMD_O),
-    .CH_STATUS(CH_STATUS_O),
-    .CH_XADDRINC(CH_XADDRINC_O),
-    .CH_SRCTRIGINCFG(CH_SRCTRIGINCFG_O),
-    .CH_DESTRIGINCFG(CH_DESTRIGINCFG_O),
-    .CH_TRIGOUTCFG(CH_TRIGOUTCFG_O),
-    .CH_SRCTRANSCFG(CH_SRCTRANSCFG_O),
-    .CH_DESTRANSCFG(CH_DESTRANSCFG_O),
-    .CH_SRCADDR(CH_SRCADDR_O),
-    .CH_DESADDR(CH_DESADDR_O),
-    .CH_FILLVAL(CH_FILLVAL_O),
-    .CH_TMPLTCFG(CH_TMPLTCFG_O),
-.CH_SRCTMPLT(CH_SRCTMPLT_O),
-.CH_DESTMPLT(CH_DESTMPLT_O),
-.CH_AUTOCFG(CH_AUTOCFG_O),
-    .use_trigout(use_trigout),
-    .use_des_trigin(use_des_trigin),
-    .use_src_trigin(use_src_trigin),
-    .x_type(x_type),
-    .transize(transize),
-    .srcxsize(srcxsize),
-    .desxsize(desxsize),
-    .linkaddr(linkaddr),
-    .linkaddren(linkaddren),
-    .enable_cmd(enable_cmd),
-    .disable_cmd(disable_cmd),
-    .pause_cmd(pause_cmd),
-    .resume_cmd(resume_cmd),
-    .stop_cmd(stop_cmd),
-    .src_trigin_sw(src_trigin_sw),
-    .src_trigin_sw_type(src_trigin_sw_type),
-    .des_trigin_sw(des_trigin_sw),
-    .des_trigin_sw_type(des_trigin_sw_type),
-    .trigout_ack_sw(trigout_ack_sw),
-    .src_trigin_mode(src_trigin_mode),
-    .src_trigin_type(src_trigin_type),
-    .src_trigin_sel(src_trigin_sel),
-    .des_trigin_mode(des_trigin_mode),
-    .des_trigin_type(des_trigin_type),
-    .des_trigin_sel(des_trigin_sel),
-    .trigout_type(trigout_type),
-    .trigout_sel(trigout_sel),
-    .src_addr(src_addr),
-    .des_addr(des_addr),
-    .fillval(fillval),
-    .src_xaddr_inc(src_xaddr_inc),
-    .des_xaddr_inc(des_xaddr_inc),
-    .stat_done(stat_done),
-    .stat_err(stat_err),
-    .des_tmplt_size(des_tmplt_size),
-     .src_tmplt_size(src_tmplt_size),
-     .des_tmplt(des_tmplt),
-     .src_tmplt(src_tmplt),
-     .src_trigin_blk_size(src_trigin_blk_size),
-     .des_trigin_blk_size(des_trigin_blk_size),
-     .des_max_burst_len(des_max_burst_len),
-     .src_max_burst_len(src_max_burst_len),
-     .cmd_restart_en(cmd_restart_en),
-    .cmd_restart_cnt(cmd_restart_cnt),
-    .reg_reload_type(reg_reload_type),
-    .done_type(done_type)
-     
-);
+	internal_reg  #(.WIDTH (WIDTH),.DEPTH ( DEPTH)) dut0
+	(
+	.clk(clk),
+	.resetn(resetn),
+	.boot_addr(boot_addr),
+	.boot_en(boot_en),
+	.data_in(mux_logic_in),
+	.STAT_CMD_DONE(CMD_DONE),
+	.SRCADDR_UPDATED(SRCADDR_UPDATED),
+	.DESADDR_UPDATED(DESADDR_UPDATED),
+	.XSIZE_UPDATED(XSIZE_UPDATED),
+	.wr_en_for_updated(wr_en_for_updated),
+	.AXIRDRESPERR(AXIRDRESPERR),
+	.AXIRDPOISERR(AXIRDPOISERR),
+	.AXIWRRESPERR(AXIWRRESPERR),
+	.BUSERR(BUSERR),
+	.config_error(config_error),
+	.regval_error(regval_error),
+	.SRCTRIGINSELERR(SRCTRIGINSELERR),
+	.DESTRIGINSELERR(DESTRIGINSELERR),
+	.TRIGOUTSELERR(TRIGOUTSELERR),
+	.AXIRDRESPERR_CMDFSM(AXIRDRESPERR_CMDFSM),
+	.AXIRDPOISERR_CMDFSM(AXIRDPOISERR_CMDFSM),
+	.BUSERR_CMDFSM(BUSERR_CMDFSM),
+	.LINKHDERR(LINKHDERR),
+	.STAT_TRIGOUTACKWAIT_DATA(STAT_TRIGOUTACKWAIT_DATA),
+	.STAT_DESTRIGINWAIT_DATA(STAT_DESTRIGINWAIT_DATA),
+	.STAT_SRCTRIGINWAIT_DATA(STAT_SRCTRIGINWAIT_DATA),
+	.STAT_RESUMEWAIT_DATA(STAT_RESUMEWAIT_DATA),
+	.STAT_STOPPED_DATA(STAT_STOP_DATA),
+	.STAT_PAUSED_DATA(STAT_PAUSED_DATA),
+	.STAT_DISABLED_DATA(STAT_DISABLE_DATA),
+	.STAT_DONE_DATA(STAT_DONE_DATA),
+	.ENABLECMD_DATA(ENABLECMD_DATA),
+	.DISABLECMD_DATA(DISABLECMD_DATA),
+	.STOPCMD_DATA(STOPCMD_DATA),
+	.chn_reg_out(chn_reg_out),
+	//.ch_wr_en_o(ch_wr_en_o),
+	.reg_wr_en(reg_wr_en),
+	.CH_CTRL_O(CH_CTRL_O),
+	.CH_INTREN_O(CH_INTREN_O),
+	.CH_XSIZE_O(CH_XSIZE_O),
+	.CH_LINKADDR_O(CH_LINKADDR_O),
+	.CH_CMD_O(CH_CMD_O),
+	.CH_STATUS_O(CH_STATUS_O),
+	.CH_XADDRINC_O(CH_XADDRINC_O),
+	.CH_SRCTRANSCFG_O(CH_SRCTRANSCFG_O),
+	.CH_DESTRANSCFG_O(CH_DESTRANSCFG_O),
+	.CH_SRCTRIGINCFG_O(CH_SRCTRIGINCFG_O),
+	.CH_DESTRIGINCFG_O(CH_DESTRIGINCFG_O),
+	.CH_TRIGOUTCFG_O(CH_TRIGOUTCFG_O),
+	.CH_SRCADDR_O(CH_SRCADDR_O),
+	.CH_DESADDR_O(CH_DESADDR_O),
+	.CH_FILLVAL_O(CH_FILLVAL_O),
+	.CH_AUTOCFG_O(CH_AUTOCFG_O),
+	.stat_done_intr_reg(stat_done_intr_reg),
+	.stat_disable_intr_reg(stat_disable_intr_reg),
+	.stat_stopped_intr_reg (stat_stopped_intr_reg ),
+	.stat_err_intr_reg (stat_err_intr_reg ),
+	.IRQ(IRQ),
+	.src_des_xsize_updated(src_des_xsize_updated),
+	.SRCADDR_INITIAL(SRCADDR_INITIAL),
+	.DESADDR_INITIAL(DESADDR_INITIAL),
+	.SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
+	.DESXSIZE_INITIAL(DESXSIZE_INITIAL),
+	.wrkregval_rd(wrkregval_rd),
+	.cfg_WRKREGPTR(cfg_WRKREGPTR),
+	.CH_TMPLTCFG_O(CH_TMPLTCFG_O),
+	.CH_SRCTMPLT_O(CH_SRCTMPLT_O),
+	.CH_DESTMPLT_O(CH_DESTMPLT_O)
 
- cmd_fsm dut2(.clk(clk), 
-      .resetn(resetn),
-      .STAT_ERROR_PARTSEL(stat_err_partsel),
-      .LINKADDR(linkaddr),
-      .link_enable(linkaddren),
-      .wr_en(wr_en),
-      .cmd_done_stop(cmd_done_stop),
-      .stat_disable_intr_reg(stat_disable_intr_reg),
-      .data_done(DONE),
-      .ARREADY(ARREADY),
-      .ARID(ARID),
-      .ARLEN(ARLEN),
-      .ARSIZE(ARSIZE),
-      .ARBURST(ARBURST),
-      .ARVALID(ARVALID),
-      .ARADDR(ARADDR),
-      .RID(RID),
-      .RDATA_I(RDATA_I),
-      .RRESP(RRESP),
-      .RLAST(RLAST),
-      .RVALID(RVALID),
-      .RREADY(RREADY),
-      .RDATA_O(RDATA_O),
-      .LINK_HEADER(LINK_HEADER),
-      .wptr(wptr),
-      .LINKHDRERR(LINKHDERR),
-      .CMD_DONE(CMD_DONE),
-      .STAT_CMD_DONE(STAT_CMD_DONE),
-      .AXIRDRESPERR(AXIRDRESPERR_CMDFSM),
-      .AXIRDPOISERR(AXIRDPOISERR_CMDFSM),
-      .BUSERR(BUSERR_CMDFSM),
-      .cmd_done_1(cmd_done_1)
-      );
-      
-  mux_logic  #(.WIDTH (WIDTH))
-      dut3  (.cmd_data(RDATA_O),
-       .clk(clk),
-       .resetn(resetn),
-        .SRCADDR_UPDATED(SRCADDR_UPDATED),
-    .DESADDR_UPDATED(DESADDR_UPDATED),
-    .XSIZE_UPDATED(XSIZE_UPDATED),
-    .wr_en_for_updated(wr_en_for_updated),
-       .wptr(wptr),
-       .data_done(DONE),
-       .cmd_done(STAT_CMD_DONE),
-      // .cmd_done_stop(cmd_done_stop),
-       .link_en(linkaddren),
-       .header_in(LINK_HEADER),
-       .CH_STATUS(CH_STATUS_O),
-       .CH_CTRL(CH_CTRL_O),
-       .CH_INTREN(CH_INTREN_O),
-       .CH_XSIZE(CH_XSIZE_O),
-       .CH_LINKADDR(CH_LINKADDR_O),
-       .CH_XADDRINC(CH_XADDRINC_O),
-       .CH_SRCTRANSCFG(CH_SRCTRANSCFG_O),
-       .CH_DESTRANSCFG(CH_DESTRANSCFG_O),
-       .CH_SRCTRIGINCFG(CH_SRCTRIGINCFG_O),
-       .CH_DESTRIGINCFG(CH_DESTRIGINCFG_O),
-       .CH_TRIGOUTCFG(CH_TRIGOUTCFG_O),
-       .CH_SRCADDR(CH_SRCADDR_O),
-       .CH_DESADDR(CH_DESADDR_O),
-       .CH_FILLVAL(CH_FILLVAL_O),
-       .CH_TMPLTCFG(CH_TMPLTCFG_O),
-       .CH_DESTMPLT(CH_DESTMPLT_O),
-       .CH_SRCTMPLT(CH_SRCTMPLT_O),
-       .CH_AUTOCFG(CH_AUTOCFG_O),
-               .SRCADDR_INITIAL(SRCADDR_INITIAL),
-     .DESADDR_INITIAL(DESADDR_INITIAL),
-     .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
-     .DESXSIZE_INITIAL(DESXSIZE_INITIAL),
-       
-        .cfg_CH_CMD            (cfg_CH_CMD),
-        .cfg_CH_STATUS         (cfg_CH_STATUS),
-        .cfg_CH_INTREN         (cfg_CH_INTREN),
-        .cfg_CH_CTRL           (cfg_CH_CTRL),
-        .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
-        .cfg_CH_DESADDR        (cfg_CH_DESADDR),
-        .cfg_CH_XSIZE          (cfg_CH_XSIZE),
-        .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
-        .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
-        .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
-        .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
-        .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
-        .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
-        .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
-        .cfg_LINKADDR          (cfg_LINKADDR),
-        .cfg_CH_TMPLTCFG(cfg_CH_TMPLTCFG),
-        .cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
-        .cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
-        .cfg_CH_AUTOCFG (cfg_CH_AUTOCFG),
-        
-        .chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
-        .chn_stat_wr_en_o      (chn_stat_wr_en_o),
-        .chn_intren_wr_en_o    (chn_intren_wr_en_o),
-        .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
-        .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
-        .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
-        .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
-        .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
-        .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
-        .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
-        .chn_fillval_wr_en_o   (chn_fillval_wr_en_o),
-        .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
-        .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
-        .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
-        .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
-        .chn_tmpltcfg_wr_en_o (chn_tmpltcfg_wr_en_o),
-        .chn_destmplt_wr_en_o (chn_destmplt_wr_en_o),
-        .chn_srctmplt_wr_en_o (chn_srctmplt_wr_en_o),
-        .chn_autocfg_wr_en_o (chn_autocfg_wr_en_o),
-        .mux_out_reg(mux_logic_in)
-       );               
-      
-    data_fsm #(.ADDR_W(ADDR_W),.DATA_W(DATA_W), .ID_W(ID_W)) dut4(
-    .clk(clk),
-    .resetn(resetn),
-    .SRCADDR_UPDATED(SRCADDR_UPDATED),
-    .DESADDR_UPDATED(DESADDR_UPDATED),
-    .XSIZE_UPDATED(XSIZE_UPDATED),
-    .LINKHDERR(LINKHDERR),
-    .cmd_restart_en(cmd_restart_en),
-    .cmd_restart_cnt(cmd_restart_cnt),
-    .reg_reload_type(reg_reload_type),
-    .done_type(done_type),
-         .src_trigin_blk_size(src_trigin_blk_size),
-     .des_trigin_blk_size(des_trigin_blk_size),
-    .wr_en_for_updated(wr_en_for_updated),
-    .stat_error_intr_reg(stat_err_intr_reg),
-    .stat_done_intr_reg(stat_done_intr_reg),
-    .link_en(linkaddren),
-    .des_tmplt_size(des_tmplt_size),
-     .src_tmplt_size(src_tmplt_size),
-     .des_tmplt(des_tmplt),
-     .src_tmplt(src_tmplt),
-    .enable_cmd_partsel(enable_cmd),
-    .pause_cmd_partsel(pause_cmd),
-    .disable_cmd_partsel(disable_cmd),
-    .stop_cmd_partsel(stop_cmd),
-    . resume_cmd_partsel(resume_cmd),
-    .cmd_done(CMD_DONE),
-    .stat_disable_intr_reg(stat_disable_intr_reg),
-    .stat_stop_intr_reg(stat_stopped_intr_reg),
-    .use_src_trigin(use_src_trigin),
-    .src_trigin_type(src_trigin_type),
-    .src_trigin_mode(src_trigin_mode),
-    .src_trigin_sel(src_trigin_sel),
-    .use_des_trigin(use_des_trigin),
-    .des_trigin_type(des_trigin_type),
-    .des_trigin_mode(des_trigin_mode),
-    .des_trigin_sel(des_trigin_sel),
-    .use_trigout(use_trigout),
-    .trigout_type(trigout_type),
-    .trigout_sel(trigout_sel),
-   // .src_trigin_sw_req_type(src_trigin_sw_req_type),
-    //.des_trigin_sw_req_type(des_trigin_sw_req_type),
-    .src_trigin_sw(src_trigin_sw),
-    .des_trigin_sw(des_trigin_sw),
-    .trig_out_ack_sw(trigout_ack_sw),
-    .src_trig_req_type(src_trig_req_type),//
-    .des_trig_req_type(des_trig_req_type),//trig mtx
-    .src_trigack_type(ch_src_ack_type),//to trig mtx
-    .des_trigack_type(ch_des_ack_type),
- //   .SRCTRIGINSELERR(SRCTRIGINSELERR),
- //   .DESTRIGINSELERR(DESTRIGINSELERR),
-  //  .TRIGOUTSELERR(TRIGOUTSELERR),
-   // .trig_err(trig_err),
-    .src_trigin(src_trig_req),//from trig
-    .des_trigin(des_trig_req),//from trig
-    .src_trigack(ch_src_ack),//to trig
-    .des_trigack(ch_des_ack),
-    .trig_out_req(ch_trigout_req),
-    .trig_out_ack(ch_trigout_ack),//from trig
-    .SRC_ADDR(src_addr),//
-    .des_ADDR(des_addr),
-    .transize(transize),
-    .srcxsize(srcxsize),
-    .desxsize(desxsize),
-    .x_type(x_type),
-    .fillval(fillval),
-    .src_xaddr_inc(src_xaddr_inc),
-    .des_xaddr_inc(des_xaddr_inc),
-    .ARREADY(ARREADY),
-    .ARVALID(ARVALID),
-    .ARADDR(ARADDR),
-    .ARSIZE(ARSIZE),
-    .ARBURST(ARBURST),
-    .ARID(ARID),
-    .ARLEN(ARLEN),
-    .RVALID(RVALID),
-    .RDATA(RDATA_I),
-    .RRESP(RRESP),
-    .RLAST(RLAST),
-    .RREADY(RREADY),
-    .AWREADY(AWREADY),
-    .AWVALID(AWVALID_D),
-    .AWADDR(AWADDR_D),
-    .AWSIZE(AWSIZE_D),
-    .AWBURST(AWBURST_D),
-    .AWLEN(AWLEN_D),
-    .AWID(AWID_D),
-    .WREADY(WREADY),
-    .WVALID(WVALID_D),
-    .WDATA(WDATA_D),
-    .WLAST(WLAST_D),
-    .BID(BID),
-    .BVALID(BVALID),
-    .BRESP(BRESP),
-    .BREADY(BREADY_D),
-    .DONE(DONE),
-   // .ERROR(ERROR),
-    .config_error(config_error),
-    .ard_error(AXIRDRESPERR),
-    .arpoison_error(AXIRDPOISERR),
-    .awr_error(AXIWRRESPERR),
-    .bus_error(BUSERR),
-    .regvalerr(regval_error),
-    .ENABLECMD_DATA(ENABLECMD_DATA),
-    .DISABLECMD_DATA(DISABLECMD_DATA),
-    .STOPCMD_DATA(STOPCMD_DATA),
-    .STAT_STOP_DATA(STAT_STOP_DATA),
-    .STAT_DISABLE_DATA(STAT_DISABLE_DATA),
-    .STAT_RESUMEWAIT_DATA(STAT_RESUMEWAIT_DATA),
-    .STAT_TRIGOUTACKWAIT_DATA(STAT_TRIGOUTACKWAIT_DATA),
-    .STAT_SRCTRIGINWAIT_DATA(STAT_SRCTRIGINWAIT_DATA),
-    .STAT_DESTRIGINWAIT_DATA(STAT_DESTRIGINWAIT_DATA),
-    .STAT_PAUSED_DATA(STAT_PAUSED_DATA),
-   // .cmd_done_stop(cmd_done_stop),
-    .STAT_DONE_DATA(STAT_DONE_DATA),
-    .SRCADDR_INITIAL(SRCADDR_INITIAL),
-     .DESADDR_INITIAL(DESADDR_INITIAL),
-     .SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
-     .DESXSIZE_INITIAL(DESXSIZE_INITIAL),
-     .des_max_burst_len(des_max_burst_len),
-     .src_max_burst_len(src_max_burst_len)
-     
-     );
-    
-    
+	);
 
-    
+	partselect dut1(
+	.CH_CTRL(CH_CTRL_O),
+	.CH_XSIZE(CH_XSIZE_O),
+	.CH_LINKADDR(CH_LINKADDR_O),
+	.CH_CMD(CH_CMD_O),
+	.CH_STATUS(CH_STATUS_O),
+	.CH_XADDRINC(CH_XADDRINC_O),
+	.CH_SRCTRIGINCFG(CH_SRCTRIGINCFG_O),
+	.CH_DESTRIGINCFG(CH_DESTRIGINCFG_O),
+	.CH_TRIGOUTCFG(CH_TRIGOUTCFG_O),
+	.CH_SRCTRANSCFG(CH_SRCTRANSCFG_O),
+	.CH_DESTRANSCFG(CH_DESTRANSCFG_O),
+	.CH_SRCADDR(CH_SRCADDR_O),
+	.CH_DESADDR(CH_DESADDR_O),
+	.CH_FILLVAL(CH_FILLVAL_O),
+	.CH_TMPLTCFG(CH_TMPLTCFG_O),
+	.CH_SRCTMPLT(CH_SRCTMPLT_O),
+	.CH_DESTMPLT(CH_DESTMPLT_O),
+	.CH_AUTOCFG(CH_AUTOCFG_O),
+	.use_trigout(use_trigout),
+	.use_des_trigin(use_des_trigin),
+	.use_src_trigin(use_src_trigin),
+	.x_type(x_type),
+	.transize(transize),
+	.srcxsize(srcxsize),
+	.desxsize(desxsize),
+	.linkaddr(linkaddr),
+	.linkaddren(linkaddren),
+	.enable_cmd(enable_cmd),
+	.disable_cmd(disable_cmd),
+	.pause_cmd(pause_cmd),
+	.resume_cmd(resume_cmd),
+	.stop_cmd(stop_cmd),
+	.src_trigin_sw(src_trigin_sw),
+	.src_trigin_sw_type(src_trigin_sw_type),
+	.des_trigin_sw(des_trigin_sw),
+	.des_trigin_sw_type(des_trigin_sw_type),
+	.trigout_ack_sw(trigout_ack_sw),
+	.src_trigin_mode(src_trigin_mode),
+	.src_trigin_type(src_trigin_type),
+	.src_trigin_sel(src_trigin_sel),
+	.des_trigin_mode(des_trigin_mode),
+	.des_trigin_type(des_trigin_type),
+	.des_trigin_sel(des_trigin_sel),
+	.trigout_type(trigout_type),
+	.trigout_sel(trigout_sel),
+	.src_addr(src_addr),
+	.des_addr(des_addr),
+	.fillval(fillval),
+	.src_xaddr_inc(src_xaddr_inc),
+	.des_xaddr_inc(des_xaddr_inc),
+	.stat_done(stat_done),
+	.stat_err(stat_err),
+	.des_tmplt_size(des_tmplt_size),
+	.src_tmplt_size(src_tmplt_size),
+	.des_tmplt(des_tmplt),
+	.src_tmplt(src_tmplt),
+	.src_trigin_blk_size(src_trigin_blk_size),
+	.des_trigin_blk_size(des_trigin_blk_size),
+	.des_max_burst_len(des_max_burst_len),
+	.src_max_burst_len(src_max_burst_len),
+	.cmd_restart_en(cmd_restart_en),
+	.cmd_restart_cnt(cmd_restart_cnt),
+	.reg_reload_type(reg_reload_type),
+	.done_type(done_type)
 
+	);
+
+	cmd_fsm #(
+	.DATA_W(DATA_W)
+	) dut2(.clk(clk), 
+	.resetn(resetn),
+	.STAT_ERROR_PARTSEL(stat_err),
+	.LINKADDR(linkaddr),
+	.link_enable(linkaddren),
+	.wr_en(wr_en),
+	.stat_disable_intr_reg(stat_disable_intr_reg),
+	.data_done(DONE),
+	.ARREADY(ARREADY),
+	.ARID(ARID_CMD),
+	.ARLEN(ARLEN_CMD),
+	.ARSIZE(ARSIZE_CMD),
+	.ARBURST(ARBURST_CMD),
+	.ARVALID(ARVALID_CMD),
+	.ARADDR(ARADDR_CMD),
+	.ARQOS(ARQOS_CMD),
+	.RID(RID),
+	.RDATA_I(RDATA_I),
+	.RRESP(RRESP),
+	.RLAST(RLAST),
+	.RVALID(RVALID),
+	.RREADY(RREADY_CMD),
+	.RDATA_O(RDATA_O),
+	.LINK_HEADER(LINK_HEADER),
+	.wptr(wptr),
+	.LINKHDRERR(LINKHDERR),
+	.CMD_DONE(CMD_DONE),
+	.STAT_CMD_DONE(STAT_CMD_DONE),
+	.AXIRDRESPERR(AXIRDRESPERR_CMDFSM),
+	.AXIRDPOISERR(AXIRDPOISERR_CMDFSM),
+	.BUSERR(BUSERR_CMDFSM),
+	.cmd_done_1(cmd_done_1)
+	);
+
+	mux_logic  #(.WIDTH (WIDTH))
+	dut3  (.cmd_data(RDATA_O),
+	.clk(clk),
+	.resetn(resetn),
+	.SRCADDR_UPDATED(SRCADDR_UPDATED),
+	.DESADDR_UPDATED(DESADDR_UPDATED),
+	.XSIZE_UPDATED(XSIZE_UPDATED),
+	.wr_en_for_updated(wr_en_for_updated),
+	.wptr(wptr),
+	.data_done(DONE),
+	.cmd_done(STAT_CMD_DONE),
+	.link_en(linkaddren),
+	.header_in(LINK_HEADER),
+	.CH_STATUS(CH_STATUS_O),
+	.CH_CTRL(CH_CTRL_O),
+	.CH_INTREN(CH_INTREN_O),
+	.CH_XSIZE(CH_XSIZE_O),
+	.CH_LINKADDR(CH_LINKADDR_O),
+	.CH_XADDRINC(CH_XADDRINC_O),
+	.CH_SRCTRANSCFG(CH_SRCTRANSCFG_O),
+	.CH_DESTRANSCFG(CH_DESTRANSCFG_O),
+	.CH_SRCTRIGINCFG(CH_SRCTRIGINCFG_O),
+	.CH_DESTRIGINCFG(CH_DESTRIGINCFG_O),
+	.CH_TRIGOUTCFG(CH_TRIGOUTCFG_O),
+	.CH_SRCADDR(CH_SRCADDR_O),
+	.CH_DESADDR(CH_DESADDR_O),
+	.CH_FILLVAL(CH_FILLVAL_O),
+	.CH_TMPLTCFG(CH_TMPLTCFG_O),
+	.CH_DESTMPLT(CH_DESTMPLT_O),
+	.CH_SRCTMPLT(CH_SRCTMPLT_O),
+	.CH_AUTOCFG(CH_AUTOCFG_O),
+	.SRCADDR_INITIAL(SRCADDR_INITIAL),
+	.DESADDR_INITIAL(DESADDR_INITIAL),
+	.SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
+	.DESXSIZE_INITIAL(DESXSIZE_INITIAL), 
+	.cfg_CH_CMD            (cfg_CH_CMD),
+	.cfg_CH_STATUS         (cfg_CH_STATUS),
+	.cfg_CH_INTREN         (cfg_CH_INTREN),
+	.cfg_CH_CTRL           (cfg_CH_CTRL),
+	.cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
+	.cfg_CH_DESADDR        (cfg_CH_DESADDR),
+	.cfg_CH_XSIZE          (cfg_CH_XSIZE),
+	.cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
+	.cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
+	.cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
+	.cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
+	.cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
+	.cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
+	.cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
+	.cfg_LINKADDR          (cfg_LINKADDR),
+	.cfg_CH_TMPLTCFG(cfg_CH_TMPLTCFG),
+	.cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
+	.cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
+	.cfg_CH_AUTOCFG (cfg_CH_AUTOCFG),
+	.chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
+	.chn_stat_wr_en_o      (chn_stat_wr_en_o),
+	.chn_intren_wr_en_o    (chn_intren_wr_en_o),
+	.chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
+	.chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
+	.chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
+	.chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+	.chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
+	.chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
+	.chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
+	.chn_fillval_wr_en_o   (chn_fillval_wr_en_o),
+	.chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
+	.chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
+	.chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
+	.chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+	.chn_tmpltcfg_wr_en_o (chn_tmpltcfg_wr_en_o),
+	.chn_destmplt_wr_en_o (chn_destmplt_wr_en_o),
+	.chn_srctmplt_wr_en_o (chn_srctmplt_wr_en_o),
+	.chn_autocfg_wr_en_o (chn_autocfg_wr_en_o),
+	.mux_out_reg(mux_logic_in)
+	);               
+
+	data_fsm #(.ADDR_W(ADDR_W),.DATA_W(DATA_W), .ID_W(ID_W)) dut4(
+	.clk(clk),
+	.resetn(resetn),
+	.SRCADDR_UPDATED(SRCADDR_UPDATED),
+	.DESADDR_UPDATED(DESADDR_UPDATED),
+	.XSIZE_UPDATED(XSIZE_UPDATED),
+	.LINKHDERR(LINKHDERR),
+	.cmd_restart_en(cmd_restart_en),
+	.cmd_restart_cnt(cmd_restart_cnt),
+	.reg_reload_type(reg_reload_type),
+	.done_type(done_type),
+	.src_trigin_blk_size(src_trigin_blk_size),
+	.des_trigin_blk_size(des_trigin_blk_size),
+	.wr_en_for_updated(wr_en_for_updated),
+	.stat_error_intr_reg(stat_err_intr_reg),
+	.stat_done_intr_reg(stat_done_intr_reg),
+	.link_en(linkaddren),
+	.des_tmplt_size(des_tmplt_size),
+	.src_tmplt_size(src_tmplt_size),
+	.des_tmplt(des_tmplt),
+	.src_tmplt(src_tmplt),
+	.enable_cmd_partsel(enable_cmd),
+	.pause_cmd_partsel(pause_cmd),
+	.disable_cmd_partsel(disable_cmd),
+	.stop_cmd_partsel(stop_cmd),
+	. resume_cmd_partsel(resume_cmd),
+	.cmd_done(CMD_DONE),
+	.stat_disable_intr_reg(stat_disable_intr_reg),
+	.stat_stop_intr_reg(stat_stopped_intr_reg),
+	.use_src_trigin(use_src_trigin),
+	.src_trigin_type(src_trigin_type),
+	.src_trigin_mode(src_trigin_mode),
+	.src_trigin_sel(src_trigin_sel),
+	.use_des_trigin(use_des_trigin),
+	.des_trigin_type(des_trigin_type),
+	.des_trigin_mode(des_trigin_mode),
+	.des_trigin_sel(des_trigin_sel),
+	.use_trigout(use_trigout),
+	.trigout_type(trigout_type),
+	.trigout_sel(trigout_sel),
+	// .src_trigin_sw_req_type(src_trigin_sw_req_type),
+	//.des_trigin_sw_req_type(des_trigin_sw_req_type),
+	.src_trigin_sw(src_trigin_sw),
+	.des_trigin_sw(des_trigin_sw),
+	.trig_out_ack_sw(trigout_ack_sw),
+	.src_trig_req_type(src_trig_req_type),//
+	.des_trig_req_type(des_trig_req_type),//trig mtx
+	.src_trigack_type(ch_src_ack_type),//to trig mtx
+	.des_trigack_type(ch_des_ack_type),
+	//   .SRCTRIGINSELERR(SRCTRIGINSELERR),
+	//   .DESTRIGINSELERR(DESTRIGINSELERR),
+	//  .TRIGOUTSELERR(TRIGOUTSELERR),
+	// .trig_err(trig_err),
+	.src_trigin(src_trig_req),//from trig
+	.des_trigin(des_trig_req),//from trig
+	.src_trigack(ch_src_ack),//to trig
+	.des_trigack(ch_des_ack),
+	.trig_out_req(ch_trigout_req),
+	.trig_out_ack(ch_trigout_ack),//from trig
+	.SRC_ADDR(src_addr),//
+	.des_ADDR(des_addr),
+	.transize(transize),
+	.srcxsize(srcxsize),
+	.desxsize(desxsize),
+	.x_type(x_type),
+	.fillval(fillval),
+	.src_xaddr_inc(src_xaddr_inc),
+	.des_xaddr_inc(des_xaddr_inc),
+	.ARREADY(ARREADY),
+	.ARVALID(ARVALID_D),
+	.ARADDR(ARADDR_D),
+	.ARSIZE(ARSIZE_D),
+	.ARBURST(ARBURST_D),
+	.ARID(ARID_D),
+	.ARLEN(ARLEN_D),
+	.ARQOS(ARQOS_D),
+	.RID(RID),
+	.RVALID(RVALID),
+	.RDATA(RDATA_I),
+	.RRESP(RRESP),
+	.RLAST(RLAST),
+	.RREADY(RREADY_D),
+	.AWREADY(AWREADY),
+	.AWVALID(AWVALID_D),
+	.AWADDR(AWADDR_D),
+	.AWSIZE(AWSIZE_D),
+	.AWBURST(AWBURST_D),
+	.AWLEN(AWLEN_D),
+	.AWID(AWID_D),
+	.AWQOS(AWQOS),
+	.WREADY(WREADY),
+	.WVALID(WVALID_D),
+	.WDATA(WDATA_D),
+	.WLAST(WLAST_D),
+	.BID(BID),
+	.BVALID(BVALID),
+	.BRESP(BRESP),
+	.BREADY(BREADY_D),
+	.DONE(DONE),
+	// .ERROR(ERROR),
+	.config_error(config_error),
+	.ard_error(AXIRDRESPERR),
+	.arpoison_error(AXIRDPOISERR),
+	.awr_error(AXIWRRESPERR),
+	.bus_error(BUSERR),
+	.regvalerr(regval_error),
+	.ENABLECMD_DATA(ENABLECMD_DATA),
+	.DISABLECMD_DATA(DISABLECMD_DATA),
+	.STOPCMD_DATA(STOPCMD_DATA),
+	.STAT_STOP_DATA(STAT_STOP_DATA),
+	.STAT_DISABLE_DATA(STAT_DISABLE_DATA),
+	.STAT_RESUMEWAIT_DATA(STAT_RESUMEWAIT_DATA),
+	.STAT_TRIGOUTACKWAIT_DATA(STAT_TRIGOUTACKWAIT_DATA),
+	.STAT_SRCTRIGINWAIT_DATA(STAT_SRCTRIGINWAIT_DATA),
+	.STAT_DESTRIGINWAIT_DATA(STAT_DESTRIGINWAIT_DATA),
+	.STAT_PAUSED_DATA(STAT_PAUSED_DATA),
+	// .cmd_done_stop(cmd_done_stop),
+	.STAT_DONE_DATA(STAT_DONE_DATA),
+	.SRCADDR_INITIAL(SRCADDR_INITIAL),
+	.DESADDR_INITIAL(DESADDR_INITIAL),
+	.SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
+	.DESXSIZE_INITIAL(DESXSIZE_INITIAL),
+	.des_max_burst_len(des_max_burst_len),
+	.src_max_burst_len(src_max_burst_len),
+	.WSTRB(WSTRB),
+	.BID(BID),
+	.stop_cmd_apb(stop_cmd_apb)
+	);
 
 endmodule
