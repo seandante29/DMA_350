@@ -28,12 +28,14 @@ module apb_reg #(parameter DATA_WIDTH = 32,
 	//APB signals
 	input wire clk,
 	input wire resetn,
+	input wire PCLK,
+    input wire PRESETn,
 	input wire [ ADDR_WIDTH-1 : 0 ] PADDR, // 
 	input wire PWRITE,
 	input wire PENABLE,
 	input wire PSEL,
 	input wire enable_cmd_to_apb,
-	input  wire [(WIDTH*14)-1 : 0] chn_reg_in,
+	input  wire [(WIDTH*15)-1 : 0] chn_reg_in,
 	input wire reg_wr_en,
 	input wire [DATA_WIDTH-1 : 0] PWDATA,
 	input wire [STRB_WIDTH-1 : 0] PSTRB,
@@ -106,6 +108,7 @@ module apb_reg #(parameter DATA_WIDTH = 32,
 	);
 
 	register_bank #(.DEPTH(DEPTH),
+	.ADDR_WIDTH(ADDR_WIDTH),
 	.WIDTH(WIDTH)
 		)dut1
 	(.clk(clk),
