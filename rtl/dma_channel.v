@@ -213,6 +213,7 @@ module dma_channel
 	wire disable_cmd;
 	wire pause_cmd;
 	wire resume_cmd;
+	wire [1:0] src_trigin_sw_type, des_trigin_sw_type;
 	wire src_trigin_sw;
 	wire [1:0]  src_trigin_sw_req_type;
 	wire des_trigin_sw;
@@ -235,7 +236,6 @@ module dma_channel
 	//wire stat_err; // made it as in output wire for trig matrix
 	wire DONE;
 	wire wr_en;
-
 	// wires to internal reg from data fsm( stat and cmd)
 	wire STAT_TRIGOUTACKWAIT_DATA;
 	wire STAT_DESTRIGINWAIT_DATA;
@@ -256,7 +256,7 @@ module dma_channel
 	// wire data_done;
 	wire [31:0] RDATA_O;
 	wire [31:0] LINK_HEADER;
-	wire [5:0] wptr;
+	wire [4:0] wptr;
 	wire LINKHDERR;
 	wire CMD_DONE,STAT_CMD_DONE; //done signal to data fsm
 	wire AXIRDRESPERR;//address out of range error
@@ -682,7 +682,6 @@ module dma_channel
 	.des_max_burst_len(des_max_burst_len),
 	.src_max_burst_len(src_max_burst_len),
 	.WSTRB(WSTRB),
-	.BID(BID),
 	.stop_cmd_apb(stop_cmd_apb)
 	);
 
