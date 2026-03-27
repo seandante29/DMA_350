@@ -43,6 +43,7 @@ module data_fsm #(
     input  wire                 des_trigin_sw,
     input  wire                 trig_out_ack_sw,
     
+	input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     input  wire                 src_trigin,
     input wire  [1:0]           src_trig_req_type,
     input  wire                 des_trigin,
@@ -53,6 +54,7 @@ module data_fsm #(
     output reg [1:0]            des_trigack_type,
     output reg                  trig_out_req,
     input  wire                 trig_out_ack,
+	
 
 
     //
@@ -161,6 +163,7 @@ module data_fsm #(
     reg [1:0] src_trig_req_type_reg;
     reg [1:0] des_trig_req_type_reg;
     //
+	 reg [1:0] des_trigin_sw_type_reg,src_trigin_sw_type_reg;
     reg        reg1, reg2;
     reg        cmd_done_reg;
     reg [15:0] src_left, des_left, fill_count;
@@ -297,7 +300,7 @@ module data_fsm #(
             DESADDR_UPDATED <= DESADDR_UPDATED;
             //XSIZE_UPDATED <= (case6 && x_type == 2)?(src_xsize_remaining == 0 && src_left <= srcxsize_reg && src_left!=0)?XSIZE_UPDATED:(src_xsize_remaining>=src_left)?({des_left,src_left}):{des_left,srcxsize_reg-((desxsize_reg -src_left)%srcxsize_reg)}
             //                : (case6 && x_type == 1)? {(des_left+(desxsize_reg - srcxsize_reg)),src_left}:{des_left,src_left};// src_left-(desxsize_reg - srcxsize_reg)
-            if (case6 && x_type == 2) begin
+            if (case6 && x_type == 2 && !DONE_temp) begin
                 if (src_xsize_remaining == 0 && src_left <= srcxsize_reg && src_left != 0) begin
                     XSIZE_UPDATED <= XSIZE_UPDATED;
                 end
@@ -509,11 +512,14 @@ module data_fsm #(
                         rd_next_st = RD_R;
                         
                 RD_WRAP_FILL:
-                    if (src_left == 0 && fill_count == 0)
+                   
+                    if((cmd_restart_en || restart_cnt_reg != 0)) begin
+                        rd_next_st = RD_WRAP_FILL;
+                        if (((src_left == 0) && (fill_count == 0)) && DONE_temp )
+                            rd_next_st = RD_WAIT; end
+                     else if (src_left == 0 && fill_count == 0)
                         rd_next_st = RD_IDLE;
-                    else if((cmd_restart_en || restart_cnt_reg != 0) && (src_left == 0))
-                            rd_next_st = RD_WAIT; 
-                    else
+                      else
                         rd_next_st = RD_WRAP_FILL;
                 
                 RD_ERROR_ST:
@@ -654,6 +660,7 @@ module data_fsm #(
                     STAT_SRCTRIGINWAIT_DATA <= (use_src_trigin)?1'b1:0;
                     STAT_DESTRIGINWAIT_DATA <= (use_des_trigin)?1'b1:0;
                     reg1 <= 1;
+                    fifo_wptr       <= 0;
                     reg2 <= reg1;
                     if(reg2) begin
                         case1 <= (srcxsize == 0 && desxsize == 0);
@@ -663,8 +670,8 @@ module data_fsm #(
                         case5 <= ((srcxsize > desxsize) && (desxsize != 0));
                         case6 <= ((srcxsize < desxsize) && (srcxsize !=0));
                     end
-                    srcxsize_reg <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
-                    desxsize_reg <= (des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+                    srcxsize_reg <= srcxsize; //(src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
+                    desxsize_reg <= desxsize;//(des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
                    if((restart_cnt_reg > 0 || cmd_restart_en)&& !DONE_temp)begin
                     src_addr_reg <= SRC_ADDR;
                     des_addr_reg <= des_ADDR;
@@ -776,13 +783,13 @@ module data_fsm #(
                         /*if((cmd_restart_en || cmd_restart_cnt != 0))
                             src_left <= (src_trigin_blk_size > src_xsize_reload)?src_xsize_reload:src_trigin_blk_size;
                         else*/
-                            src_left <= (src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size;
+                            src_left <= desxsize;//(src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size;
                     end else if (case6) begin
                         case (x_type)
                             0: begin src_left <= 0; end
-                            1: begin src_left <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size; end
-                            2: begin src_left <= (src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size; end
-                            3: begin src_left <= (src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size; end
+                            1: begin src_left <= srcxsize;end//(src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size; end
+                            2: begin src_left <= desxsize;end// (src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size; end
+                            3: begin src_left <= srcxsize;end//(src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size; end
                             default: begin src_left <= srcxsize; config_error_case6 <= 1; end
                         endcase
                     end
@@ -790,8 +797,13 @@ module data_fsm #(
                 end
                 
                 RD_WAIT_TRIG: begin
-                    src_trig_req_type_reg <= (use_src_trigin)?src_trig_req_type:src_trig_req_type_reg;
-                    des_trig_req_type_reg <= (use_des_trigin)?des_trig_req_type:des_trig_req_type_reg; 
+				if(use_src_trigin)
+				 src_trig_req_type_reg <= (src_trigin_type == 'b10) ? src_trig_req_type : (src_trigin_type == 'b00) ? src_trigin_sw_type : src_trig_req_type_reg;
+                   
+				   if(use_des_trigin)
+					des_trig_req_type_reg <= (des_trigin_type == 'b10) ? des_trig_req_type : (des_trigin_type == 'b00) ? des_trigin_sw_type : des_trig_req_type_reg; 
+                   // src_trig_req_type_reg <= (use_src_trigin)?src_trig_req_type:src_trig_req_type_reg;
+                   // des_trig_req_type_reg <= (use_des_trigin)?des_trig_req_type:des_trig_req_type_reg; 
                      if (use_src_trigin && src_trigin_type == 2'b10 && src_trigin)  begin
                             src_trigack <= 1;
                             if(src_trig_req_type == 'd0)
@@ -812,7 +824,7 @@ module data_fsm #(
                     if (use_des_trigin && !((des_trigin_type == 2'b00 && des_trigin_sw == 1)||(des_trigin_type == 2'b10 && des_trigin == 1))) begin
                         STAT_DESTRIGINWAIT_DATA <= 1'b1;
                     end
-                    src_xsize_remaining <= (src_trigin_blk_size > srcxsize_reg )? srcxsize_reg:src_trigin_blk_size;
+                    src_xsize_remaining <= srcxsize_reg;//(src_trigin_blk_size > srcxsize_reg )? srcxsize_reg:src_trigin_blk_size;
                     fill_count <= ((src_left < des_left) && x_type == 3 && (case2 || case6)) ? ((des_left - src_left) & 16'hFFFF) : 0;//
                 end 
                 
@@ -820,9 +832,9 @@ module data_fsm #(
                     //ARLEN   <= (src_trig_req_type == 'd0) ? 'd0 :  ;
                     if(src_tmplt_size > 0)
                         ARLEN <= 'd0;
-                    else if(src_trig_req_type_reg == 'd0) 
+                    else if(src_trig_req_type_reg == 'd0 && use_src_trigin) 
                         ARLEN <= 'd0;
-                    else if(src_trig_req_type == 'd1)
+                    else if(src_trig_req_type_reg == 'd2)
                         ARLEN <= ((src_xsize_remaining - 1) > src_max_burst_len) ? src_max_burst_len : src_xsize_remaining - 1;
                     
                     ARBURST <= (src_xaddr_inc > 0) ? 2'b01 : 2'b00;
@@ -901,7 +913,7 @@ module data_fsm #(
                     end
                     
                 RD_WRAP_FILL: begin
-                     if(src_left == 0)
+                     if(src_left == 0 && fill_count == 0 && DONE_temp)
                                 restart_cnt_reg <= restart_cnt_reg - 1;
                     case (x_type)
                         2: begin                         
@@ -960,6 +972,7 @@ always @(posedge clk or negedge resetn) begin
            WVALID       <= 0;
             BREADY       <= 0;
            DONE         <= stop_cmd_apb? 1: 0;
+           DONE_temp <= (rd_state ==RD_CONFIG)?0:DONE_temp;
            trig_out_req <= 0;
            // STAT_RESUMEWAIT_DATA <= 'd0;
            // STAT_PAUSED_DATA <= 'd0;
@@ -975,7 +988,7 @@ always @(posedge clk or negedge resetn) begin
 
                // AWADDR <= des_addr_reg;
                      initial_tmplt_addr_des <= des_ADDR;
-                    des_xsize_remaining <= (des_trigin_blk_size > desxsize_reg)? desxsize_reg : des_trigin_blk_size;
+                    des_xsize_remaining <=desxsize_reg;// (des_trigin_blk_size > desxsize_reg)? desxsize_reg : des_trigin_blk_size;
                     if (stat_error_intr_reg == 0) begin
                         awr_error      <= 0;
                         bus_error_w      <= 0;
@@ -987,19 +1000,19 @@ always @(posedge clk or negedge resetn) begin
                     end 
                     else if (case2) begin
                         if (x_type == 3) begin
-                            des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
+                            des_left <= desxsize;//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
                         end 
                     end 
                     else if (case4 || case5) begin
-                        des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
+                        des_left <= desxsize;//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
                     end 
                     else if (case6) begin
                         case (x_type)
                             0: begin des_left <= 0; end
-                            1: begin des_left <= (des_trigin_blk_size > srcxsize)? srcxsize : des_trigin_blk_size; end
-                            2: begin des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size; end
-                            3: begin des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size; end
-                            default:begin  des_left <= (des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;  end
+                            1: begin des_left <= srcxsize;end//(des_trigin_blk_size > srcxsize)? srcxsize : des_trigin_blk_size; end
+                            2: begin des_left <= desxsize;end//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size; end
+                            3: begin des_left <= desxsize;end//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size; end
+                            default:begin  des_left <= desxsize;end//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;  end
                         endcase
                     end
                 end
@@ -1024,9 +1037,9 @@ always @(posedge clk or negedge resetn) begin
                          AWVALID <= 1; end
                      if(des_tmplt_size > 0)
                         AWLEN <= 'd0;
-                     else if(des_trig_req_type_reg == 'd0) 
+                     else if(des_trig_req_type_reg == 'd0 && use_des_trigin) 
                         AWLEN <= 'd0;
-                    else if(des_trig_req_type == 'd1)
+                    else if(des_trig_req_type_reg == 'd2)
                     AWLEN <= ((des_xsize_remaining - 1) > des_max_burst_len) ? des_max_burst_len : des_xsize_remaining - 1;//(case6 && x_type == 1)? srcxsize - 1: desxsize - 1;
                     AWBURST <= (des_xaddr_inc != 'b0) ? 2'b01 : 2'b00;
                     AWSIZE  <= transize;
