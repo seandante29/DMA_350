@@ -1,10 +1,11 @@
 module register_bank #(parameter WIDTH = 32,
+    parameter ADDR_WIDTH = 32,
 	parameter DEPTH = 145)
 	(input wire clk,
 	input wire resetn,
 	input wire cfg_rd_en,cfg_wr_en,//reg_wr_en,// write enable from apb to reg, 
 	input wire [ WIDTH-1 : 0] cfg_data_in,//from apb to reg
-	input wire [ 7:0 ] addr_in,// from apb
+	input wire [ADDR_WIDTH-1:0 ] addr_in,// from apb
 	input wire [(WIDTH*15)-1 : 0] chn_reg_in,// from channel
 	input wire [WIDTH-1 : 0] wrkregval_rd,
 	output wire [ WIDTH-1 : 0] cfg_data_out, // to apb
