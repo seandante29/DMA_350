@@ -68,7 +68,7 @@ module top_mod#(
       
      //AXI signals 
     input wire ARREADY,
-     input wire RID,
+     input wire [ID_W -1 : 0]RID,
      input wire [DATA_W-1 : 0]RDATA_I,
      input wire [1:0]RRESP,
      input wire RLAST,
@@ -89,12 +89,12 @@ module top_mod#(
      input wire [1:0] BRESP,
  
       
-       output wire [3:0] ARID,
-      output wire [3:0] ARLEN,
+       output wire [ID_W -1 : 0] ARID,
+      output wire [7:0] ARLEN,
       output wire[2:0] ARSIZE,
       output wire [1:0] ARBURST,
       output wire ARVALID,
-      output wire [31:0]ARADDR,
+      output wire [ADDR_W-1:0]ARADDR,
       output wire RREADY,      
       
 //      output wire [3:0] ARID_D,
@@ -105,18 +105,19 @@ module top_mod#(
 //      output wire [31:0]ARADDR_D,
 //      output wire RREADY_D ,
       
-      output wire [3:0] AWID_D,
-      output wire [3:0] AWLEN_D,
+      output wire [ID_W -1 : 0] AWID_D,
+      output wire [7:0] AWLEN_D,
       output wire[2:0] AWSIZE_D,
       output wire [1:0] AWBURST_D,
       output wire AWVALID_D,
-      output wire [31:0]AWADDR_D,
+      output wire [ADDR_W-1:0]AWADDR_D,
       output wire WVALID_D,
       output wire [DATA_W -1 :0] WDATA_D,
       output wire WLAST_D,
       output wire BREADY_D,
       output  wire IRQ
     );
+    wire enable_cmd_to_apb;
     wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
     wire reg_wr_en;
       wire  [(WIDTH * 15) -1:0] reg_chn_out;
@@ -131,7 +132,7 @@ module top_mod#(
    wire [7:0]  des_trigin_sel;   // 0 = trig0, 1 = trig1
    wire        use_trigout;
    wire [1:0]  trigout_type;    // 2'b10 = HW
-   wire [7:0]  trigout_sel;      // 0 = trig0, 1 = trig1
+   wire [5:0]  trigout_sel;      // 0 = trig0, 1 = trig1
    
   wire [31:0] cfg_CH_SRCTMPLT;
       wire [31:0] cfg_CH_DESTMPLT;
@@ -189,7 +190,7 @@ wire chn_linkaddr_wr_en_o;
 wire chn_autocfg_wr_en_o;
 
 wire [31:0] cfg_WRKREGPTR;
-    
+wire stop_cmd_apb;   
     
     dma_channel #(
     .WIDTH(WIDTH),
@@ -331,7 +332,8 @@ wire [31:0] cfg_WRKREGPTR;
     .trigout_sel        (trigout_sel),
     .src_des_xsize_updated(src_des_xsize_updated),
     .wrkregval_rd(wrkregval_rd),
-    .cfg_WRKREGPTR(cfg_WRKREGPTR) );
+    .cfg_WRKREGPTR(cfg_WRKREGPTR),
+    .stop_cmd_apb(stop_cmd_apb) );
     
     
         trigger_matrix dut1(
@@ -435,7 +437,9 @@ wire [31:0] cfg_WRKREGPTR;
     .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
     .src_des_xsize_updated(src_des_xsize_updated),
     .wrkregval_rd(wrkregval_rd),
-    .cfg_WRKREGPTR(cfg_WRKREGPTR)
+    .cfg_WRKREGPTR(cfg_WRKREGPTR),
+    .stop_cmd_apb(stop_cmd_apb),
+    .enable_cmd_to_apb(enable_cmd_to_apb)
   );
     
     
