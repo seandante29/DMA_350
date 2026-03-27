@@ -104,7 +104,7 @@ module top_mod#(
 //      output wire ARVALID_D,
 //      output wire [31:0]ARADDR_D,
 //      output wire RREADY_D ,
-      
+      output wire [(DATA_W/8)-1:0] WSTRB,
       output wire [ID_W -1 : 0] AWID_D,
       output wire [7:0] AWLEN_D,
       output wire[2:0] AWSIZE_D,
@@ -293,6 +293,7 @@ wire stop_cmd_apb;
     .WVALID_D           (WVALID_D),
     .WLAST_D            (WLAST_D),
     .WREADY             (WREADY),
+    .WSTRB(WSTRB),
     
     .BID                (BID),
     .BVALID             (BVALID),
