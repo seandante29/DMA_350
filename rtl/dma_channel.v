@@ -28,6 +28,8 @@ module dma_channel
      input wire [WIDTH-1 : 0] cfg_CH_SRCTMPLT,
       input wire [WIDTH-1 : 0] cfg_CH_DESTMPLT,
       input wire [WIDTH-1 : 0] cfg_CH_TMPLTCFG,
+      input wire [WIDTH-1 : 0] cfg_CH_YADDRSTRIDE,
+      input wire [WIDTH-1 : 0] cfg_CH_YSIZE,
     
 //        input wire [1:0] des_trig_req_type,
 //        input wire [1:0] src_trig_req_type,
@@ -53,12 +55,12 @@ module dma_channel
     input wire chn_trigout_wr_en_o,
     input wire chn_autocfg_wr_en_o,
     input wire chn_linkaddr_wr_en_o,
-    input wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,
+    input wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_ysize_wr_en_o,chn_yaddrestride_wr_en_o,
 
 
 
     //inter reg signals    
-    output wire [(WIDTH*15)-1 : 0] chn_reg_out,              
+    output wire [(WIDTH*17)-1 : 0] chn_reg_out,              
     output wire reg_wr_en,         
     output  wire IRQ,
     //cmd fsm signal
@@ -160,14 +162,17 @@ module dma_channel
 	wire [31:0] src_tmplt;
 	wire [7:0]des_trigin_blk_size;
 	wire [7:0]src_trigin_blk_size;
-
+    wire [15:0] src_yaddr_stride;
+    wire [15:0] des_yaddr_stride;
+    wire [15:0] src_ysize;
+    wire[15:0] des_ysize;
 
 	wire [31:0] SRCADDR_INITIAL;
 	wire [31:0] DESADDR_INITIAL;
 	wire [31:0] SRCXSIZE_INITIAL;
 	wire [31:0] DESXSIZE_INITIAL;
 	wire cmd_done_1;
-	wire [(WIDTH * 19) -1:0]  mux_logic_in;
+	wire [(WIDTH * 21) -1:0]  mux_logic_in;
 
 	// wires to part select
 
@@ -190,7 +195,8 @@ module dma_channel
 	wire [31:0] CH_SRCTMPLT_O;
 	wire [31:0] CH_TMPLTCFG_O;
 	wire [31:0] CH_AUTOCFG_O;
-
+    wire [31:0] CH_YADDRSTRIDE_O;
+    wire [31:0] CH_YSIZE_O;
 	wire cmd_restart_en;
 	wire [15:0] cmd_restart_cnt;
 	wire [2:0] reg_reload_type;
@@ -202,7 +208,7 @@ module dma_channel
 	//wire use_trigout;
 	//wire use_des_trigin;
 	//wire use_src_trigin;
-	wire [2:0] x_type;
+	wire [2:0] x_type,y_type;
 	wire [2:0] transize;
 	wire [15:0] srcxsize;
 	wire [15:0] desxsize;
@@ -359,6 +365,8 @@ module dma_channel
 	.CH_DESADDR_O(CH_DESADDR_O),
 	.CH_FILLVAL_O(CH_FILLVAL_O),
 	.CH_AUTOCFG_O(CH_AUTOCFG_O),
+	.CH_YADDRSTRIDE_O(CH_YADDRSTRIDE_O),
+    .CH_YSIZE_O(CH_YSIZE_O),
 	.stat_done_intr_reg(stat_done_intr_reg),
 	.stat_disable_intr_reg(stat_disable_intr_reg),
 	.stat_stopped_intr_reg (stat_stopped_intr_reg ),
@@ -396,10 +404,13 @@ module dma_channel
 	.CH_SRCTMPLT(CH_SRCTMPLT_O),
 	.CH_DESTMPLT(CH_DESTMPLT_O),
 	.CH_AUTOCFG(CH_AUTOCFG_O),
+	.CH_YADDRSTRIDE(CH_YADDRSTRIDE_O),
+    .CH_YSIZE(CH_YSIZE_O),
 	.use_trigout(use_trigout),
 	.use_des_trigin(use_des_trigin),
 	.use_src_trigin(use_src_trigin),
 	.x_type(x_type),
+	.y_type(y_type),
 	.transize(transize),
 	.srcxsize(srcxsize),
 	.desxsize(desxsize),
@@ -441,7 +452,11 @@ module dma_channel
 	.cmd_restart_en(cmd_restart_en),
 	.cmd_restart_cnt(cmd_restart_cnt),
 	.reg_reload_type(reg_reload_type),
-	.done_type(done_type)
+	.done_type(done_type),
+	.src_yaddr_stride(src_yaddr_stride),
+    .des_yaddr_stride(des_yaddr_stride),
+    .src_ysize(src_ysize),
+    .des_ysize(des_ysize)
 
 	);
 
@@ -512,6 +527,8 @@ module dma_channel
 	.CH_DESTMPLT(CH_DESTMPLT_O),
 	.CH_SRCTMPLT(CH_SRCTMPLT_O),
 	.CH_AUTOCFG(CH_AUTOCFG_O),
+	.CH_YADDRSTRIDE(CH_YADDRSTRIDE_O),
+    .CH_YSIZE(CH_YSIZE_O),
 	.SRCADDR_INITIAL(SRCADDR_INITIAL),
 	.DESADDR_INITIAL(DESADDR_INITIAL),
 	.SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
@@ -535,6 +552,8 @@ module dma_channel
 	.cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
 	.cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
 	.cfg_CH_AUTOCFG (cfg_CH_AUTOCFG),
+	.cfg_CH_YADDRSTRIDE(cfg_CH_YADDRSTRIDE),
+    .cfg_CH_YSIZE(cfg_CH_YSIZE),
 	.chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
 	.chn_stat_wr_en_o      (chn_stat_wr_en_o),
 	.chn_intren_wr_en_o    (chn_intren_wr_en_o),
@@ -554,6 +573,8 @@ module dma_channel
 	.chn_destmplt_wr_en_o (chn_destmplt_wr_en_o),
 	.chn_srctmplt_wr_en_o (chn_srctmplt_wr_en_o),
 	.chn_autocfg_wr_en_o (chn_autocfg_wr_en_o),
+	.chn_ysize_wr_en_o(chn_ysize_wr_en_o),
+	.chn_yaddrestride_wr_en_o(chn_ysize_wr_en_o),
 	.mux_out_reg(mux_logic_in)
 	);               
 
@@ -622,6 +643,7 @@ module dma_channel
 	.srcxsize(srcxsize),
 	.desxsize(desxsize),
 	.x_type(x_type),
+	.y_type(y_type),
 	.fillval(fillval),
 	.src_xaddr_inc(src_xaddr_inc),
 	.des_xaddr_inc(des_xaddr_inc),
@@ -682,7 +704,11 @@ module dma_channel
 	.des_max_burst_len(des_max_burst_len),
 	.src_max_burst_len(src_max_burst_len),
 	.WSTRB(WSTRB),
-	.stop_cmd_apb(stop_cmd_apb)
+	.stop_cmd_apb(stop_cmd_apb),
+	.src_yaddr_stride(src_yaddr_stride),
+    .des_yaddr_stride(des_yaddr_stride),
+    .src_ysize(src_ysize),
+    .des_ysize(des_ysize)
 	);
 
 endmodule
