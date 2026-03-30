@@ -3,7 +3,7 @@ module internal_reg #(parameter WIDTH = 32,
  (
  input wire clk,resetn,
  //input wire wr_en,
- input wire [(WIDTH * 19) -1:0] data_in,
+ input wire [(WIDTH * 21) -1:0] data_in,
  
  //
      input wire [31:0] SRCADDR_UPDATED,
@@ -48,7 +48,7 @@ module internal_reg #(parameter WIDTH = 32,
  
  
  // to reg bank
- output wire [(WIDTH*15)-1 : 0] chn_reg_out,
+ output wire [(WIDTH*17)-1 : 0] chn_reg_out,
  // to partselect module
  output  wire [31:0] CH_CTRL_O,
  output  wire [31:0] CH_INTREN_O,
@@ -69,6 +69,9 @@ module internal_reg #(parameter WIDTH = 32,
  output wire [31:0] CH_SRCTMPLT_O,
  output wire [31:0] CH_DESTMPLT_O,
  output wire [31:0] CH_AUTOCFG_O,
+ 
+ output wire [31:0] CH_YADDRSTRIDE_O,
+ output wire [31:0] CH_YSIZE_O,
  output  wire IRQ,
 output wire stat_done_intr_reg,//data fsm
 output wire stat_disable_intr_reg ,
@@ -94,7 +97,8 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  wire INTR_ERR;
  wire INTR_DONE;
  reg data_in_0_1 ;
- 
+    
+ reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
  reg [31:0] WRKREGVAL_temp;
       
   wire regval_err_reserved_bits = ( (|intr_mem[0][31:25]) | (intr_mem[0][23]) | intr_mem[0][19] | (|intr_mem[0][15:6]) 
@@ -121,8 +125,7 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
   assign stat_err_intr_reg = data_in [49] | data_in[0] ? 1'b0  : STAT_ERR;
 
    
-   reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd;    
- reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
+   reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd; 
  reg resetn_d;
 wire resetn_posedge;
 reg resetn_posedge_1;
@@ -167,6 +170,8 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign CH_AUTOCFG_O = intr_mem [116];
  assign CH_TRIGOUTCFG_O = intr_mem [84];
  assign CH_LINKADDR_O = intr_mem [120];
+ assign CH_YADDRSTRIDE_O = intr_mem [52];
+ assign CH_YSIZE_O = intr_mem [60];
 
  
  always @(*)
@@ -224,7 +229,8 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
    intr_mem[84] <= data_in [(WIDTH * 17) -1 : (WIDTH*16)];
    intr_mem[116] <= data_in [(WIDTH * 18) -1 : (WIDTH*17)];
    intr_mem[120]<= (resetn_posedge_1 && boot_en) ? {boot_addr,1'b0,boot_en}:data_in [(WIDTH * 19) -1 : (WIDTH*18)];
-   
+   intr_mem [52]<= data_in [(WIDTH * 20) -1 : (WIDTH*19)];
+   intr_mem [60]<= data_in [(WIDTH * 21) -1 : (WIDTH*20)];
          intr_mem[144] <= {6'd0,(regval_error | config_error| regval_err_reserved_bits),LINKHDERR,5'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},AXIWRRESPERR,{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},11'd0,
          TRIGOUTSELERR,DESTRIGINSELERR,SRCTRIGINSELERR,(config_error|LINKHDERR| regval_err_reserved_bits),{BUSERR|BUSERR_CMDFSM}};
    
