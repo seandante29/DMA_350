@@ -15,6 +15,8 @@ module partselect (
     input  wire [31:0] CH_DESADDR,
     input  wire [31:0] CH_FILLVAL,
      input wire [31:0] CH_TMPLTCFG,
+     input wire [31:0]CH_YADDRSTRIDE,
+     input wire [31:0] CH_YSIZE,
  input wire [31:0] CH_SRCTMPLT,
  input wire [31:0] CH_DESTMPLT,
  input wire [31:0] CH_DESTRANSCFG,
@@ -24,7 +26,7 @@ module partselect (
     output wire        use_trigout,
     output wire        use_des_trigin,
     output wire        use_src_trigin,
-    output wire [2:0]  x_type,
+    output wire [2:0]  x_type,y_type,
     output wire [2:0]  transize,
     output wire [15:0] srcxsize,
     output wire [15:0] desxsize,
@@ -68,7 +70,11 @@ module partselect (
     output wire        stat_err,
     output wire [3:0] src_max_burst_len,
     output wire [3:0] des_max_burst_len,
-    
+        
+    output [15:0] src_yaddr_stride,
+    output [15:0] des_yaddr_stride,
+    output [15:0] src_ysize,
+    output [15:0] des_ysize,
     
     output wire cmd_restart_en,//
     output wire [15:0] cmd_restart_cnt,//
@@ -94,10 +100,17 @@ assign use_trigout     = CH_CTRL[27];
 assign use_des_trigin  = CH_CTRL[26];
 assign use_src_trigin  = CH_CTRL[25];
 assign x_type          = CH_CTRL[11:9];
+assign y_type          = CH_CTRL[14:12]; 
 assign transize        = CH_CTRL[2:0];
 // CH_XSIZE
 assign desxsize = CH_XSIZE[31:16];
 assign srcxsize = CH_XSIZE[15:0];
+assign src_yaddr_stride = CH_YADDRSTRIDE[15:0];
+assign des_yaddr_stride = CH_YADDRSTRIDE[31:16];
+assign src_ysize = CH_YSIZE[15:0];
+assign des_ysize = CH_YSIZE[31:16];
+
+    
 // CH_LINKADDR
 assign linkaddr   = {2'b00,CH_LINKADDR[31:2]};
 assign linkaddren = CH_LINKADDR[0];
