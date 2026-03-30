@@ -69,12 +69,17 @@ module data_fsm #(
     input  wire [2:0]           transize,
     input  wire [15:0]          srcxsize,
     input  wire [15:0]          desxsize,
-    input  wire [2:0]           x_type,
+	input  wire [2:0]           x_type,y_type,
     input  wire [31:0]          fillval,
     input  wire [15:0]          src_xaddr_inc,
     input  wire [15:0]          des_xaddr_inc,
     input  wire [3:0]           src_max_burst_len,
     input  wire [3:0]           des_max_burst_len,
+	    
+	input [15:0] src_yaddr_stride,
+	input [15:0] des_yaddr_stride,
+	input [15:0] src_ysize,
+	input [15:0] des_ysize,
 
 
 
