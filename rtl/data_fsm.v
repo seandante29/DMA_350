@@ -192,7 +192,7 @@ module data_fsm #(
 
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
     reg case1,case2,case3,case4,case5,case6;  // chnaged from wire to reg
-    reg ycase1, ycase2, ycase3, ycase4, ycase5;
+    
     localparam RD_IDLE       = 5'd0,
                RD_WAIT       = 5'd1,
                RD_CONFIG     = 5'd2,
@@ -448,14 +448,10 @@ module data_fsm #(
                   
                     if (config_error)
                         rd_next_st = RD_ERROR_ST;
-                    else if (case1 || x_type == 0 || ycase1)
+                    else if (case1 || x_type == 0)
                         rd_next_st = RD_IDLE;
                     else if (case2)
                         rd_next_st = (x_type == 3) ? RD_WAIT_TRIG : RD_ERROR_ST; 
-                   else if(ycase2)
-                        rd_next_st = ((x_type == 3 && y_type == 3) ) ? RD_WAIT_TRIG : RD_ERROR_ST;
-                   else if(ycase3)
-                        rd_next_st = RD_WAIT_TRIG;
                     else if (case3)
                         rd_next_st = RD_ERROR_ST;
                     else if (case6)
@@ -636,7 +632,6 @@ module data_fsm #(
               STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
             {config_error_size, config_error_src,config_error_transize, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
-            {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
             //rd_pause_state <= RD_IDLE;
             fifo_wptr       <= 0;
           // fifo_rptr       <= 0;
@@ -707,29 +702,6 @@ module data_fsm #(
                     fifo_wptr       <= 0;
                     reg2 <= reg1;
                     if(reg2) begin
-                    // no trnasfer
-                        ycase1 <= !((srcxsize == 0 && src_ysize == 0) ||
-                                       (desxsize == 0 && des_ysize == 0));
-                        
-                        //write only
-                        ycase2 <= (!ycase1) &&
-                                       (srcxsize == 0) &&
-                                       (desxsize > 0) && (des_ysize > 0);
-                        
-                        //read only
-                        ycase3 <= (!ycase1) &&
-                                       (desxsize == 0) &&
-                                       (srcxsize > 0) && (src_ysize > 0);
-                        
-                        //1d to 1d
-                        ycase4 <= (!ycase1 && !ycase2 && !ycase3) &&
-                                       (srcxsize > 0 && src_ysize == 1) &&
-                                       (desxsize > 0 && des_ysize == 1);
-                        
-                        //2d to 2d/1d
-                        ycase5 <= (!ycase1 && !ycase2 && !ycase3 && !ycase4) &&
-                                       ((src_ysize > 1) || (des_ysize > 1));
-                    
                         case1 <= (srcxsize == 0 && desxsize == 0);
                         case2 <= (srcxsize == 0 && desxsize > 0);
                         case3 <= (srcxsize > 0 && desxsize == 0);
@@ -905,7 +877,7 @@ module data_fsm #(
                     //ARLEN   <= (src_trig_req_type == 'd0) ? 'd0 :  ;
                     if(src_tmplt_size > 0)
                         ARLEN <= 'd0;
-                    else if(src_trig_req_type_reg == 'd0 && use_src_trigin) 
+                    else if((src_trig_req_type_reg == 'd0 && use_src_trigin) || (src_xaddr_inc > 1) || (src_xaddr_inc < 0)) 
                         ARLEN <= 'd0;
                     else if(src_trig_req_type_reg == 'd2)
                         ARLEN <= ((src_xsize_remaining - 1) > src_max_burst_len) ? src_max_burst_len : src_xsize_remaining - 1;
