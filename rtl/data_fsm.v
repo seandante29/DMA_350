@@ -236,6 +236,7 @@ module data_fsm #(
     reg [15:0]src_xsize_reload,des_xsize_reload;
     reg [31:0] src_addr_reload,des_addr_reload;
     reg [15:0] src_yaddr_stride_reg;
+     reg [15:0] des_yaddr_stride_reg;
     
     assign config_error = config_error_size | config_error_src | config_error_des | config_error_trigout | 
                           config_error_inc | config_error_x_type | config_error_case3 | config_error_case6 | config_error_transize;
@@ -248,7 +249,8 @@ module data_fsm #(
     assign DESXSIZE_INITIAL = {16'd0, desxsize_reg};
     assign src_xaddr_inc_sign = $signed(src_xaddr_inc);
     assign des_xaddr_inc_sign = $signed(des_xaddr_inc);
-    assign WLAST = (wr_state == W_W) ? ((des_x_left == 1)? 1 : 0) : 0;
+ //   assign WLAST = (wr_state == W_W) ? ((des_x_left == 1)? 1 : 0) : 0;
+  assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_x_left ? 1 : 0) : 0;
     assign WSTRB = (wr_state == W_W) ? ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0] : 0;
     assign WSTRB_wire = (wr_next_st == W_W) ? ((1 << (1 << transize)) - 1)<< wire_11[$clog2(DATA_W/8)-1:0] : 0;
     always@(*) begin
@@ -587,6 +589,8 @@ module data_fsm #(
                     if(BRESP < 1) begin
                         if(des_x_left > 'd0)
                             wr_next_st = W_AW;     
+                        else if(des_y_left > 0)
+                            wr_next_st = W_ROWS;
                         else
                             wr_next_st = W_TRIG_OUT; end
                     else
@@ -606,6 +610,13 @@ module data_fsm #(
             
             W_ERROR_ST:
                 wr_next_st = W_IDLE;
+            W_ROWS:
+            begin
+            if(des_y_left>1)
+            wr_next_st = W_AW;
+            else
+            wr_next_st = W_IDLE;
+            end
             
             default: wr_next_st = W_IDLE;
             endcase
@@ -728,7 +739,7 @@ module data_fsm #(
                    STAT_SRCTRIGINWAIT_DATA <= (use_src_trigin)?1'b1:0;
                     STAT_DESTRIGINWAIT_DATA <= (use_des_trigin)?1'b1:0;
                     src_y_left <= src_ysize;
-                    des_y_left <= des_ysize;
+                   
 //                   src_xsize_reload <= srcxsize_reg;
 //                   des_xsize_reload <= desxsize_reg;
 //                   src_addr_reload <= src_addr_reg;
@@ -829,7 +840,7 @@ module data_fsm #(
                 
                 RD_WAIT_TRIG: begin
                  src_x_left_initial <= src_x_left;
-                 des_x_left_initial <= des_x_left;
+               
 
 				if(use_src_trigin)
 				 src_trig_req_type_reg <= (src_trigin_type == 'b10) ? src_trig_req_type : (src_trigin_type == 'b00) ? src_trigin_sw_type : src_trig_req_type_reg;
@@ -1013,6 +1024,7 @@ always @(posedge clk or negedge resetn) begin
            DONE_temp <= 0;
            AWBURST <= 0;
            bus_error_w <= 'd0;
+           des_yaddr_stride_reg <= 'd0;
     end 
     else begin
             AWVALID      <= 0;
@@ -1031,8 +1043,9 @@ always @(posedge clk or negedge resetn) begin
                // wr_pause_state <= (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state; 
             case (wr_state)
                 W_IDLE: begin
-                
-
+                des_yaddr_stride_reg <= des_yaddr_stride;
+                     des_y_left <= des_ysize;
+                       des_x_left_initial <= des_x_left;
                // AWADDR <= des_addr_reg;
                      initial_tmplt_addr_des <= des_ADDR;
                     des_xsize_remaining <=desxsize_reg;// (des_trigin_blk_size > desxsize_reg)? desxsize_reg : des_trigin_blk_size;
@@ -1108,9 +1121,9 @@ always @(posedge clk or negedge resetn) begin
                                 if(l >= des_tmplt_size)
                                        l <= 0;end
                         end
-                    if (WREADY && des_x_left > 0) begin
+                if (WREADY && des_x_left > 0 && WVALID) begin
                         WDATA     <=  !(WREADY && WLAST) ? fifo_mem[fifo_rptr[4:0] + 1] & strobe_mask : WDATA;                       
-                    WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
+                  //  WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
                     des_x_left  <= des_x_left - 1;
                     fifo_rptr <= fifo_rptr + 1;
                     end
@@ -1152,6 +1165,18 @@ always @(posedge clk or negedge resetn) begin
                     DONE <= (restart_cnt_reg !=0 || cmd_restart_en)? 0 : 1;
                     DONE_temp <= 1;
                     //STAT_DONE_DATA <= !link_en ? 1 : 0;
+                end
+                W_ROWS: begin
+                 if(des_x_left == 0)
+                            des_y_left <= des_y_left - 1; 
+                    if(des_y_left > 0 )
+                    begin
+                        des_x_left <= des_x_left_initial;
+                        des_xsize_remaining <= des_x_left_initial;
+                        des_addr_reg <= des_addr_reg + des_yaddr_stride_reg;
+                    end
+                    else
+                        src_x_left <= src_x_left;
                 end
             endcase
         end
