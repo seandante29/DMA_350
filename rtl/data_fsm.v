@@ -539,7 +539,7 @@ module data_fsm #(
                     
                 RD_ROWS:
                 begin
-                if(src_y_left > 0)
+                if(src_y_left > 1)
                    rd_next_st = RD_AR;
                 else 
                    rd_next_st = RD_IDLE;
