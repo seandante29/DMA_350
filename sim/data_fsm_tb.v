@@ -65,7 +65,23 @@ reg [15:0]       des_xaddr_inc;
 reg [3:0]        src_max_burst_len;
 reg [3:0]        des_max_burst_len;
 
+
+//2d
+
+reg [15:0] src_yaddr_stride,des_yaddr_stride;
+reg [15:0] desysize,srcysize;
+reg [2:0] y_type;
+
+reg stop_cmd_apb;
+reg [1:0] src_trigin_sw_type,des_trigin_sw_type;
+reg cmd_restart_en;
+reg cmd_restart_cnt;
+reg [2:0] reg_reload_type;
+reg [2:0] done_type;
+reg [3:0] BID;
+
 //tmplt
+
 
     reg [4:0] des_tmplt_size;
     reg [4:0] src_tmplt_size;
@@ -218,6 +234,19 @@ data_fsm #(
     .des_tmplt      (des_tmplt),
     .src_tmplt      (src_tmplt),
     
+    .stop_cmd_apb(stop_cmd_apb),
+    .src_trigin_sw_type(src_trigin_sw_type),.des_trigin_sw_type(des_trigin_sw_type),
+    .cmd_restart_en(cmd_restart_en),
+    .cmd_restart_cnt(cmd_restart_cnt),
+    .reg_reload_type(cmd_restart_cnt),
+    .done_type(done_type),
+    .BID(BID),
+    
+    .y_type(y_type),
+    .des_ysize(desysize),
+    .src_ysize(srcysize),
+    .src_yaddr_stride(src_yaddr_stride),
+    .des_yaddr_stride(des_yaddr_stride),
     .ARREADY(ARREADY),
     .ARVALID(ARVALID),
     .ARADDR(ARADDR),
@@ -292,11 +321,37 @@ clk = 0;
 resetn = 0;
 #20 resetn = 1;
 
-src_tmplt_size = 'd7;
-des_tmplt_size = 'd7;
+src_tmplt_size = 'd0;
+des_tmplt_size = 'd0;
 
-src_tmplt = 'h0000_004D;
-des_tmplt = 'h0000_004D;
+src_tmplt = 'h0;
+des_tmplt = 'h0;
+
+LINKHDERR = 0;
+pause_cmd_partsel = 0;
+resume_cmd_partsel = 0;
+stop_cmd_apb = 0;
+stat_stop_intr_reg = 0;
+src_trigin_mode = 'd0;
+src_trigin_sel = 'd0;
+des_trigin_mode = 'd0;
+des_trigin_blk_size = 'd0;
+des_trigin_sel = 'd0;
+use_trigout = 'd0;
+trigout_type = 'd0;
+trigout_sel = 'd0;
+trig_out_ack_sw = 'd0;
+src_trigin_sw_type = 'd2;
+des_trigin_sw_type = 'd2;
+src_trigin = 'd0;
+des_trigin = 'd0;
+trig_out_ack = 'd0;
+cmd_restart_en = 'd0;
+cmd_restart_cnt = 'd0;
+reg_reload_type = 'd0;
+done_type = 'd0;
+RID = 0;
+
 
 enable_cmd_partsel = 1;
 cmd_done = 1;
@@ -316,7 +371,12 @@ transize ='d0;
 fillval = 'hFABCDE;
 srcxsize = 'd6;
 desxsize = 'd6;
+srcysize = 'd2;
+desysize = 'd2;
 x_type = 'd1;
+y_type = 'd1;
+src_yaddr_stride = 'd10;
+des_yaddr_stride = 'd10; 
 link_en = 'b1;
 src_xaddr_inc = 'b1;
 des_xaddr_inc = 'b1;
@@ -324,118 +384,74 @@ des_xaddr_inc = 'b1;
 src_trigin_blk_size = 'd7;
 src_max_burst_len = 'd2;
 des_max_burst_len = 'd2;
-src_trig_req_type = 'd1;
-des_trig_req_type = 'd1;
+src_trig_req_type = 'd2;
+des_trig_req_type = 'd2;
 //#20 cmd_done = 0;
 #20;
 // triggers
 use_src_trigin ='b1;
 use_des_trigin = 'b1;
-src_trigin_type = 2'b00 ; src_trigin_sw=1;
+src_trigin_type = 'd0 ; src_trigin_sw=1;
 #20;
-des_trigin_type = 2'b00; des_trigin_sw=1;
+des_trigin_type = 'd0; des_trigin_sw=1;
 
 // block 
 //1
 #30;
- ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-#15
 RRESP = 'b01;
-RVALID = 1'b1;
-
-RDATA = 128'hABC0; 
-RLAST = 1'b1;
-#10 RLAST = 1'b0;
-#30;
-//2
 AWREADY = 'b1;
 WREADY = 'b1;
-ARREADY = 'b1;
-//#30 ARREADY = 'b0;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
 
-RDATA = 128'hABC2; 
-RLAST = 1'b1;
-#10 RLAST = 1'b0;#20;
-//3
-//AWREADY = 'b1;
-ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-RDATA = 128'hABC3; 
+RVALID = 1'b1;
 
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0;
 RLAST = 1'b1;
 #10 RLAST = 1'b0;
-//4
-#40;
+RVALID = 1'b0;
 
-//AWREADY = 'b1;
 ARREADY = 'b1;
-//#30 ARREADY = 'b0;
+#30 ARREADY = 'b0;
+#10 
 
+RVALID = 1'b1;
 
-RDATA = 128'hABC6;
-RLAST = 1'b1;
-ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-RDATA = 128'hABC8; 
-
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0;
 RLAST = 1'b1;
 #10 RLAST = 1'b0;
-//4
-//AWREADY = 'b1;
-ARREADY = 'b1;
-//#30 ARREADY = 'b0;
+RVALID = 1'b0;
 
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
 
-RDATA = 128'hABCA;
+RVALID = 1'b1;
+
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0;
 RLAST = 1'b1;
-// RLAST = 1'b0;
+#10 RLAST = 1'b0;
+RVALID = 1'b0;
 
-////1
-//AWREADY = 'b1;
-//ARREADY = 'b1;
-//#30 ARREADY = 'b0;
+ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
 
+RVALID = 1'b1;
 
-
-//RDATA = 128'hABC2; #10;
-//RDATA = 128'hABC3; #10;
-//RDATA = 128'hABC4;
-//RLAST = 1'b1;
-//#10 RLAST = 1'b0;
-////2
-//AWREADY = 'b1;
-//ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-
-//RDATA = 128'hABC5; #10;
-//RDATA = 128'hABC6; #10;
-//RDATA = 128'hABC7; 
-//RLAST = 1'b1;
-//#10 RLAST = 1'b0;
-////3
-//AWREADY = 'b1;
-//ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-
-//RDATA = 128'hABC8;  #10;
-//RDATA = 128'hABC9; #10;
-//RDATA = 128'hABCa;
-//RLAST = 1'b1;
-//#10 RLAST = 1'b0;
-////4
-//AWREADY = 'b1;
-//ARREADY = 'b1;
-//#30// ARREADY = 'b0;
-
-
-//RDATA = 128'hABCb; #10;
-//RDATA = 128'hABCc;
-
-//RLAST = 1'b1;
-//#10 //RLAST = 1'b0;
-
-
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0; #10
+RDATA = 128'hABC0;
+RLAST = 1'b1;
+#10 RLAST = 1'b0;
+RVALID = 1'b0;
 
 #500 $finish;
 end
