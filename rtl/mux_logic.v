@@ -1,19 +1,19 @@
 module mux_logic #(parameter WIDTH = 32)
-	(
-	input wire [31:0] cmd_data,
-	input wire clk,resetn,
-	input wire link_en,data_done,
-	input wire [4:0] wptr,//input from cmd fsm
-	input wire [31:0] header_in,// from cmd fsm
-	// previous values
-	input  wire [31:0] CH_STATUS,	
-	input  wire [31:0] CH_CTRL,
-	input  wire [31:0] CH_INTREN,
+ (
+ input wire [31:0] cmd_data,
+ input wire clk,resetn,
+ input wire link_en,data_done,
+ input wire [4:0] wptr,//input from cmd fsm
+ input wire [31:0] header_in,// from cmd fsm
+ // previous values
+ input  wire [31:0] CH_STATUS, 
+ input  wire [31:0] CH_CTRL,
+ input  wire [31:0] CH_INTREN,
     input  wire [31:0] CH_XSIZE,
     input  wire [31:0] CH_LINKADDR,
     input  wire [31:0] CH_XADDRINC,
-	input  wire [31:0] CH_SRCTRANSCFG,// previous values
-	input  wire [31:0] CH_DESTRANSCFG,
+ input  wire [31:0] CH_SRCTRANSCFG,// previous values
+ input  wire [31:0] CH_DESTRANSCFG,
     input  wire [31:0] CH_SRCTRIGINCFG,
     input  wire [31:0] CH_DESTRIGINCFG,
     input  wire [31:0] CH_TRIGOUTCFG,
@@ -24,8 +24,9 @@ module mux_logic #(parameter WIDTH = 32)
     input wire [31:0] CH_DESTMPLT,
     input wire [31:0] CH_TMPLTCFG,
     input wire [31:0] CH_AUTOCFG,
-    
-	//reg bank input
+    input wire [31:0] CH_YSIZE,
+    input wire [31:0] CH_YADDRSTRIDE,
+ //reg bank input
     input wire cmd_done,// from cmd fsm after rlast and count!=0 and only for a cycle(+1cyc delay)
     input wire [31:0] SRCADDR_UPDATED,
     input wire [31:0]  DESADDR_UPDATED,
@@ -51,7 +52,9 @@ module mux_logic #(parameter WIDTH = 32)
     input wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
     input wire [WIDTH-1 : 0] cfg_CH_AUTOCFG,
     input wire [WIDTH-1 : 0] cfg_LINKADDR,
-     input wire [31:0] cfg_CH_SRCTMPLT,
+    input wire [WIDTH-1 : 0] cfg_CH_YADDRSTRIDE,
+    input wire [WIDTH-1 : 0] cfg_CH_YSIZE,
+    input wire [31:0] cfg_CH_SRCTMPLT,
     input wire [31:0] cfg_CH_DESTMPLT,
     input wire [31:0] cfg_CH_TMPLTCFG,
     input wire chn_cmd_wr_en_o,//wr en for all registers from apb(paddr && pwrite) - only in access state
@@ -73,10 +76,12 @@ module mux_logic #(parameter WIDTH = 32)
     input wire chn_destmplt_wr_en_o,
     input wire chn_tmpltcfg_wr_en_o,
     input wire chn_autocfg_wr_en_o,
-	// internal reg
-	output reg [(WIDTH * 19) -1:0] mux_out_reg//to internal reg 
-	);
-	
+    input wire chn_yaddr_wr_en_o,
+    input wire chn_ysize_wr_en_o,
+ // internal reg
+ output reg [(WIDTH * 21) -1:0] mux_out_reg//to internal reg 
+ );
+ 
     reg [31:0] cmd_data_mem [0:31];
     
     reg [1023:0] cmd_data_in;
@@ -100,6 +105,8 @@ module mux_logic #(parameter WIDTH = 32)
     reg chn_destmplt_wr_en_reg;
     reg chn_tmpltcfg_wr_en_reg;
     reg chn_autocfg_wr_en_reg;
+    reg chn_yaddr_wr_en_reg;
+    reg chn_ysize_wr_en_reg;
     wire [31:0] HEADER_CMD =header_in ;
     wire [31:0] CH_INTREN_CMD = cmd_data_in [(WIDTH*3)-1:(WIDTH*2)];
     wire [31:0] CH_CTRL_CMD   = cmd_data_in [(WIDTH*4)-1:(WIDTH*3)];
@@ -109,7 +116,9 @@ module mux_logic #(parameter WIDTH = 32)
     wire [31:0] CH_SRCTRANSCFG_CMD   = cmd_data_in [(WIDTH*11)-1:(WIDTH*10)];
     wire [31:0] CH_DESTRANSCFG_CMD   = cmd_data_in [(WIDTH*12)-1:(WIDTH*11)];
     wire [31:0] CH_XADDRINC_CMD   = cmd_data_in [(WIDTH*13)-1:(WIDTH*12)];
+    wire [31:0] CH_YADDRSTRIDE_CMD = cmd_data_in [(WIDTH*14)-1:(WIDTH*13)];
     wire [31:0] CH_FILLVAL_CMD   = cmd_data_in [(WIDTH*15)-1:(WIDTH*14)];
+    wire [31:0] CH_YSIZE_CMD   = cmd_data_in [(WIDTH*16)-1:(WIDTH*15)];
     wire [31:0] CH_TMPLTCFG_CMD = cmd_data_in [(WIDTH*17)-1:(WIDTH*16)];
     wire [31:0] CH_SRCTMPLT_CMD = cmd_data_in [(WIDTH*18)-1:(WIDTH*17)];
     wire [31:0] CH_DESTMPLT_CMD = cmd_data_in [(WIDTH*19)-1:(WIDTH*18)];    
@@ -120,7 +129,7 @@ module mux_logic #(parameter WIDTH = 32)
     wire [31:0] CH_LINKADDR_CMD = cmd_data_in [(WIDTH*31)-1:(WIDTH*30)];
     wire [31:0] DEFAULT_VALUE = 32'd0;
     wire REGCLEAR = HEADER_CMD[0];
-    wire [(WIDTH * 17) -1:0] concat_cmd;
+    wire [(WIDTH * 19) -1:0] concat_cmd;
     integer i,j;
     
     mux m0 (CH_CTRL,DEFAULT_VALUE,CH_CTRL_CMD,REGCLEAR,HEADER_CMD[3],concat_cmd[(WIDTH*2)-1:(WIDTH*1)]);
@@ -131,15 +140,17 @@ module mux_logic #(parameter WIDTH = 32)
     mux m5 (CH_SRCTRANSCFG,DEFAULT_VALUE,CH_SRCTRANSCFG_CMD,REGCLEAR,HEADER_CMD[10],concat_cmd[(WIDTH*6)-1:(WIDTH*5)]);
     mux m6 (CH_DESTRANSCFG,DEFAULT_VALUE,CH_DESTRANSCFG_CMD,REGCLEAR,HEADER_CMD[11],concat_cmd[(WIDTH*7)-1:(WIDTH*6)]);
     mux m7 (CH_XADDRINC,DEFAULT_VALUE,CH_XADDRINC_CMD,REGCLEAR,HEADER_CMD[12],concat_cmd[(WIDTH*8)-1:(WIDTH*7)]);
-    mux m8 (CH_FILLVAL,DEFAULT_VALUE,CH_FILLVAL_CMD,REGCLEAR,HEADER_CMD[14],concat_cmd[(WIDTH*9)-1:(WIDTH*8)]);
-    mux m9 (CH_TMPLTCFG,DEFAULT_VALUE,CH_TMPLTCFG_CMD,REGCLEAR,HEADER_CMD[16],concat_cmd[(WIDTH*10)-1:(WIDTH*9)]);
-    mux m10 (CH_SRCTMPLT,DEFAULT_VALUE,CH_SRCTMPLT_CMD,REGCLEAR,HEADER_CMD[17],concat_cmd[(WIDTH*11)-1:(WIDTH*10)]);
-    mux m11 (CH_DESTMPLT,DEFAULT_VALUE,CH_DESTMPLT_CMD,REGCLEAR,HEADER_CMD[18],concat_cmd[(WIDTH*12)-1:(WIDTH*11)]);
-    mux m12 (CH_SRCTRIGINCFG,DEFAULT_VALUE,CH_SRCTRIGINCFG_CMD,REGCLEAR,HEADER_CMD[19],concat_cmd[(WIDTH*13)-1:(WIDTH*12)]);
-    mux m13 (CH_DESTRIGINCFG,DEFAULT_VALUE,CH_DESTRIGINCFG_CMD,REGCLEAR,HEADER_CMD[20],concat_cmd[(WIDTH*14)-1:(WIDTH*13)]);
-    mux m14 (CH_TRIGOUTCFG,DEFAULT_VALUE,CH_TRIGOUTCFG_CMD,REGCLEAR,HEADER_CMD[21],concat_cmd[(WIDTH*15)-1:(WIDTH*14)]);
-    mux m15 (CH_AUTOCFG,DEFAULT_VALUE,CH_AUTOCFG_CMD,REGCLEAR,HEADER_CMD[29],concat_cmd[(WIDTH*16)-1:(WIDTH*15)]);
-    mux m16 (CH_LINKADDR,DEFAULT_VALUE,CH_LINKADDR_CMD,REGCLEAR,HEADER_CMD[30],concat_cmd[(WIDTH*17)-1:(WIDTH*16)]);
+    mux m8 (CH_YADDRSTRIDE,DEFAULT_VALUE,CH_YADDRSTRIDE_CMD,REGCLEAR,HEADER_CMD[13],concat_cmd[(WIDTH*18)-1:(WIDTH*17)]);
+    mux m9 (CH_FILLVAL,DEFAULT_VALUE,CH_FILLVAL_CMD,REGCLEAR,HEADER_CMD[14],concat_cmd[(WIDTH*9)-1:(WIDTH*8)]);
+    mux m10 (CH_YSIZE,DEFAULT_VALUE,CH_YSIZE_CMD,REGCLEAR,HEADER_CMD[15],concat_cmd[(WIDTH*19)-1:(WIDTH*18)]);
+    mux m11 (CH_TMPLTCFG,DEFAULT_VALUE,CH_TMPLTCFG_CMD,REGCLEAR,HEADER_CMD[16],concat_cmd[(WIDTH*10)-1:(WIDTH*9)]);
+    mux m12 (CH_SRCTMPLT,DEFAULT_VALUE,CH_SRCTMPLT_CMD,REGCLEAR,HEADER_CMD[17],concat_cmd[(WIDTH*11)-1:(WIDTH*10)]);
+    mux m13 (CH_DESTMPLT,DEFAULT_VALUE,CH_DESTMPLT_CMD,REGCLEAR,HEADER_CMD[18],concat_cmd[(WIDTH*12)-1:(WIDTH*11)]);
+    mux m14 (CH_SRCTRIGINCFG,DEFAULT_VALUE,CH_SRCTRIGINCFG_CMD,REGCLEAR,HEADER_CMD[19],concat_cmd[(WIDTH*13)-1:(WIDTH*12)]);
+    mux m15 (CH_DESTRIGINCFG,DEFAULT_VALUE,CH_DESTRIGINCFG_CMD,REGCLEAR,HEADER_CMD[20],concat_cmd[(WIDTH*14)-1:(WIDTH*13)]);
+    mux m16 (CH_TRIGOUTCFG,DEFAULT_VALUE,CH_TRIGOUTCFG_CMD,REGCLEAR,HEADER_CMD[21],concat_cmd[(WIDTH*15)-1:(WIDTH*14)]);
+    mux m17 (CH_AUTOCFG,DEFAULT_VALUE,CH_AUTOCFG_CMD,REGCLEAR,HEADER_CMD[29],concat_cmd[(WIDTH*16)-1:(WIDTH*15)]);
+    mux m18 (CH_LINKADDR,DEFAULT_VALUE,CH_LINKADDR_CMD,REGCLEAR,HEADER_CMD[30],concat_cmd[(WIDTH*17)-1:(WIDTH*16)]);
     
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin
@@ -162,6 +173,8 @@ module mux_logic #(parameter WIDTH = 32)
             chn_destmplt_wr_en_reg  <= 1'b0;
             chn_tmpltcfg_wr_en_reg  <= 1'b0;
             chn_autocfg_wr_en_reg <= 1'b0;
+            chn_yaddr_wr_en_reg <= 1'b0;
+            chn_ysize_wr_en_reg <= 1'b0;
         end
         else begin
             chn_cmd_wr_en_reg       <= chn_cmd_wr_en_o;
@@ -183,7 +196,8 @@ module mux_logic #(parameter WIDTH = 32)
             chn_destmplt_wr_en_reg  <= chn_destmplt_wr_en_o;
             chn_tmpltcfg_wr_en_reg  <= chn_tmpltcfg_wr_en_o;
             chn_autocfg_wr_en_reg <= chn_autocfg_wr_en_o;
-            
+            chn_yaddr_wr_en_reg <= chn_yaddr_wr_en_o;
+            chn_ysize_wr_en_reg <= chn_ysize_wr_en_o;
         end
     end
     
@@ -217,7 +231,7 @@ module mux_logic #(parameter WIDTH = 32)
     
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin
-            mux_out_reg [(WIDTH*19)-1 :0]  <= 'd0;
+            mux_out_reg [(WIDTH*21)-1 :0]  <= 'd0;
         end
         else begin
             // WORD 0 : CMD
@@ -283,6 +297,18 @@ module mux_logic #(parameter WIDTH = 32)
             else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*10)-1:(WIDTH*9)] <= concat_cmd[(WIDTH*8)-1:(WIDTH*7)];
             
+            // WORD 9 : YADDRSTRIDE
+            if (chn_yaddr_wr_en_reg)
+            mux_out_reg[(WIDTH*20)-1:(WIDTH*19)] <= cfg_CH_YADDRSTRIDE;
+            else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*20)-1:(WIDTH*19)] <= concat_cmd[(WIDTH*18)-1:(WIDTH*17)];
+            
+            // WORD 10 : YSIZE
+            if (chn_ysize_wr_en_reg)
+            mux_out_reg[(WIDTH*21)-1:(WIDTH*20)] <= cfg_CH_YSIZE;
+            else if ((link_en && data_done) || cmd_done)
+            mux_out_reg[(WIDTH*21)-1:(WIDTH*20)] <= concat_cmd[(WIDTH*19)-1:(WIDTH*18)];
+            
             // WORD 10 : FILLVAL
             if (chn_fillval_wr_en_reg)
             mux_out_reg[(WIDTH*11)-1:(WIDTH*10)] <= cfg_CH_FILLVAL;
@@ -338,4 +364,5 @@ module mux_logic #(parameter WIDTH = 32)
         end
     end
 endmodule
-	
+ 
+ 
