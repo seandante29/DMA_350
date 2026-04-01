@@ -147,7 +147,7 @@ assign resetn_posedge = resetn & ~resetn_d;
  
  //to reg bank
  assign reg_wr_en = IRQ  ? 1: 0;
- assign chn_reg_out = {intr_mem[0],intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[64],intr_mem[68],intr_mem[72],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120],intr_mem[144]};// error,status 
+ assign chn_reg_out = {intr_mem[0],intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[64],intr_mem[68],intr_mem[72],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120],intr_mem[144],intr_mem[52],intr_mem[60]};// error,status 
 assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign wrkregval_rd = intr_mem[140];
  
