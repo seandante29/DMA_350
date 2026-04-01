@@ -269,28 +269,31 @@ module data_fsm #(
 
     reg       bus_error_w, bus_error_r, done_signal, wr_start;
     assign bus_error = bus_error_r |bus_error_w;
-       always@(*) begin
-       
-        if(rd_state == RD_CONFIG  )
-        
-        k = src_tmplt_size;
-        while(src_tmplt[k] != 1)
-            k = k - 1;
-           // count_src_tmplt = k;
-            
-//            for( k = src_tmplt_size ; k >= 0; k = k - 1) 
-//                if(src_tmplt[k])
-//                    count_src_tmplt = k;
-      end
-      
-      always@(*) begin
-       
-        if(rd_state == RD_CONFIG  )
-            p = des_tmplt_size;
-        while(des_tmplt[p] != 1)
-            p = p - 1;
-      end
-      
+       integer q;
+always @(*) begin
+    k = 0;
+
+    if (rd_state == RD_CONFIG) begin
+        for (q = 0; q < 32; q = q + 1) begin
+            if ((q <= src_tmplt_size) && src_tmplt[q]) begin
+                k = q;  // keeps updating → highest index wins
+            end
+        end
+    end
+end
+      integer d;
+
+always @(*) begin
+    p = 0;  // default
+
+    if (rd_state == RD_CONFIG) begin
+        for (d = 0; d < 32; d = d + 1) begin
+            if ((d <= des_tmplt_size) && des_tmplt[d]) begin
+                p = d;  // highest index wins
+            end
+        end
+    end
+end
 //      always@(*) begin
 //      if(rd_state == RD_R )
 //      for (m=0; m < src_tmplt_size; m=m+1)                  	       
@@ -513,7 +516,7 @@ module data_fsm #(
                             
                          else if((cmd_restart_en || restart_cnt_reg != 0))
                           rd_next_st = RD_R; 
-                         else if(src_y_left > 0)
+                         else if((src_y_left > 0) &&(!src_tmplt_size))
                           rd_next_st  = RD_ROWS;
                          else
                         rd_next_st = RD_IDLE;      
@@ -590,7 +593,7 @@ module data_fsm #(
                     if(BRESP < 1) begin
                         if(des_x_left > 'd0)
                             wr_next_st = W_AW;     
-                        else if(des_y_left > 0)
+                        else if(des_y_left > 0 &&(!src_tmplt_size))
                             wr_next_st = W_ROWS;
                         else
                             wr_next_st = W_TRIG_OUT; end
