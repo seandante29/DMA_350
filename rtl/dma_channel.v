@@ -574,7 +574,7 @@ module dma_channel
 	.chn_srctmplt_wr_en_o (chn_srctmplt_wr_en_o),
 	.chn_autocfg_wr_en_o (chn_autocfg_wr_en_o),
 	.chn_ysize_wr_en_o(chn_ysize_wr_en_o),
-	.chn_yaddrestride_wr_en_o(chn_ysize_wr_en_o),
+	.chn_yaddr_wr_en_o(chn_yaddrestride_wr_en_o),
 	.mux_out_reg(mux_logic_in)
 	);               
 
