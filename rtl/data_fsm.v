@@ -162,6 +162,8 @@ module data_fsm #(
     wire [31:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
     reg [4:0] count_src_tmplt;//
     reg [4:0] count_des_tmplt;//
+    wire [31:0] src_yaddr_stride_signed;
+    wire [31:0] des_yaddr_stride_signed;
     // multiple reads
     reg [15:0] src_xsize_remaining;   
     reg [15:0] des_xsize_remaining; 
@@ -192,7 +194,8 @@ module data_fsm #(
 
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
     reg case1,case2,case3,case4,case5,case6;  // chnaged from wire to reg
-    
+     reg ycase1, ycase2, ycase3, ycase4, ycase5;
+     
     localparam RD_IDLE       = 5'd0,
                RD_WAIT       = 5'd1,
                RD_CONFIG     = 5'd2,
@@ -228,15 +231,36 @@ module data_fsm #(
     
     wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
     wire empty = (fifo_wptr == fifo_rptr);
-
+     wire ycase1_wire = ((srcxsize == 0 || src_ysize == 0) &&
+                                       (!(desxsize > 0 && des_ysize > 0)));
+                        
+                        //write only
+           wire  ycase2_wire = (!ycase1_wire) &&
+                                       ((srcxsize == 0)||(src_ysize ==0)) &&
+                                       (desxsize > 0) && (des_ysize > 0);
+                        
+                        //read only
+           wire  ycase3_wire = (!ycase1_wire) &&
+                                       ((desxsize == 0)||(des_ysize == 0)) &&
+                                       (srcxsize > 0) && (src_ysize > 0);
+                        
+                        //1d to 1d
+            wire    ycase4_wire = (!ycase1_wire && !ycase2_wire && !ycase3_wire) &&
+                                       (srcxsize > 0 && src_ysize == 1) &&
+                                       (desxsize > 0 && des_ysize == 1);
+                        
+   
+   wire test_ycase =!(ycase1_wire || ycase2_wire || ycase3_wire || ycase4_wire);
+   
+   
     reg [4:0] wr_pause_state_q;
     reg [4:0] rd_pause_state_q;
    
     reg DONE_temp;
     reg [15:0]src_xsize_reload,des_xsize_reload;
     reg [31:0] src_addr_reload,des_addr_reload;
-    reg [15:0] src_yaddr_stride_reg;
-     reg [15:0] des_yaddr_stride_reg;
+    reg [15:0] src_yaddr_stride_reg; //not using
+     reg [15:0] des_yaddr_stride_reg; //not using
     
     assign config_error = config_error_size | config_error_src | config_error_des | config_error_trigout | 
                           config_error_inc | config_error_x_type | config_error_case3 | config_error_case6 | config_error_transize;
@@ -249,6 +273,9 @@ module data_fsm #(
     assign DESXSIZE_INITIAL = {16'd0, desxsize_reg};
     assign src_xaddr_inc_sign = $signed(src_xaddr_inc);
     assign des_xaddr_inc_sign = $signed(des_xaddr_inc);
+    assign src_yaddr_stride_signed = $signed(src_yaddr_stride);
+    assign des_yaddr_stride_signed = $signed(des_yaddr_stride);
+    
  //   assign WLAST = (wr_state == W_W) ? ((des_x_left == 1)? 1 : 0) : 0;
   //assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_x_left ? 1 : 0) : 0;
   wire  WVALID_wire = ((empty) ||(WREADY && WLAST)||(stop_cmd_apb)||(wr_state != W_W)) ? 0 : 1;
@@ -271,7 +298,7 @@ module data_fsm #(
     assign bus_error = bus_error_r |bus_error_w;
        integer q;
 always @(*) begin
-    k = 0;
+   // k = 0;
 
     if (rd_state == RD_CONFIG) begin
         for (q = 0; q < 32; q = q + 1) begin
@@ -284,7 +311,7 @@ end
       integer d;
 
 always @(*) begin
-    p = 0;  // default
+  //  p = 0;  // default
 
     if (rd_state == RD_CONFIG) begin
         for (d = 0; d < 32; d = d + 1) begin
@@ -309,7 +336,7 @@ end
             SRCADDR_UPDATED <= 'd0;
             DESADDR_UPDATED <= 'd0;
             XSIZE_UPDATED <= 'd0;
-            src_yaddr_stride_reg <='d0;
+          //  src_yaddr_stride_reg <='d0;
         end
         else begin
             wr_en_for_updated <=(rd_state > RD_CONFIG && rd_state <= RD_PAUSED);
@@ -452,10 +479,14 @@ end
                   
                     if (config_error)
                         rd_next_st = RD_ERROR_ST;
-                    else if (case1 || x_type == 0)
+                    else if (case1 || x_type == 0 || ycase1)
                         rd_next_st = RD_IDLE;
                     else if (case2)
                         rd_next_st = (x_type == 3) ? RD_WAIT_TRIG : RD_ERROR_ST; 
+                     else if(ycase2)
+                        rd_next_st = ((x_type == 3 && y_type == 3) ) ? RD_WAIT_TRIG : RD_ERROR_ST;
+                   else if(ycase3)
+                        rd_next_st = RD_WAIT_TRIG;
                     else if (case3)
                         rd_next_st = RD_ERROR_ST;
                     else if (case6)
@@ -573,7 +604,7 @@ end
                 if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
                     if(done_signal)  
                         wr_next_st = W_DONE_ST;
-                    else if(wr_start)
+                    else if(wr_start && !ycase3)
                         wr_next_st = W_AW;
                 end
              W_PAUSED:
@@ -636,6 +667,7 @@ end
               STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
             {config_error_size, config_error_src,config_error_transize, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
+            {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
             //rd_pause_state <= RD_IDLE;
             fifo_wptr       <= 0;
           // fifo_rptr       <= 0;
@@ -683,6 +715,7 @@ end
             case (rd_state)
                 RD_IDLE: begin
                     done_signal <= 0;
+                      m <= 0;
                     if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
                         if(LINKHDERR) done_signal <= 1;
                     end
@@ -706,12 +739,34 @@ end
                     fifo_wptr       <= 0;
                     reg2 <= reg1;
                     if(reg2) begin
-                        case1 <= (srcxsize == 0 && desxsize == 0);
-                        case2 <= (srcxsize == 0 && desxsize > 0);
-                        case3 <= (srcxsize > 0 && desxsize == 0);
-                        case4 <= (srcxsize == desxsize && srcxsize > 0);
-                        case5 <= ((srcxsize > desxsize) && (desxsize != 0));
-                        case6 <= ((srcxsize < desxsize) && (srcxsize !=0));
+                     // no trnasfer
+                        ycase1 <= ((srcxsize == 0 || src_ysize == 0) &&
+                                       (!(desxsize > 0 && des_ysize > 0)));
+                        
+                        //write only
+                        ycase2 <= (!ycase1_wire) &&
+                                       ((srcxsize == 0)||(src_ysize ==0)) &&
+                                       (desxsize > 0) && (des_ysize > 0);
+                        
+                        //read only
+                        ycase3 <= (!ycase1_wire) &&
+                                       ((desxsize == 0)||(des_ysize == 0)) &&
+                                       (srcxsize > 0) && (src_ysize > 0);
+                        
+                        //1d to 1d
+                        ycase4 <= (!ycase1_wire && !ycase2_wire && !ycase3_wire) &&
+                                       (srcxsize > 0 && src_ysize == 1) &&
+                                       (desxsize > 0 && des_ysize == 1);
+                        
+                        //2d to 2d/1d
+                        ycase5 <= (test_ycase) &&
+                                       ((src_ysize > 1) || (des_ysize > 1));
+                        case1 <= ((srcxsize == 0 && desxsize == 0));
+                        case2 <= ((srcxsize == 0 && desxsize > 0));
+                        case3 <= ((srcxsize > 0 && desxsize == 0));
+                        case4 <= ((srcxsize == desxsize && srcxsize > 0));
+                        case5 <= (((srcxsize > desxsize) && (desxsize != 0)));
+                        case6 <= (((srcxsize < desxsize) && (srcxsize !=0)));
                     end
                     srcxsize_reg <= srcxsize; //(src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
                     desxsize_reg <= desxsize;//(des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
@@ -727,7 +782,7 @@ end
                  
                    src_addr_reload <= SRCADDR_INITIAL;
                    des_addr_reload <= DESADDR_INITIAL;
-                   src_yaddr_stride_reg <= src_yaddr_stride;  // initalize yaddr stride here
+                   src_yaddr_stride_reg <= src_yaddr_stride_signed;  // initalize yaddr stride here
                    restart_cnt_reg <= (DONE_temp)? (restart_cnt_reg ): cmd_restart_cnt ;
 //                    if(reg2) begin
 //                        case1 <= (srcxsize == 0 && desxsize == 0);
@@ -777,7 +832,7 @@ end
                         
                    des_trig_req_type_reg <= 'd1;
                    src_trig_req_type_reg <= 'd1;
-                    if (case1 || x_type == 0) done_signal <= 1;
+                    if ((case1 || x_type == 0)||(ycase1 || (y_type == 0))) done_signal <= 1;
 
                     wdata_mask <= {DATA_W{1'b0}};
                     for (i = 0; i < DATA_W; i = i + 1) begin
@@ -814,17 +869,20 @@ end
                         end
                     end
                     
-                    if (case1) begin
+                    if (((ycase1 || ycase2)&&(y_type!=0))||(case1)) begin   //no transfer
                         src_x_left <= 0;
-                    end else if (case2) begin
-                        if (x_type == 3) begin
-                            src_x_left <= 0;
-                        end else if (x_type == 0)
+                    end else if (case2  || ycase2) begin  //write only
+                        if ((x_type == 3 && case2)||(ycase2 && y_type == 3 && x_type ==3)) 
+                        begin
+                            src_x_left <= desxsize;
+                        end else if (x_type == 0 && y_type == 0)
                             config_error_x_type <= 0;
                         else
                             config_error_x_type <= 1;
-                    end else if (case3)
-                        config_error_case3 <= 1;
+                        end 
+                    else if (case3 || (ycase3)) //read only
+                              src_x_left <= srcxsize;
+                       // config_error_case3 <= 1;
                     else if (case4 || case5) begin
                         /*if((cmd_restart_en || cmd_restart_cnt != 0))
                             src_x_left <= (src_trigin_blk_size > src_xsize_reload)?src_xsize_reload:src_trigin_blk_size;
@@ -886,7 +944,7 @@ end
                     else if(src_trig_req_type_reg == 'd2)
                         ARLEN <= ((src_xsize_remaining - 1) > src_max_burst_len) ? src_max_burst_len : src_xsize_remaining - 1;
                     
-                    ARBURST <= (src_xaddr_inc == 1) ? 2'b01 : 2'b00;
+                    ARBURST <= ((src_xaddr_inc == 1)) ? 2'b01 : 2'b00;
                     ARSIZE  <= transize;
                     ARID    <= 0;
                    // ARVALID <= 1;
@@ -991,14 +1049,16 @@ end
                     begin
                         src_x_left <= src_x_left_initial;
                         src_xsize_remaining <= src_x_left_initial;
-                        src_addr_reg <= src_addr_reg + (src_yaddr_stride_reg *(2** transize));
+                        src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
                     end
                     else
                         src_x_left <= src_x_left;
+                        if(ycase3 && src_y_left ==1 )
+                            done_signal <=1;
                 end
             endcase
             
-            if(rd_state == RD_R/* && fifo_wptr == {2'b00,AWLEN}*/&& RLAST)
+            if((rd_state == RD_R&& RLAST)||(ycase2))
                 wr_start <= 1;
         end
     end
@@ -1029,7 +1089,7 @@ always @(posedge clk or negedge resetn) begin
            DONE_temp <= 0;
            AWBURST <= 0;
            bus_error_w <= 'd0;
-           des_yaddr_stride_reg <= 'd0;
+          // des_yaddr_stride_reg <= 'd0;
     end 
     else begin
             AWVALID      <= 0;
@@ -1049,7 +1109,8 @@ always @(posedge clk or negedge resetn) begin
                // wr_pause_state <= (wr_next_st  != W_PAUSED )? wr_next_st :wr_pause_state; 
             case (wr_state)
                 W_IDLE: begin
-                des_yaddr_stride_reg <= des_yaddr_stride;
+                l<=0;
+                des_yaddr_stride_reg <= des_yaddr_stride_signed;
                      des_y_left <= des_ysize;
                        des_x_left_initial <= des_x_left;
                // AWADDR <= des_addr_reg;
@@ -1061,14 +1122,16 @@ always @(posedge clk or negedge resetn) begin
                     end
                    
                     fifo_rptr   <= 0;
-                 if (case1) begin
+                 if (((ycase1 || ycase2)&&(y_type!=0))||(case1)) begin
                         des_x_left <= 0;
                     end 
-                    else if (case2) begin
-                        if (x_type == 3) begin
+                    else if (case2  || ycase2) begin
+                        if ((x_type == 3 && case2)||(ycase2 && y_type == 3 && x_type ==3)) begin
                             des_x_left <= desxsize;//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
                         end 
                     end 
+                      else if (case3 || (ycase3)) //read only
+                              des_x_left <= 0;
                     else if (case4 || case5) begin
                         des_x_left <= desxsize;//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
                     end 
@@ -1123,7 +1186,7 @@ always @(posedge clk or negedge resetn) begin
                     //WVALID <= ((des_x_left == (des_xsize_remaining - AWLEN+1) && WREADY) || fifo_wptr == fifo_rptr) ? 0 : 1;
                     if(WVALID && WREADY && WLAST) 
                         des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
-                  if(WVALID_wire && WREADY && WLAST) begin
+                  if(WVALID && WREADY && WLAST) begin
 //                        des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
                         if(des_tmplt_size != 0) begin
                                  l <= l + 1;
@@ -1183,7 +1246,7 @@ always @(posedge clk or negedge resetn) begin
                     begin
                         des_x_left <= des_x_left_initial;
                         des_xsize_remaining <= des_x_left_initial;
-                        des_addr_reg <= des_addr_reg + (des_yaddr_stride_reg *(2** transize));
+                        des_addr_reg <= des_addr_reg + (des_yaddr_stride_signed *(2** transize));
                     end
                     else
                         src_x_left <= src_x_left;
