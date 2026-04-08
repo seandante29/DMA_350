@@ -131,8 +131,8 @@ module data_fsm #(
     output reg  [31:0]          XSIZE_UPDATED,
     output reg                  wr_en_for_updated,
     
-    output wire [31:0]          SRCADDR_INITIAL,
-    output wire [31:0]          DESADDR_INITIAL,
+    output reg [31:0]          SRCADDR_INITIAL,
+    output reg [31:0]          DESADDR_INITIAL,
     output wire [31:0]          SRCXSIZE_INITIAL,
     output wire [31:0]          DESXSIZE_INITIAL,
 
@@ -165,21 +165,22 @@ module data_fsm #(
     wire [31:0] src_yaddr_stride_signed;
     wire [31:0] des_yaddr_stride_signed;
     // multiple reads
-    reg [15:0] src_xsize_remaining;   
-    reg [15:0] des_xsize_remaining; 
+    reg [15:0] src_xsize_remaining,src_ysize_remaining;   
+    reg [15:0] des_xsize_remaining,des_ysize_remaining; 
     reg [1:0] src_trig_req_type_reg;
     reg [1:0] des_trig_req_type_reg;
     //
 	 reg [1:0] des_trigin_sw_type_reg,src_trigin_sw_type_reg;
     reg        reg1, reg2;
     reg        cmd_done_reg;
-    reg [15:0] src_x_left, des_x_left, fill_count, src_y_left, des_y_left;
+    reg [15:0] src_x_left, des_x_left, fill_count,fill_count_y, src_y_left, des_y_left,r1;
     reg [15:0] src_x_left_initial, des_x_left_initial;
     reg [15:0] src_x_addr_inital, des_x_addr_initial;
     reg [7:0]  wrap_rd_ptr;
     reg [DATA_W-1:0] wdata_mask;
     integer    i;
     reg [15:0] srcxsize_reg, desxsize_reg;
+    reg [15:0] srcysize_reg, desysize_reg;   
 
     reg [DATA_W - 1:0] fifo_mem [0:31];
     reg [5:0]   fifo_wptr;
@@ -267,8 +268,8 @@ module data_fsm #(
     assign regvalerr    = regvalerr_src | regvalerr_des | regvalerr_trigout;
     assign ERROR        = config_error || ard_error || arpoison_error || awr_error || bus_error;
     
-    assign SRCADDR_INITIAL  = src_addr_reg;
-    assign DESADDR_INITIAL  = des_addr_reg;
+//    assign SRCADDR_INITIAL  = src_addr_reg;
+//    assign DESADDR_INITIAL  = des_addr_reg;
     assign SRCXSIZE_INITIAL = {16'd0, srcxsize_reg};
     assign DESXSIZE_INITIAL = {16'd0, desxsize_reg};
     assign src_xaddr_inc_sign = $signed(src_xaddr_inc);
@@ -578,6 +579,8 @@ end
                 begin
                 if(src_y_left > 1)
                    rd_next_st = RD_AR;
+                else if  (( fill_count_y > 0) && ( (y_type == 3) && (ycase2  || ycase5)))
+                    rd_next_st = RD_WRAP_FILL;
                 else 
                    rd_next_st = RD_IDLE;
                 end
@@ -657,17 +660,19 @@ end
             endcase
         end
     end
-    
+    integer r;
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin
-            {ARVALID, RREADY,des_addr_reg, src_addr_reg, wdata_mask,
-            ard_error, ARADDR, desxsize_reg, ARID, ARSIZE,ARQOS, ARBURST, srcxsize_reg, ARLEN,src_xsize_remaining,src_trig_req_type_reg,des_trig_req_type_reg,
+            {ARVALID, RREADY,des_addr_reg, src_addr_reg, wdata_mask,r1,
+            ard_error, ARADDR, desxsize_reg,desysize_reg, ARID, ARSIZE,ARQOS, ARBURST, srcxsize_reg, srcysize_reg,ARLEN,src_xsize_remaining,src_ysize_remaining,src_trig_req_type_reg,des_trig_req_type_reg,
              arpoison_error, bus_error_r, cmd_done_reg} <= 0;
             { STAT_RESUMEWAIT_DATA,
               STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
             {config_error_size, config_error_src,config_error_transize, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
             {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
+            SRCADDR_INITIAL  <= 0;
+            DESADDR_INITIAL  <= 0;
             //rd_pause_state <= RD_IDLE;
             fifo_wptr       <= 0;
           // fifo_rptr       <= 0;
@@ -770,6 +775,8 @@ end
                     end
                     srcxsize_reg <= srcxsize; //(src_trigin_blk_size > srcxsize)?srcxsize:src_trigin_blk_size;
                     desxsize_reg <= desxsize;//(des_trigin_blk_size > desxsize)?desxsize:des_trigin_blk_size;
+                    srcysize_reg <= src_ysize; 
+                    desysize_reg <= des_ysize;
                      src_addr_reg <= SRC_ADDR; //added for 2d change
                     des_addr_reg <= des_ADDR;
                    if((restart_cnt_reg > 0 || cmd_restart_en)&& !DONE_temp)begin
@@ -798,7 +805,8 @@ end
                    STAT_SRCTRIGINWAIT_DATA <= (use_src_trigin)?1'b1:0;
                     STAT_DESTRIGINWAIT_DATA <= (use_des_trigin)?1'b1:0;
                     src_y_left <= src_ysize;
-                   
+                   SRCADDR_INITIAL  <= src_addr_reg;
+                    DESADDR_INITIAL  <= des_addr_reg;
 //                   src_xsize_reload <= srcxsize_reg;
 //                   des_xsize_reload <= desxsize_reg;
 //                   src_addr_reload <= src_addr_reg;
@@ -883,10 +891,17 @@ end
                     else if (case3 || (ycase3)) //read only
                               src_x_left <= srcxsize;
                        // config_error_case3 <= 1;
-                    else if (case4 || case5) begin
+                    else if (case4 || case5 || ycase5) begin
                         /*if((cmd_restart_en || cmd_restart_cnt != 0))
                             src_x_left <= (src_trigin_blk_size > src_xsize_reload)?src_xsize_reload:src_trigin_blk_size;
                         else*/
+                        case(y_type)
+                            0:src_y_left <= 0;
+                            1:src_y_left <= src_ysize;
+                            2:src_y_left <= des_ysize;
+                            3:src_y_left <= src_ysize;
+                            default : src_y_left <= src_ysize;
+                       endcase
                             src_x_left <= desxsize;//(src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size;
                     end else if (case6) begin
                         case (x_type)
@@ -897,6 +912,14 @@ end
                             default: begin src_x_left <= srcxsize; config_error_case6 <= 1; end
                         endcase
                     end
+                    else if(ycase5)
+                        case(y_type)
+                            0:src_y_left <= 0;
+                            1:src_y_left <= src_ysize;
+                            2:src_y_left <= des_ysize;
+                            3:src_y_left <= src_ysize;
+                            default : src_y_left <= src_ysize;
+                       endcase
                     //fill_count <= ((srcxsize < desxsize) && x_type == 3 && (case2 || case6)) ? ((desxsize - srcxsize) & 16'hFFFF) : 0;//
                 end
                 
@@ -932,7 +955,9 @@ end
                         STAT_DESTRIGINWAIT_DATA <= 1'b1;
                     end
                     src_xsize_remaining <= srcxsize_reg;//(src_trigin_blk_size > srcxsize_reg )? srcxsize_reg:src_trigin_blk_size;
+                    src_ysize_remaining <= srcysize_reg;
                     fill_count <= ((src_x_left < des_x_left) && x_type == 3 && (case2 || case6)) ? ((des_x_left - src_x_left) & 16'hFFFF) : 0;//
+                    fill_count_y <= ((src_y_left < des_y_left) && y_type == 3 && (ycase2 || ycase5)) ? ((des_y_left - src_y_left) & 16'hFFFF) : 0;
                 end 
                 
                 RD_AR: begin                   
@@ -1038,17 +1063,32 @@ end
                                 fill_count          <= fill_count - 1;
                                 fifo_wptr           <= fifo_wptr + 1;
                             end
+                            else if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5)) begin
+                                for(r = 0; r < srcxsize ; r=r+1)begin
+                                    fifo_mem[fifo_wptr[4:0]] <= {96'd0, fillval};
+                                    fifo_wptr           <= fifo_wptr + 1;
+                                    r1 <= r1+1;end
+                                    fill_count_y <= (r1 == srcxsize-1)? fill_count_y - 1 : fill_count_y;
+                            end
                         end
                         default: fifo_mem[fifo_wptr[4:0]] <= fifo_mem[fifo_wptr[4:0]];
                     endcase
                 end
                 RD_ROWS: begin
                    if(src_x_left == 0)
+                            begin
+                            src_ysize_remaining <= src_ysize_remaining - 1;
                             src_y_left <= src_y_left - 1; 
+                            end
                     if(src_y_left > 0 )
                     begin
                         src_x_left <= src_x_left_initial;
                         src_xsize_remaining <= src_x_left_initial;
+                        if((ycase5 && y_type == 2) && src_ysize_remaining == 1 && src_y_left !=1)begin
+                            src_ysize_remaining <= (src_y_left > srcysize_reg)?srcysize_reg:src_y_left;
+                            src_addr_reg  <= SRCADDR_INITIAL;
+                        end
+                        else 
                         src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
                     end
                     else
