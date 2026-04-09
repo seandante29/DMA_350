@@ -1172,8 +1172,16 @@ always @(posedge clk or negedge resetn) begin
                     end 
                       else if (case3 || (ycase3)) //read only
                               des_x_left <= 0;
-                    else if (case4 || case5) begin
+                    else if (case4 || case5 || ycase5) begin
                         des_x_left <= desxsize;//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
+                         case(y_type)
+                            0:des_y_left <= 0;
+                            1:des_y_left <= src_ysize;
+                            2:des_y_left <= des_ysize;
+                            3:des_y_left <= des_ysize;
+                            default : des_y_left <= des_ysize;
+                       endcase
+                        
                     end 
                     else if (case6) begin
                         case (x_type)
