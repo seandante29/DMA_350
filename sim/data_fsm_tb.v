@@ -112,7 +112,7 @@ wire [ADDR_W-1:0] ARADDR;
 wire [2:0]        ARSIZE;
 wire [1:0]        ARBURST;
 wire [ID_W-1:0]   ARID;
-wire [7:0]        ARLEN;
+wire [3:0]        ARLEN;
 wire              RREADY;
 
 wire              AWVALID;
@@ -120,10 +120,10 @@ wire [ADDR_W-1:0] AWADDR;
 wire [2:0]        AWSIZE;
 wire [1:0]        AWBURST;
 wire [ID_W-1:0]   AWID;
-wire [7:0]        AWLEN;
+wire [3:0]        AWLEN;
 
 wire              WVALID;
-wire [DATA_W-1:0] WDATA;
+wire [31:0] WDATA;
 wire              WLAST;
 wire              BREADY;
 
@@ -239,7 +239,7 @@ data_fsm #(
     .src_trigin_sw_type(src_trigin_sw_type),.des_trigin_sw_type(des_trigin_sw_type),
     .cmd_restart_en(cmd_restart_en),
     .cmd_restart_cnt(cmd_restart_cnt),
-    .reg_reload_type(reg_reload_type),
+    .reg_reload_type(cmd_restart_cnt),
     .done_type(done_type),
     .BID(BID),
     
@@ -368,26 +368,26 @@ BVALID = 'b1;
 // config
 des_ADDR ='hf0;
 SRC_ADDR = 300;
-transize ='d4;
-fillval = 'hFABCDE;
+transize ='d2;
+fillval = 'hFABCFABCFABCFABCFABCFABCFABCFABC;
 
-srcxsize = 'd5;
+srcxsize = 'd3;
 srcysize = 'd2;
-desxsize = 'd5;
+desxsize = 'd2;
 desysize = 'd3;
 
-x_type = 'd2;
-y_type = 'd2;
-src_yaddr_stride = 'h10;
-des_yaddr_stride = 'h10; 
+x_type = 'd1;
+y_type = 'd1;
+src_yaddr_stride = 10;
+des_yaddr_stride = 10; 
 link_en = 'b1;
 src_xaddr_inc = 1;
 des_xaddr_inc = 1;
 
 
 src_trigin_blk_size = 'd7;
-src_max_burst_len = 'd2;
-des_max_burst_len = 'd2;
+src_max_burst_len = 'd1;
+des_max_burst_len = 'd1;
 src_trig_req_type = 'd2;
 des_trig_req_type = 'd2;
 //#20 cmd_done = 0;
@@ -398,7 +398,6 @@ use_des_trigin = 'b1;
 src_trigin_type = 'd0 ; src_trigin_sw=1;
 #20;
 des_trigin_type = 'd0; des_trigin_sw=1;
-
 // block 
 //1
 
@@ -406,22 +405,155 @@ des_trigin_type = 'd0; des_trigin_sw=1;
 RRESP = 'b01;
 AWREADY = 'b1;
 WREADY = 'b1;
+//1
  ARREADY = 'b1;
 #30 ARREADY = 'b0;
 #10 
 
 RVALID = 1'b1;
 
-RDATA = 128'hABC0; 
-#10 RDATA = 128'hABC1; 
-#10 RDATA = 128'hABC2; 
+RDATA = 128'hABC0ABC0ABC0ABC0ABC0ABC0ABC0ABC0; 
+#10 RDATA = 128'hABC1ABC1ABC1ABC1ABC1ABC1ABC1ABC1; 
+
 RLAST = 1;
 #10 RLAST = 0;
+
+RVALID = 1'b0;
  ARREADY = 'b1;
- WREADY = 0;
+ WREADY = 1;
 #30 ARREADY = 'b0;
- RDATA = 128'hABC3; 
-#10 RDATA = 128'hABC4; 
+#15;
+RVALID = 1'b1;
+ RDATA = 128'hABC2ABC2ABC2ABC2ABC2ABC2ABC2ABC2; 
+ //#10 RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3; 
+ RLAST = 1;
+#10 RLAST = 0;
+
+ 
+
+RVALID = 1'b0;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3;
+#10;
+ RDATA = 128'hABC4ABC4ABC4ABC4ABC4ABC4ABC4ABC4;
+
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 0;
+
+
+//2
+
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 128'hABC5ABC5ABC5ABC5ABC5ABC5ABC5ABC5; 
+//#10 RDATA = 128'hABC6ABC6ABC6ABC6ABC6ABC6ABC6ABC6; 
+
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+ ARREADY = 'b1;
+ WREADY = 1;
+#30 ARREADY = 'b0;
+#15;
+RVALID = 1'b1;
+ RDATA = 128'hABC7ABC7ABC7ABC7ABC7ABC7ABC7ABC7; 
+ #10 RDATA = 128'hABC8ABC8ABC8ABC8ABC8ABC8ABC8ABC8; 
+ RLAST = 1;
+#10 RLAST = 0;
+
+ 
+
+RVALID = 1'b0;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+ RDATA = 128'hABC9ABC9ABC9ABC9ABC9ABC9ABC9ABC9;
+
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+//3
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 128'hABC0ABC0ABC0ABC0ABC0ABC0ABC0ABC0; 
+#10 RDATA = 128'hABC1ABC1ABC1ABC1ABC1ABC1ABC1ABC1; 
+
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+ ARREADY = 'b1;
+ WREADY = 1;
+#30 ARREADY = 'b0;
+#15;
+RVALID = 1'b1;
+ RDATA = 128'hABC2ABC2ABC2ABC2ABC2ABC2ABC2ABC2; 
+ #10 RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3; 
+ RLAST = 1;
+#10 RLAST = 0;
+
+ 
+
+RVALID = 1'b0;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+ RDATA = 128'hABC4ABC4ABC4ABC4ABC4ABC4ABC4ABC4;
+
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+///////////////////////////////////////////////////////////////
+RVALID = 1'b0;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+ RDATA =    128'hABC6ABC6ABC6ABC6ABC6ABC6ABC6ABC6; 
+
+
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+ RDATA = 128'hABC7ABC7ABC7ABC7ABC7ABC7ABC7ABC7;
+#10 RDATA = 128'hABC8ABC8ABC8ABC8ABC8ABC8ABC8ABC8; 
+RLAST = 1;
+#10 RLAST = 0;
+RVALID = 1'b0;
+ ARREADY = 'b1;
+ WREADY = 1;
+#30 ARREADY = 'b0;
+RVALID = 1'b1;
+ RDATA = 128'hABC9ABC9ABC9ABC9ABC9ABC9ABC9ABC9; 
 RLAST = 1;
 #10 RLAST = 0; 
 
@@ -437,26 +569,7 @@ RDATA = 128'hABC5;
 RLAST = 1;
 #10 RLAST = 0;
  ARREADY = 'b1;
- WREADY = 0;
-#30 ARREADY = 'b0;
- RDATA = 128'hABC8; 
-#10 RDATA = 128'hABC9; 
-RLAST = 1;
-#10 RLAST = 0; 
-
- ARREADY = 'b1;
-#30 ARREADY = 'b0;
-#10 
-
-RVALID = 1'b1;
-
-RDATA = 128'hABC5; 
-#10 RDATA = 128'hABC6; 
-#10 RDATA = 128'hABC7; 
-RLAST = 1;
-#10 RLAST = 0;
- ARREADY = 'b1;
- WREADY = 0;
+ WREADY = 1;
 #30 ARREADY = 'b0;
  RDATA = 128'hABC8; 
 #10 RDATA = 128'hABC9; 
@@ -464,6 +577,6 @@ RLAST = 1;
 #10 RLAST = 0; 
 
 WREADY = 1;
-#500 $finish;
+#1000 $finish;
 end
 endmodule
