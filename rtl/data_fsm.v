@@ -680,6 +680,7 @@ end
             {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
             SRCADDR_INITIAL  <= 0;
             DESADDR_INITIAL  <= 0;
+            r <= 0;
             //rd_pause_state <= RD_IDLE;
             fifo_wptr       <= 0;
           // fifo_rptr       <= 0;
@@ -942,7 +943,19 @@ end
                                         default: src_y_left <= src_ysize;
                                         endcase
                                        end
-                                  else if((((srcxsize * src_ysize) % desxsize) == 0) && x_type == 1)
+                                  else if((((srcxsize * src_ysize) == (desxsize * des_ysize))) && x_type == 1)
+                                        begin
+                                       src_x_left <= srcxsize;
+                                        case(y_type)
+                                            0 : src_y_left <= src_ysize;
+                                            1 : src_y_left <= src_ysize; //continue
+                                            2 : src_y_left <= src_ysize; // wrap
+                                            3 : src_y_left <= src_ysize; //fill
+                                        default: src_y_left <= src_ysize;
+                                        endcase
+                                       end
+                                  
+                                   else if((((srcxsize * src_ysize)% desxsize ) == 0) && x_type == 1)
                                         begin
                                        src_x_left <= srcxsize;
                                         case(y_type)
@@ -952,8 +965,7 @@ end
                                             3 : src_y_left <= src_ysize; //fill
                                         default: src_y_left <= src_ysize;
                                         endcase
-                                       end
-                                         
+                                       end      
                                        
                                    end 
                                     
@@ -1107,6 +1119,18 @@ end
                      if(src_x_left == 0 && fill_count == 0 && DONE_temp)
                                 restart_cnt_reg <= restart_cnt_reg - 1;
                     case (x_type)
+                        1: begin
+                       // r1 <= 0;
+                            if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5) && y_type == 3) begin
+                                for(r = 0; r < src_x_left_initial ; r=r+1)begin
+                                    fifo_mem[fifo_wptr[4:0]] <= {96'd0, fillval};
+                                    fifo_wptr           <= fifo_wptr + 1;
+                                    r1 <= (r1 == src_x_left_initial - 1) ? 0 : r1 + 1;
+                                    /*r1 <= r1+1;*/end
+                                    fill_count_y <= (r1 == src_x_left_initial-1)? fill_count_y - 1 : fill_count_y;
+                                    
+                            end
+                          end
                         2: begin                         
                             if ((!(desxsize - src_x_left < srcxsize)) && src_x_left > 0) begin
                                 fifo_mem[fifo_wptr[4:0]] <= RDATA;
