@@ -116,7 +116,7 @@ module data_fsm #(
     input  wire                WREADY,
     output reg                WVALID,
     output reg [DATA_W-1:0]    WDATA,
-    output reg                 WLAST,// changed to wire
+    output wire                 WLAST,// changed to wire
     output [(DATA_W/8)-1:0]    WSTRB,
     
     input wire [ID_W-1:0]       BID,
@@ -155,10 +155,11 @@ module data_fsm #(
 );
     reg [31:0]    initial_tmplt_addr_src,initial_tmplt_addr_des;
     reg [31:0]DESADDR_UPDATED_wire;
-    wire [(DATA_W/8)-1:0] WSTRB_wire;
+     wire [(DATA_W/8)-1:0] WSTRB_wire,WSTRB_COMB;
     wire [6:0] transize_power = (2**transize) + DESADDR_UPDATED_wire;
     reg [15:0] restart_cnt_reg;
     wire       ERROR;
+       wire  [DATA_W-1:0] prev_WDATA = WDATA;
     wire [31:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
     reg [4:0] count_src_tmplt;//
     reg [4:0] count_des_tmplt;//
@@ -221,14 +222,15 @@ module data_fsm #(
     
     localparam STRB_W = DATA_W / 8;
     wire [DATA_W-1:0] strobe_mask;
-    wire [31:0]wire_11;
-    assign wire_11 = DESADDR_UPDATED_wire + (2** transize * des_xaddr_inc); 
-    genvar a;
-    generate
-        for (a = 0; a < STRB_W; a = a + 1) begin : GEN_STROBE_MASK
-            assign strobe_mask[a*8 +: 8] = (wr_state == W_W && fifo_rptr == 0 && !(WVALID && WREADY))?{8{WSTRB[a]}}:{8{WSTRB_wire[a]}};
-        end
-    endgenerate
+   wire [31:0]wire_11;
+ assign wire_11 = DESADDR_UPDATED_wire + 2** transize; 
+// assign WLAST = (des_x_left == 1)?1:0;
+genvar a;
+generate
+    for (a = 0; a < STRB_W; a = a + 1) begin : GEN_STROBE_MASK
+        assign strobe_mask[a*8 +: 8] = (wr_state == W_W /*&& fifo_rptr == 0*/ && !(WVALID && WREADY))?{8{WSTRB[a]}}:{8{WSTRB_wire[a]}};
+    end
+endgenerate
     
     wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
     wire empty = (fifo_wptr == fifo_rptr);
@@ -278,22 +280,27 @@ module data_fsm #(
     assign des_yaddr_stride_signed = $signed(des_yaddr_stride);
     
  //   assign WLAST = (wr_state == W_W) ? ((des_x_left == 1)? 1 : 0) : 0;
-  //assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_x_left ? 1 : 0) : 0;
+  assign WLAST = (wr_state == W_W && WVALID) ? ((des_xsize_remaining - AWLEN) == des_x_left ? 1 : 0) : 0;
   wire  WVALID_wire = ((empty) ||(WREADY && WLAST)||(stop_cmd_apb)||(wr_state != W_W)) ? 0 : 1;
     assign WSTRB = (wr_state == W_W) ? ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0] : 0;
     assign WSTRB_wire = (wr_next_st == W_W) ? ((1 << (1 << transize)) - 1)<< wire_11[$clog2(DATA_W/8)-1:0] : 0;
-    always@(*) begin
+     always@(*) begin
         DESADDR_UPDATED_wire = des_addr_reg;
-        if(wr_state == W_W  && des_x_left !=0) begin 
+        if(wr_state == W_W  && des_x_left !=0)
+         begin 
             if(WREADY)
-                if(des_xaddr_inc >= 1)
                 begin
-                    DESADDR_UPDATED_wire = des_addr_reg + ((desxsize_reg - des_x_left) * ( 2**transize) * des_xaddr_inc);
-                end
+                    if(des_xaddr_inc == 1)
+                        DESADDR_UPDATED_wire = des_addr_reg + ((desxsize_reg - des_x_left) * ( 2**transize));
+                        
+                 end
             else
+                    DESADDR_UPDATED_wire =  DESADDR_UPDATED;
+         end
+        else
             DESADDR_UPDATED_wire =  des_addr_reg;
         end        
-    end 
+   
 
     reg       bus_error_w, bus_error_r, done_signal, wr_start;
     assign bus_error = bus_error_r |bus_error_w;
@@ -376,9 +383,9 @@ end
                 if(RVALID) begin
                     if(src_xaddr_inc == 1)
                     begin
-                        SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_x_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg   - (src_x_left-(desxsize_reg - srcxsize_reg))) *( 2**transize)*(src_xaddr_inc_sign))) 
-                                                    : src_addr_reg +((desxsize_reg -src_x_left)%srcxsize_reg)
-                                                    :src_addr_reg + ((srcxsize_reg - src_x_left) *( 2**transize)*(src_xaddr_inc_sign)) ;
+                        SRCADDR_UPDATED <= (case6 && x_type == 2) ? (src_x_left>(desxsize_reg - srcxsize_reg)) ? (src_addr_reg + ((srcxsize_reg +1  - (src_x_left-(desxsize_reg - srcxsize_reg))) *( 2**transize)*(src_xaddr_inc_sign))) 
+                                                    : src_addr_reg +((desxsize_reg + 1 -src_x_left)%srcxsize_reg)
+                                                    :src_addr_reg + ((srcxsize_reg - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) ;
                     end
                     else
                         SRCADDR_UPDATED <=  src_addr_reg;
@@ -389,7 +396,7 @@ end
                 if(WREADY)
                     if(des_xaddr_inc == 1)
                     begin
-                        DESADDR_UPDATED <= des_addr_reg + ((desxsize_reg - des_x_left) * (( 2**transize)*des_xaddr_inc_sign));
+                        DESADDR_UPDATED <= des_addr_reg + ((desxsize_reg - des_x_left+1) * (( 2**transize)*des_xaddr_inc_sign));
                     end
                     else
                         DESADDR_UPDATED <=  des_addr_reg;
@@ -891,17 +898,73 @@ end
                     else if (case3 || (ycase3)) //read only
                               src_x_left <= srcxsize;
                        // config_error_case3 <= 1;
-                    else if (case4 || case5 || ycase5) begin
+                         else if(ycase5)
+                            begin 
+                                if(srcxsize == desxsize)
+                                    begin
+                                        src_x_left <= desxsize;
+                                     case(y_type)
+                                          0:src_y_left <= 0;
+                                            1:src_y_left <= src_ysize;
+                                            2:src_y_left <= des_ysize;
+                                            3:src_y_left <= src_ysize;
+                                            default : src_y_left <= src_ysize;
+                                       endcase
+                                   end
+                           else if(srcxsize > desxsize)
+                                begin
+                                   
+                                    if(src_ysize >= des_ysize)
+                                    begin
+                                        src_y_left <= des_ysize;
+                                         src_x_left <= (x_type == 1)? srcxsize : desxsize;
+                                    end
+//                                    else if(src_ysize < des_ysize)begin
+//                                    case(y_type)
+//                                          0:src_y_left <= 0;
+//                                            1:src_y_left <= src_ysize;
+//                                            2:src_y_left <= des_ysize;
+//                                            3:src_y_left <= src_ysize;
+//                                            default : src_y_left <= src_ysize;
+//                                       endcase
+//                                    end
+                                    
+                                   if(src_ysize < des_ysize)
+                                   begin
+                                       if(x_type == 2 || x_type == 3)  //xtype ==1 yet to add
+                                       begin
+                                       src_x_left <= desxsize;
+                                        case(y_type)
+                                            0 : src_y_left <= src_ysize;
+                                            1 : src_y_left <= src_ysize; //continue
+                                            2 : src_y_left <= des_ysize; // wrap
+                                            3 : src_y_left <= src_ysize; //fill
+                                        default: src_y_left <= src_ysize;
+                                        endcase
+                                       end
+                                  else if((((srcxsize * src_ysize) % desxsize) == 0) && x_type == 1)
+                                        begin
+                                       src_x_left <= srcxsize;
+                                        case(y_type)
+                                            0 : src_y_left <= src_ysize;
+                                            1 : src_y_left <= src_ysize; //continue
+                                            2 : src_y_left <= des_ysize; // wrap
+                                            3 : src_y_left <= src_ysize; //fill
+                                        default: src_y_left <= src_ysize;
+                                        endcase
+                                       end
+                                         
+                                       
+                                   end 
+                                    
+                                    
+                                end
+                                end
+                    else if ((case4 || case5)) begin
                         /*if((cmd_restart_en || cmd_restart_cnt != 0))
                             src_x_left <= (src_trigin_blk_size > src_xsize_reload)?src_xsize_reload:src_trigin_blk_size;
                         else*/
-                        case(y_type)
-                            0:src_y_left <= 0;
-                            1:src_y_left <= src_ysize;
-                            2:src_y_left <= des_ysize;
-                            3:src_y_left <= src_ysize;
-                            default : src_y_left <= src_ysize;
-                       endcase
+
                             src_x_left <= desxsize;//(src_trigin_blk_size > desxsize)?desxsize:src_trigin_blk_size;
                     end else if (case6) begin
                         case (x_type)
@@ -912,14 +975,7 @@ end
                             default: begin src_x_left <= srcxsize; config_error_case6 <= 1; end
                         endcase
                     end
-                    else if(ycase5)
-                        case(y_type)
-                            0:src_y_left <= 0;
-                            1:src_y_left <= src_ysize;
-                            2:src_y_left <= des_ysize;
-                            3:src_y_left <= src_ysize;
-                            default : src_y_left <= src_ysize;
-                       endcase
+                  
                     //fill_count <= ((srcxsize < desxsize) && x_type == 3 && (case2 || case6)) ? ((desxsize - srcxsize) & 16'hFFFF) : 0;//
                 end
                 
@@ -954,7 +1010,7 @@ end
                     if (use_des_trigin && !((des_trigin_type == 2'b00 && des_trigin_sw == 1)||(des_trigin_type == 2'b10 && des_trigin == 1))) begin
                         STAT_DESTRIGINWAIT_DATA <= 1'b1;
                     end
-                    src_xsize_remaining <= srcxsize_reg;//(src_trigin_blk_size > srcxsize_reg )? srcxsize_reg:src_trigin_blk_size;
+                    src_xsize_remaining <= src_x_left;//(src_trigin_blk_size > srcxsize_reg )? srcxsize_reg:src_trigin_blk_size;
                     src_ysize_remaining <= srcysize_reg;
                     fill_count <= ((src_x_left < des_x_left) && x_type == 3 && (case2 || case6)) ? ((des_x_left - src_x_left) & 16'hFFFF) : 0;//
                     fill_count_y <= ((src_y_left < des_y_left) && y_type == 3 && (ycase2 || ycase5)) ? ((des_y_left - src_y_left) & 16'hFFFF) : 0;
@@ -997,11 +1053,13 @@ end
 //                        ARADDR <= ARADDR;
 //                         ARVALID <= 1;
 //                    end
+   
                     else begin
                      ARVALID <= 1;
                         ARADDR <= (ARVALID)?ARADDR : src_addr_reg + 
-                                  (srcxsize_reg - src_xsize_remaining) * 
+                                  (src_x_left_initial - src_xsize_remaining) * 
                                   ((2**transize) * src_xaddr_inc_sign);
+            //            ARADDR <= (ARVALID)?ARADDR : src_addr_reg +   (srcxsize_reg - src_xsize_remaining) * ((2**transize) * src_xaddr_inc_sign);
                     end 
                     //ARVALID <= (!stop_cmd_apb)?ARVALID:0;
                    	src_xsize_remaining <= (case6 && x_type == 'd2 && src_xsize_remaining == 0) ? (srcxsize_reg > src_x_left) ? src_x_left : srcxsize_reg : (src_xsize_remaining);
@@ -1064,11 +1122,11 @@ end
                                 fifo_wptr           <= fifo_wptr + 1;
                             end
                             else if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5)) begin
-                                for(r = 0; r < srcxsize ; r=r+1)begin
+                                for(r = 0; r < src_x_left_initial ; r=r+1)begin
                                     fifo_mem[fifo_wptr[4:0]] <= {96'd0, fillval};
                                     fifo_wptr           <= fifo_wptr + 1;
                                     r1 <= r1+1;end
-                                    fill_count_y <= (r1 == srcxsize-1)? fill_count_y - 1 : fill_count_y;
+                                    fill_count_y <= (r1 == src_x_left_initial-1)? fill_count_y - 1 : fill_count_y;
                             end
                         end
                         default: fifo_mem[fifo_wptr[4:0]] <= fifo_mem[fifo_wptr[4:0]];
@@ -1110,7 +1168,7 @@ always @(posedge clk or negedge resetn) begin
            //wr_pause_state <= W_IDLE;
          AWVALID      <= 0;
            WVALID       <= 0;
-        WLAST <= 0;
+      //  WLAST <= 0;
             BREADY       <= 0;
             DONE <= 0;
        fifo_rptr   <= 0;
@@ -1133,7 +1191,7 @@ always @(posedge clk or negedge resetn) begin
     end 
     else begin
             AWVALID      <= 0;
-            WLAST        <= 0;
+          //  WLAST        <= 0;
           WVALID       <= 0;
             BREADY       <= 0;
            DONE         <= stop_cmd_apb? 1: 0;
@@ -1172,15 +1230,71 @@ always @(posedge clk or negedge resetn) begin
                     end 
                       else if (case3 || (ycase3)) //read only
                               des_x_left <= 0;
-                    else if (case4 || case5 || ycase5) begin
-                        des_x_left <= desxsize;//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
-                         case(y_type)
+                     else if(ycase5)
+                     begin
+                        
+                        if(srcxsize == desxsize)
+                        begin
+                            des_x_left <= desxsize;
+                             case(y_type)
                             0:des_y_left <= 0;
                             1:des_y_left <= src_ysize;
                             2:des_y_left <= des_ysize;
                             3:des_y_left <= des_ysize;
                             default : des_y_left <= des_ysize;
                        endcase
+                        end
+                        else if(srcxsize > desxsize)
+                           begin
+                                    if(src_ysize >= des_ysize)
+                                    begin
+                                        des_y_left <= des_ysize;
+                                         des_x_left <=  desxsize;
+                                    end
+//                                    else if(src_ysize < des_ysize)begin
+//                                    case(y_type)  // temp fix
+//                                          0:des_y_left <= 0;
+//                                            1:des_y_left <= src_ysize;
+//                                            2:des_y_left <= des_ysize;
+//                                            3:des_y_left <= src_ysize;
+//                                            default : des_y_left <= src_ysize;
+//                                       endcase
+//                                    end
+                                    
+                                    if(src_ysize < des_ysize)
+                                   begin
+                                       if(x_type == 2 || x_type == 3)
+                                       begin
+                                       des_x_left <= desxsize;
+                                        case(y_type)
+                                            0 : des_y_left <= des_ysize;
+                                            1 : des_y_left <= src_ysize; //continue
+                                            2 : des_y_left <= des_ysize; // wrap
+                                            3 : des_y_left <= des_ysize; //fill
+                                        default: des_y_left <= des_ysize;
+                                        endcase
+                                       end
+                                   else if((((srcxsize * src_ysize) % desxsize) == 0) && x_type == 1)
+                                        begin
+                                       des_x_left <= desxsize;
+                                        case(y_type)
+                                            0 : des_y_left <= des_ysize;
+                                            1 : des_y_left <= (srcxsize * src_ysize) / desxsize; //continue
+                                            2 : des_y_left <= des_ysize; // wrap
+                                            3 : des_y_left <= des_ysize; //fill
+                                        default: des_y_left <= des_ysize;
+                                        endcase
+                                       end
+                                   end 
+                                    
+                                    
+                                    
+                                    
+                                end
+                     end
+                    else if (case4 || case5 || ycase5) begin
+                        des_x_left <= desxsize;//(des_trigin_blk_size > desxsize)? desxsize : des_trigin_blk_size;
+                        
                         
                     end 
                     else if (case6) begin
@@ -1228,27 +1342,43 @@ always @(posedge clk or negedge resetn) begin
              begin
                 // WLAST  <= (des_x_left == (des_xsize_remaining - AWLEN)&& !empty)? 1 :0 ;
               //  WVALID <= ((empty) ||(WREADY && WLAST)||(stop_cmd_apb)) ? 0 : 1;
-              WVALID <= WVALID_wire;
-               WLAST <= (WVALID_wire) ? ((des_xsize_remaining - AWLEN) == des_x_left ? 1 : 0) : 0;
-                WDATA     <= fifo_mem[fifo_rptr[4:0]] & strobe_mask;
-                    //WVALID <= ((des_x_left == (des_xsize_remaining - AWLEN+1) && WREADY) || fifo_wptr == fifo_rptr) ? 0 : 1;
-                    if(WVALID && WREADY && WLAST) 
-                        des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
-                  if(WVALID && WREADY && WLAST) begin
+//              WVALID <= WVALID_wire;
+//               WLAST <= (WVALID_wire) ? ((des_xsize_remaining - AWLEN) == des_x_left ? 1 : 0) : 0;
+//                WDATA     <= fifo_mem[fifo_rptr[4:0]] & strobe_mask;
+//                    //WVALID <= ((des_x_left == (des_xsize_remaining - AWLEN+1) && WREADY) || fifo_wptr == fifo_rptr) ? 0 : 1;
+//                    if(WVALID && WREADY && WLAST) 
 //                        des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
-                        if(des_tmplt_size != 0) begin
-                                 l <= l + 1;
+//                  if(WVALID && WREADY && WLAST) begin
+////                        des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
+//                        if(des_tmplt_size != 0) begin
+//                                 l <= l + 1;
                             
-                                if(l >= des_tmplt_size)
-                                       l <= 0;end
-                        end
-                if (WREADY && des_x_left > 0 && WVALID_wire) begin
-                        WDATA     <=  !(WREADY && WLAST) ? fifo_mem[fifo_rptr[4:0] ] & strobe_mask : WDATA;                       
-                  //  WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
-                    des_x_left  <= des_x_left - 1;
-                    fifo_rptr <= fifo_rptr + 1;
+//                                if(l >= des_tmplt_size)
+//                                       l <= 0;end
+//                        end
+//                if (WREADY && des_x_left > 0 && WVALID_wire) begin
+//                        WDATA     <=  !(WREADY && WLAST) ? fifo_mem[fifo_rptr[4:0] ] & strobe_mask : WDATA;                       
+//                  //  WDATA     <= fifo_mem[fifo_rptr[4:0]] & wdata_mask;
+//                    des_x_left  <= des_x_left - 1;
+//                    fifo_rptr <= fifo_rptr + 1;
+//                    end
+//                    end        
+  WVALID <= ((WREADY && WLAST)||(stop_cmd_apb)) ? 0 : 1;
+                     WDATA     <=((fifo_mem[fifo_rptr] & strobe_mask) | (prev_WDATA & ~strobe_mask));
+                     if(WVALID && WREADY && WLAST) 
+                        des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
+                     //prev_WDATA <= WDATA;
+//                    WSTRB <= WSTRB_COMB;
+                   // WLAST <= (des_left == 1)? 1 : 0;
+                    //WSTRB <= ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0];
+                    if (WREADY && des_x_left > 0 && WVALID) begin
+                        
+                      WDATA     <=  !(WREADY && WLAST) ? ((fifo_mem[fifo_rptr+1] & strobe_mask) | (prev_WDATA & ~strobe_mask)): WDATA; 
+                       //WSTRB <=  /*!(WREADY && WLAST) ?*/ ((1 << (1 << transize)) - 1)<< DESADDR_UPDATED_wire[$clog2(DATA_W/8)-1:0] /*: WSTRB*/ ;//+ 2**transize
+                       des_x_left  <= des_x_left - 1;
+                       fifo_rptr <= fifo_rptr + 1;
                     end
-                    end                     
+                end              
              
              
               //begin
