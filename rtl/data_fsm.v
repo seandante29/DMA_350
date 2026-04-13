@@ -175,7 +175,7 @@ module data_fsm #(
     reg        reg1, reg2;
     reg        cmd_done_reg;
     reg [15:0] src_x_left, des_x_left, fill_count,fill_count_y, src_y_left, des_y_left,r1;
-    reg [15:0] src_x_left_initial, des_x_left_initial;
+    reg [9:0] src_x_left_initial, des_x_left_initial;
     reg [15:0] src_x_addr_inital, des_x_addr_initial;
     reg [7:0]  wrap_rd_ptr;
     reg [DATA_W-1:0] wdata_mask;
@@ -549,6 +549,8 @@ end
 //                            rd_next_st = RD_AR;
                          if(src_x_left > 'd1)
                             rd_next_st = RD_AR;
+                      //  else if(ycase5 && ((((srcxsize_reg * srcysize_reg)% desxsize_reg ) != 0) && x_type == 1) && srcxsize_reg > desxsize_reg && ((srcysize_reg * srcysize_reg) == fifo_rptr))
+                        //    rd_next_st <= RD_IDLE;
                         else if (( fill_count > 1) && ( (x_type == 3) && (case6  || case2)))
                             rd_next_st = RD_WRAP_FILL;
                        
@@ -628,6 +630,8 @@ end
             W_W:
                 if (WREADY && WVALID && WLAST)
                         wr_next_st = W_B;
+//                else if(ycase5 && ((((srcxsize_reg * srcysize_reg)% desxsize_reg ) != 0) && x_type == 1) && srcxsize_reg > desxsize_reg && ((srcysize_reg * srcysize_reg) == fifo_wptr))
+//                            wr_next_st = W_IDLE;
                           
             W_B:
                 if (BVALID && BREADY)begin
@@ -966,11 +970,43 @@ end
                                         default: src_y_left <= src_ysize;
                                         endcase
                                        end      
-                                       
+                                   else if((((srcxsize * src_ysize)% desxsize ) != 0) && x_type == 1)
+                                        begin
+                                       src_x_left <= srcxsize;
+                                        case(y_type)
+                                            0 : src_y_left <= src_ysize;
+                                            1 : src_y_left <= src_ysize; //continue
+                                            2 : src_y_left <= des_ysize; // wrap
+                                            3 : src_y_left <= src_ysize; //fill
+                                        default: src_y_left <= src_ysize;
+                                        endcase
+                                       end      
                                    end 
                                     
-                                    
                                 end
+//                           else if(srcxsize < desxsize)
+//                            begin
+//                                if(src_ysize >= des_ysize)
+//                                    begin
+//                                       case (x_type)
+//                                            0: begin src_x_left <= 0; end
+//                                            1: begin src_x_left <= srcxsize;end
+//                                            2: begin src_x_left <= desxsize;end
+//                                            3: begin src_x_left <= srcxsize;end
+//                                            default: begin src_x_left <= srcxsize; config_error_case6 <= 1; end
+//                                        endcase 
+                                      
+//                                        case(y_type)
+//                                            0 : src_y_left <= src_ysize;
+//                                            1 : src_y_left <= src_ysize; //continue
+//                                            2 : src_y_left <= des_ysize; // wrap
+//                                            3 : src_y_left <= src_ysize; //fill
+//                                        default: src_y_left <= src_ysize;
+//                                        endcase
+//                                       end   
+                            
+//                            end 
+                        
                                 end
                     else if ((case4 || case5)) begin
                         /*if((cmd_restart_en || cmd_restart_cnt != 0))
@@ -1309,6 +1345,17 @@ always @(posedge clk or negedge resetn) begin
                                         default: des_y_left <= des_ysize;
                                         endcase
                                        end
+                                  else if((((srcxsize * src_ysize)% desxsize ) != 0) && x_type == 1)
+                                        begin
+                                      des_x_left <= desxsize;
+                                        case(y_type)
+                                            0 : des_y_left <= des_ysize;
+                                            1 : des_y_left <= ((srcxsize * src_ysize) / desxsize) + 1; //continue
+                                            2 : des_y_left <= des_ysize; // wrap
+                                            3 : des_y_left <= des_ysize; //fill
+                                        default: des_y_left <= des_ysize;
+                                        endcase
+                                       end  
                                    end 
                                     
                                     
@@ -1387,7 +1434,7 @@ always @(posedge clk or negedge resetn) begin
 //                    fifo_rptr <= fifo_rptr + 1;
 //                    end
 //                    end        
-  WVALID <= ((WREADY && WLAST)||(stop_cmd_apb)) ? 0 : 1;
+                     WVALID <= ((WREADY && WLAST)||(stop_cmd_apb)) ? 0 : 1;
                      WDATA     <=((fifo_mem[fifo_rptr] & strobe_mask) | (prev_WDATA & ~strobe_mask));
                      if(WVALID && WREADY && WLAST) 
                         des_xsize_remaining <= des_xsize_remaining - (AWLEN + 1);
@@ -1444,6 +1491,8 @@ always @(posedge clk or negedge resetn) begin
                 W_ROWS: begin
                  if(des_x_left == 0)
                             des_y_left <= des_y_left - 1; 
+               if(ycase5 && ((((srcxsize_reg * srcysize_reg)% desxsize_reg ) != 0) && x_type == 1)&& y_type == 1 && srcxsize_reg > desxsize_reg)
+                            des_x_left <= desxsize_reg - srcxsize_reg;
                     if(des_y_left > 0 )
                     begin
                         des_x_left <= des_x_left_initial;
