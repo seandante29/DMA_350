@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 01/05/2026 03:38:10 PM
+// Create Date: 04/17/2026 02:54:42 PM
 // Design Name: 
-// Module Name: top_tb
+// Module Name: top_tbb
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -19,7 +19,8 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-module top_tb ;
+
+module top_tbb;
 
     parameter WIDTH = 32;
     parameter DATA_W = 128;
@@ -139,8 +140,8 @@ top_mod #(
     // clocks & resets
     .clk            (clk),
     .resetn         (resetn),
-    .PCLK           (PCLK),
-    .PRESETn        (PRESETn),
+//    .PCLK           (PCLK),
+//    .PRESETn        (PRESETn),
 
     // APB interface
     .PADDR          (PADDR),
@@ -427,7 +428,7 @@ top_mod #(
     PSEL    = 1;
     PWRITE  = 1;
     PADDR   = 32'h100C;
-    PWDATA  = 32'h0E0E1402;
+    PWDATA  = 32'h0E000402;
     PSTRB   = 4'b1111;
     PENABLE = 0;
     
