@@ -75,7 +75,7 @@ module partselect (
     output [15:0] des_yaddr_stride,
     output [15:0] src_ysize,
     output [15:0] des_ysize,
-    
+    output wire done_pause_en,
     output wire cmd_restart_en,//
     output wire [15:0] cmd_restart_cnt,//
     output wire [2:0] reg_reload_type,// 
@@ -165,6 +165,7 @@ assign cmd_restart_en = CH_AUTOCFG [16];
 assign cmd_restart_cnt = CH_AUTOCFG [15:0];
 assign reg_reload_type = CH_CTRL[20:18];
 assign done_type = CH_CTRL[23:21];
+assign done_pause_en = CH_CTRL [24];
 // ERROR_INFO
 /*
 assign cfgconflerr        = ERROR_INFO[26];
