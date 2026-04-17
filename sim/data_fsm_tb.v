@@ -2,7 +2,7 @@
 module data_fsm_tb();
 
 parameter ADDR_W = 32;
-parameter DATA_W = 128;
+parameter DATA_W = 32;
 parameter ID_W   = 4;
 
 // --------------------------------------------------
@@ -371,13 +371,13 @@ SRC_ADDR = 300;
 transize ='d2;
 fillval = 'hFABCFABCFABCFABCFABCFABCFABCFABC;
 
-srcxsize = 'd3;
-srcysize = 'd3;
-desxsize = 'd2;
-desysize = 'd5;
+srcxsize = 'd5;
+srcysize = 'd4;
+desxsize = 'd7;
+desysize = 'd6;
 
 x_type = 'd1;
-y_type = 'd1;
+y_type = 'd3;
 src_yaddr_stride = 10;
 des_yaddr_stride = 10; 
 link_en = 'b1;
@@ -386,8 +386,8 @@ des_xaddr_inc = 1;
 
 
 src_trigin_blk_size = 'd7;
-src_max_burst_len = 'd1;
-des_max_burst_len = 'd1;
+src_max_burst_len = 'd12;
+des_max_burst_len = 'd12;
 src_trig_req_type = 'd2;
 des_trig_req_type = 'd2;
 //#20 cmd_done = 0;
@@ -412,77 +412,151 @@ WREADY = 'b1;
 
 RVALID = 1'b1;
 
-RDATA = 128'hABC0ABC0ABC0ABC0ABC0ABC0ABC0ABC0; 
-#10 RDATA = 128'hABC1ABC1ABC1ABC1ABC1ABC1ABC1ABC1; 
-
+RDATA = 1; 
+#10 RDATA = 2; 
+ #10 RDATA = 3; 
+#10 RDATA = 4;
+#10 RDATA = 5;
 RLAST = 1;
 #10 RLAST = 0;
 
 RVALID = 1'b0;
- ARREADY = 'b1;
- WREADY = 1;
-#30 ARREADY = 'b0;
-#15;
-RVALID = 1'b1;
- RDATA = 128'hABC2ABC2ABC2ABC2ABC2ABC2ABC2ABC2; 
- //#10 RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3; 
- RLAST = 1;
-#10 RLAST = 0;
 
- 
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
 
-RVALID = 1'b0;
- ARREADY = 'b1;
-#30 ARREADY = 'b0;
-#10 
+//RVALID = 1'b1;
 
-RVALID = 1'b1;
-RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3;
-#10;
- RDATA = 128'hABC4ABC4ABC4ABC4ABC4ABC4ABC4ABC4;
+//RDATA = 1; 
+//#10 RDATA = 2; 
+//RLAST = 1;
+//#10 RLAST = 0;
 
-RLAST = 1;
-#10 RLAST = 0;
+//RVALID = 1'b0;
 
-RVALID = 0;
-
-
-//2
-
+#40;
  ARREADY = 'b1;
 #30 ARREADY = 'b0;
 #10 
 
 RVALID = 1'b1;
 
-RDATA = 128'hABC5ABC5ABC5ABC5ABC5ABC5ABC5ABC5; 
-//#10 RDATA = 128'hABC6ABC6ABC6ABC6ABC6ABC6ABC6ABC6; 
-
+RDATA = 6; 
+#10 RDATA = 7; 
+ #10 RDATA = 8; 
+#10 RDATA = 9;
+#10 RDATA = 10;
 RLAST = 1;
 #10 RLAST = 0;
 
 RVALID = 1'b0;
- ARREADY = 'b1;
- WREADY = 1;
-#30 ARREADY = 'b0;
-#15;
-RVALID = 1'b1;
- RDATA = 128'hABC6ABC6ABC6ABC6ABC6ABC6ABC6ABC6; 
- #10RDATA = 128'hABC7ABC7ABC7ABC7ABC7ABC7ABC7ABC7;
- 
- RLAST = 1;
-#10 RLAST = 0;
 
- 
 
-RVALID = 1'b0;
+
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 6; 
+//#10 RDATA = 7; 
+//RLAST = 1;
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+#40;
  ARREADY = 'b1;
 #30 ARREADY = 'b0;
 #10 
 
 RVALID = 1'b1;
- RDATA = 128'hABC8ABC8ABC8ABC8ABC8ABC8ABC8ABC8;
 
+RDATA = 11; 
+#10 RDATA = 12; 
+ #10 RDATA = 13; 
+#10 RDATA = 14;
+#10 RDATA = 15;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 1; 
+//#10 RDATA = 2; 
+//RLAST = 1;
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 16; 
+#10 RDATA = 17; 
+ #10 RDATA = 18; 
+#10 RDATA = 19;
+#10 RDATA = 20;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+
+
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 1; 
+#10 RDATA = 2; 
+ #10 RDATA = 3; 
+#10 RDATA = 4;
+#10 RDATA = 5;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 1; 
+//#10 RDATA = 2; 
+//RLAST = 1;
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 6; 
+#10 RDATA = 7; 
+ #10 RDATA = 8; 
+#10 RDATA = 9;
+#10 RDATA = 10;
 RLAST = 1;
 #10 RLAST = 0;
 
@@ -496,42 +570,29 @@ RVALID = 1'b0;
 
 //RVALID = 1'b1;
 
-//RDATA = 128'hABC0ABC0ABC0ABC0ABC0ABC0ABC0ABC0; 
-//#10 RDATA = 128'hABC1ABC1ABC1ABC1ABC1ABC1ABC1ABC1; 
-
+//RDATA = 6; 
+//#10 RDATA = 7; 
 //RLAST = 1;
 //#10 RLAST = 0;
 
 //RVALID = 1'b0;
-// ARREADY = 'b1;
-// WREADY = 1;
-//#30 ARREADY = 'b0;
-//#15;
-//RVALID = 1'b1;
-// RDATA = 128'hABC2ABC2ABC2ABC2ABC2ABC2ABC2ABC2; 
-// //#10 RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3; 
-// RLAST = 1;
-//#10 RLAST = 0;
 
- 
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
 
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-//#10 
+RVALID = 1'b1;
 
-//RVALID = 1'b1;
-//RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3;
-//#10;
-// RDATA = 128'hABC4ABC4ABC4ABC4ABC4ABC4ABC4ABC4;
+RDATA = 11; 
+#10 RDATA = 12; 
+ #10 RDATA = 13; 
+#10 RDATA = 14;
+#10 RDATA = 15;
+RLAST = 1;
+#10 RLAST = 0;
 
-//RLAST = 1;
-//#10 RLAST = 0;
-
-//RVALID = 0;
-
-
-////2
+RVALID = 1'b0;
 
 // ARREADY = 'b1;
 //#30 ARREADY = 'b0;
@@ -539,133 +600,29 @@ RVALID = 1'b0;
 
 //RVALID = 1'b1;
 
-//RDATA = 128'hABC5ABC5ABC5ABC5ABC5ABC5ABC5ABC5; 
-////#10 RDATA = 128'hABC6ABC6ABC6ABC6ABC6ABC6ABC6ABC6; 
-
-//RLAST = 1;
-//#10 RLAST = 0;
-
-//RVALID = 1'b0;
-////3
-// ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-//#10 
-
-//RVALID = 1'b1;
-
-//RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3; 
-//#10 RDATA = 128'hABC4ABC4ABC4ABC4ABC4ABC4ABC4ABC4; 
-
-//RLAST = 1;
-//#10 RLAST = 0;
-
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-// WREADY = 1;
-//#30 ARREADY = 'b0;
-//#15;
-//RVALID = 1'b1;
-// RDATA = 128'hABC5ABC5ABC5ABC5ABC5ABC5ABC5ABC5; 
- 
-// RLAST = 1;
-//#10 RLAST = 0;
-
- 
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-// WREADY = 1;
-//#30 ARREADY = 'b0;
-//#15;
-//RVALID = 1'b1;
-// RDATA = 128'hABC0ABC0ABC0ABC0ABC0ABC0ABC0ABC0; 
-// #10 RDATA = 128'hABC1ABC1ABC1ABC1ABC1ABC1ABC1ABC1; 
-// RLAST = 1;
-//#10 RLAST = 0;
-
- 
-
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-//#10 
-
-//RVALID = 1'b1;
-// RDATA = 128'hABC2ABC2ABC2ABC2ABC2ABC2ABC2ABC2;
-
+//RDATA = 1; 
+//#10 RDATA = 2; 
 //RLAST = 1;
 //#10 RLAST = 0;
 
 //RVALID = 1'b0;
 
-////3
-// ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-//#10 
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
 
-//RVALID = 1'b1;
+RVALID = 1'b1;
 
-//RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3; 
-//#10 RDATA = 128'hABC4ABC4ABC4ABC4ABC4ABC4ABC4ABC4; 
+RDATA = 16; 
+#10 RDATA = 17; 
+ #10 RDATA = 18; 
+#10 RDATA = 19;
+#10 RDATA = 20;
+RLAST = 1;
+#10 RLAST = 0;
 
-//RLAST = 1;
-//#10 RLAST = 0;
-
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-// WREADY = 1;
-//#30 ARREADY = 'b0;
-//#15;
-//RVALID = 1'b1;
-// RDATA = 128'hABC5ABC5ABC5ABC5ABC5ABC5ABC5ABC5; 
- 
-// RLAST = 1;
-//#10 RLAST = 0;
-
-
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-//#10 
-
-//RVALID = 1'b1;
-// RDATA = 128'hABC4ABC4ABC4ABC4ABC4ABC4ABC4ABC4;
-// #10 RDATA = 128'hABC3ABC3ABC3ABC3ABC3ABC3ABC3ABC3; 
-
-//RLAST = 1;
-//#10 RLAST = 0;
-
-//RVALID = 1'b0;
-/////////////////////////////////////////////////////////////////
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-//#10 
-
-//RVALID = 1'b1;
-// RDATA =    128'hABC6ABC6ABC6ABC6ABC6ABC6ABC6ABC6; 
-
-
-//RLAST = 1;
-//#10 RLAST = 0;
-
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-//#30 ARREADY = 'b0;
-//#10 
-
-//RVALID = 1'b1;
-// RDATA = 128'hABC7ABC7ABC7ABC7ABC7ABC7ABC7ABC7;
-//#10 RDATA = 128'hABC8ABC8ABC8ABC8ABC8ABC8ABC8ABC8; 
-//RLAST = 1;
-//#10 RLAST = 0;
-//RVALID = 1'b0;
-// ARREADY = 'b1;
-// WREADY = 1;
-//#30 ARREADY = 'b0;
-//RVALID = 1'b1;
-// RDATA = 128'hABC9ABC9ABC9ABC9ABC9ABC9ABC9ABC9; 
-//RLAST = 1;
-//#10 RLAST = 0; 
+RVALID = 1'b0;
 
 // ARREADY = 'b1;
 //#30 ARREADY = 'b0;
@@ -673,20 +630,211 @@ RVALID = 1'b0;
 
 //RVALID = 1'b1;
 
-//RDATA = 128'hABC5; 
-//#10 RDATA = 128'hABC6; 
-//#10 RDATA = 128'hABC7; 
+//RDATA = 6; 
+//#10 RDATA = 7; 
 //RLAST = 1;
 //#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+
+
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 1; 
+#10 RDATA = 2; 
+
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+////////////////////////////////
+#40;
+
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 1; 
+#10 RDATA = 2; 
+ #10 RDATA = 3; 
+#10 RDATA = 4;
+#10 RDATA = 5;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
 // ARREADY = 'b1;
-// WREADY = 1;
 //#30 ARREADY = 'b0;
-// RDATA = 128'hABC8; 
-//#10 RDATA = 128'hABC9; 
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 1; 
+//#10 RDATA = 2; 
 //RLAST = 1;
-//#10 RLAST = 0; 
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 6; 
+#10 RDATA = 7; 
+ #10 RDATA = 8; 
+#10 RDATA = 9;
+#10 RDATA = 10;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+
+
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 6; 
+//#10 RDATA = 7; 
+//RLAST = 1;
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+
+
+
+//////////////////////////////////////////////////////
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 1; 
+#10 RDATA = 2; 
+ #10 RDATA = 3; 
+#10 RDATA = 4;
+#10 RDATA = 5;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 1; 
+//#10 RDATA = 2; 
+//RLAST = 1;
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 6; 
+#10 RDATA = 7; 
+ #10 RDATA = 8; 
+#10 RDATA = 9;
+#10 RDATA = 10;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+
+
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 6; 
+//#10 RDATA = 7; 
+//RLAST = 1;
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 1; 
+#10 RDATA = 2; 
+ #10 RDATA = 3; 
+#10 RDATA = 4;
+#10 RDATA = 5;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+// ARREADY = 'b1;
+//#30 ARREADY = 'b0;
+//#10 
+
+//RVALID = 1'b1;
+
+//RDATA = 1; 
+//#10 RDATA = 2; 
+//RLAST = 1;
+//#10 RLAST = 0;
+
+//RVALID = 1'b0;
+
+#40;
+ ARREADY = 'b1;
+#30 ARREADY = 'b0;
+#10 
+
+RVALID = 1'b1;
+
+RDATA = 6; 
+#10 RDATA = 7; 
+ #10 RDATA = 8; 
+#10 RDATA = 9;
+#10 RDATA = 10;
+RLAST = 1;
+#10 RLAST = 0;
+
+RVALID = 1'b0;
+
+
+
+
 
 WREADY = 1;
-#1000 $finish;
+#1500 $finish;
 end
 endmodule
+
+ 
