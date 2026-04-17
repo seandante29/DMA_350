@@ -23,9 +23,9 @@ module apb_slave #( parameter DATA_WIDTH = 32,
      output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,// to reg bank
      output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,// to reg bank
      output reg cfg_wr_en,cfg_rd_en,// to reg bank
-    input wire [31:0] SRCADDR_UPDATED,
-    input wire [31:0]  DESADDR_UPDATED,
-    input wire [31:0]  XSIZE_UPDATED,
+    input wire [31:0] SRCADDR_UPDATED,cfg_CH_SRCADDR,
+    input wire [31:0]  DESADDR_UPDATED,cfg_CH_DESADDR,
+    input wire [31:0]  XSIZE_UPDATED,cfg_CH_XSIZE,YSIZE_UPDATED,cfg_CH_YSIZE,
     output wire stop_cmd_apb
      );
     localparam IDLE_ST   = 3'b001;
@@ -48,11 +48,13 @@ module apb_slave #( parameter DATA_WIDTH = 32,
       if(current_state == ACCESS_ST && PREADY && PWRITE == 0 && PENABLE )
          begin
          if((cfg_addr == 'h1010))
-                      PRDATA = SRCADDR_UPDATED;
+                      PRDATA = (enable_cmd_to_apb) ?  SRCADDR_UPDATED : cfg_CH_SRCADDR;
          else if((cfg_addr == 'h1018))
-                      PRDATA = DESADDR_UPDATED;
+                      PRDATA = (enable_cmd_to_apb) ? DESADDR_UPDATED : cfg_CH_DESADDR;
          else if((cfg_addr == 'h1020))
-                     PRDATA = XSIZE_UPDATED;
+                     PRDATA = (enable_cmd_to_apb) ? XSIZE_UPDATED : cfg_CH_XSIZE;
+        else if((cfg_addr == 'h103C))
+                     PRDATA = (enable_cmd_to_apb) ? YSIZE_UPDATED : cfg_CH_YSIZE;
           else
                       PRDATA = cfg_rdata;
     end
@@ -70,13 +72,18 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                 PREADY =1;
             else 
             begin
-                if((cfg_addr == 'h1004)||(cfg_addr == 'h1010)||(cfg_addr == 'h1018)||(cfg_addr == 'h1020))
-                    if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 0) ||(((cfg_addr == 'h1018)&&count == 0))||(((cfg_addr == 'h1020)&&count == 0)))
+                if( ((((cfg_addr == 'h1010)||(cfg_addr == 'h1018)||(cfg_addr == 'h1020))  && enable_cmd_to_apb) || cfg_addr == 'h1004)) begin
+                    if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 1) ||(((cfg_addr == 'h1018)&&count == 1))||(((cfg_addr == 'h1020)&&count == 1 /*&& enable_cmd_to_apb*/)))
                         PREADY =1;
                     else 
-                        PREADY =0;
+                        PREADY =0;    end
+                else if((((cfg_addr == 'h1038) || (cfg_addr == 'h1020) || (cfg_addr == 'h1018) || (cfg_addr == 'h1010) ||(cfg_addr == 'h1090)||(cfg_addr == 'h1088) ||(cfg_addr == 'h108C)
+                || (cfg_addr == 'h1078) ||(cfg_addr == 'h1054) ||(cfg_addr == 'h1050) ||(cfg_addr == 'h104C) ||(cfg_addr == 'h1030) ||(cfg_addr == 'h102C) 
+                 ||(cfg_addr == 'h1028) ||(cfg_addr == 'h100C) ||(cfg_addr == 'h1008) ) && count == 2) ||((cfg_addr == 'h1000) && count ==3))
+                     PREADY =1;
+                    
                 else 
-                    PREADY =1;
+                    PREADY =0;
             end
         end
         else
@@ -137,12 +144,29 @@ module apb_slave #( parameter DATA_WIDTH = 32,
             cfg_rd_en <= 1'b0;
             PSLVERR   <= 1'b0; 
             if(current_state== ACCESS_ST)
-                begin
+                 begin
                 if((cfg_addr == 'h1004))
                     count <= count+1;
-                end
-              else
-              count<=0;
+                else if((cfg_addr == 'h1020) && enable_cmd_to_apb)
+                    count <= count+1;
+                else if((cfg_addr == 'h1010) || (cfg_addr == 'h1018))
+                    count <= count+1;
+//               else if(((cfg_addr == 'h1010) || (cfg_addr == 'h1018))&& (count == 2) && !enable_cmd_to_apb)
+//                   count <= 0; 
+                else if(((cfg_addr == 'h1010) || (cfg_addr == 'h1018) || (cfg_addr == 'h1020))&& (count == 1) && enable_cmd_to_apb)
+                   count <= 0; 
+                else if((cfg_addr == 'h1038) || (cfg_addr == 'h1020) || (cfg_addr == 'h1078) ||(cfg_addr == 'h1054)
+                 ||(cfg_addr == 'h1050) ||(cfg_addr == 'h104C) ||(cfg_addr == 'h1030) ||(cfg_addr == 'h102C) 
+                 ||(cfg_addr == 'h1028) ||(cfg_addr == 'h100C) ||(cfg_addr == 'h1008) ||(cfg_addr == 'h1000)
+                  ||(cfg_addr == 'h1090)||(cfg_addr == 'h1088) ||(cfg_addr == 'h108C) )
+                    count <= count+1;      
+                   
+           
+                 end
+                else
+                   begin
+                      count<=0;
+                   end
             case(current_state)
             
                 SETUP_ST:
