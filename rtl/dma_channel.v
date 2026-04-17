@@ -201,6 +201,7 @@ module dma_channel
 	wire [15:0] cmd_restart_cnt;
 	wire [2:0] reg_reload_type;
 	wire [2:0] done_type;
+	wire done_pause_en;
 	
 	wire  wr_en_for_updated;
 	//wires to data fsm
@@ -589,6 +590,7 @@ module dma_channel
 	.cmd_restart_cnt(cmd_restart_cnt),
 	.reg_reload_type(reg_reload_type),
 	.done_type(done_type),
+	.done_pause_en(done_pause_en),
 	.src_trigin_blk_size(src_trigin_blk_size),
 	.des_trigin_blk_size(des_trigin_blk_size),
 	.wr_en_for_updated(wr_en_for_updated),
