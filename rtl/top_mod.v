@@ -31,8 +31,8 @@ module top_mod#(
     (// apb_reg interface
       input wire clk,
       input wire resetn,
-      input wire PCLK,
-      input wire PRESETn,
+//      input wire PCLK,
+//      input wire PRESETn,
       input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
       input wire PWRITE,
       input wire PENABLE,
@@ -134,10 +134,10 @@ module top_mod#(
    wire [1:0]  trigout_type;    // 2'b10 = HW
    wire [5:0]  trigout_sel;      // 0 = trig0, 1 = trig1
    
-  wire [31:0] cfg_CH_SRCTMPLT;
-      wire [31:0] cfg_CH_DESTMPLT;
-      wire [31:0] cfg_CH_TMPLTCFG;
-      wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o;
+//  wire [31:0] cfg_CH_SRCTMPLT;
+//      wire [31:0] cfg_CH_DESTMPLT;
+//      wire [31:0] cfg_CH_TMPLTCFG;
+//      wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o;
        // To DMA Channel (REQ view)
     wire src_trig_req;
     wire [1:0]  src_trig_req_type;
@@ -170,6 +170,9 @@ wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG;
 wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG;
 wire [WIDTH-1 : 0] cfg_CH_AUTOCFG;
 wire [WIDTH-1 : 0] cfg_LINKADDR,cfg_CH_YADDRSTRIDE,cfg_CH_YSIZE;
+wire [31:0] cfg_CH_SRCTMPLT;
+wire [31:0] cfg_CH_DESTMPLT;
+wire [31:0] cfg_CH_TMPLTCFG;
 wire [WIDTH-1:0] wrkregval_rd;
 
 wire chn_cmd_wr_en_o;
@@ -187,7 +190,7 @@ wire chn_srctrigin_wr_en_o;
 wire chn_destrigin_wr_en_o;
 wire chn_trigout_wr_en_o;
 wire chn_linkaddr_wr_en_o;
-wire chn_autocfg_wr_en_o,chn_yaddrestride_wr_en_o,chn_ysize_wr_en_o;
+wire chn_autocfg_wr_en_o,chn_yaddrestride_wr_en_o,chn_ysize_wr_en_o,chn_srctmplt_wr_en_o,chn_destmplt_wr_en_o,chn_tmpltcfg_wr_en_o,chn_wrkregptr_wr_en_o;
 
 wire [31:0] cfg_WRKREGPTR;
 wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire [31:0]  XSIZE_UPDATED;  
@@ -394,8 +397,8 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
 	.XSIZE_UPDATED(XSIZE_UPDATED),
     .clk        (clk),
     .resetn     (resetn),
-    .PCLK       (clk),     // single clock
-    .PRESETn    (resetn),
+//    .PCLK       (clk),     // single clock
+//    .PRESETn    (resetn),
     .PADDR      (PADDR),
     .PWRITE     (PWRITE),
     .PSEL       (PSEL),
@@ -406,7 +409,7 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .PREADY     (PREADY),
     .PSLVERR    (PSLVERR),
     .chn_reg_in (chn_reg_out),
-   .reg_wr_en (reg_wr_en),
+//   .reg_wr_en (reg_wr_en),
       .cfg_CH_CMD            (cfg_CH_CMD),
     .cfg_CH_STATUS         (cfg_CH_STATUS),
     .cfg_CH_INTREN         (cfg_CH_INTREN),
