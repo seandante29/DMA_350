@@ -30,12 +30,12 @@ module mux_logic #(parameter WIDTH = 32)
     input wire cmd_done,// from cmd fsm after rlast and count!=0 and only for a cycle(+1cyc delay)
     input wire [31:0] SRCADDR_UPDATED,
     input wire [31:0]  DESADDR_UPDATED,
-    input wire [31:0]  XSIZE_UPDATED,
+    input wire [31:0]  XSIZE_UPDATED,YSIZE_UPDATED,
     input wire  wr_en_for_updated,
-     input wire [31:0] SRCADDR_INITIAL,
-     input wire [31:0] DESADDR_INITIAL,
-     input wire [31:0] SRCXSIZE_INITIAL,
-     input wire [31:0] DESXSIZE_INITIAL,//inputs from data fsm
+     input wire [31:0] SRCADDR_INITIAL,SRCADDR_LINEINITIAL,
+     input wire [31:0] DESADDR_INITIAL,DESADDR_LINEINITIAL,
+     input wire [31:0] SRCXSIZE_INITIAL,DESYSIZE_INITIAL,
+     input wire [31:0] DESXSIZE_INITIAL,SRCYSIZE_INITIAL,//inputs from data fsm
     input wire [WIDTH-1 : 0] cfg_CH_CMD,// cmd fsm values
     input wire [WIDTH-1 : 0] cfg_CH_STATUS,
     input wire [WIDTH-1 : 0] cfg_CH_INTREN,
@@ -142,7 +142,7 @@ module mux_logic #(parameter WIDTH = 32)
     mux m7 (CH_XADDRINC,DEFAULT_VALUE,CH_XADDRINC_CMD,REGCLEAR,HEADER_CMD[12],concat_cmd[(WIDTH*8)-1:(WIDTH*7)]);
     mux m8 (CH_YADDRSTRIDE,DEFAULT_VALUE,CH_YADDRSTRIDE_CMD,REGCLEAR,HEADER_CMD[13],concat_cmd[(WIDTH*18)-1:(WIDTH*17)]);
     mux m9 (CH_FILLVAL,DEFAULT_VALUE,CH_FILLVAL_CMD,REGCLEAR,HEADER_CMD[14],concat_cmd[(WIDTH*9)-1:(WIDTH*8)]);
-    mux m10 (CH_YSIZE,DEFAULT_VALUE,CH_YSIZE_CMD,REGCLEAR,HEADER_CMD[15],concat_cmd[(WIDTH*19)-1:(WIDTH*18)]);
+    mux m10 ({DESYSIZE_INITIAL[15:0],SRCYSIZE_INITIAL[15:0]},DEFAULT_VALUE,CH_YSIZE_CMD,REGCLEAR,HEADER_CMD[15],concat_cmd[(WIDTH*19)-1:(WIDTH*18)]);
     mux m11 (CH_TMPLTCFG,DEFAULT_VALUE,CH_TMPLTCFG_CMD,REGCLEAR,HEADER_CMD[16],concat_cmd[(WIDTH*10)-1:(WIDTH*9)]);
     mux m12 (CH_SRCTMPLT,DEFAULT_VALUE,CH_SRCTMPLT_CMD,REGCLEAR,HEADER_CMD[17],concat_cmd[(WIDTH*11)-1:(WIDTH*10)]);
     mux m13 (CH_DESTMPLT,DEFAULT_VALUE,CH_DESTMPLT_CMD,REGCLEAR,HEADER_CMD[18],concat_cmd[(WIDTH*12)-1:(WIDTH*11)]);
@@ -306,6 +306,7 @@ module mux_logic #(parameter WIDTH = 32)
             // WORD 10 : YSIZE
             if (chn_ysize_wr_en_reg)
             mux_out_reg[(WIDTH*21)-1:(WIDTH*20)] <= cfg_CH_YSIZE;
+            else if (wr_en_for_updated)  mux_out_reg[(WIDTH*21)-1:(WIDTH*20)]  <= YSIZE_UPDATED;
             else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*21)-1:(WIDTH*20)] <= concat_cmd[(WIDTH*19)-1:(WIDTH*18)];
             
@@ -322,14 +323,14 @@ module mux_logic #(parameter WIDTH = 32)
             mux_out_reg[(WIDTH*12)-1:(WIDTH*11)] <= concat_cmd[(WIDTH*10)-1:(WIDTH*9)];
             
             //srctmplt
-             if (chn_tmpltcfg_wr_en_reg)
-            mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= cfg_CH_TMPLTCFG;
+             if (chn_srctmplt_wr_en_reg)
+            mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= cfg_CH_SRCTMPLT;
             else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= concat_cmd[(WIDTH*11)-1:(WIDTH*10)];
             
             //destmplt
-             if (chn_tmpltcfg_wr_en_reg)
-            mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= cfg_CH_TMPLTCFG;
+             if (chn_destmplt_wr_en_reg)
+            mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= cfg_CH_DESTMPLT;
             else if ((link_en && data_done) || cmd_done)
             mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= concat_cmd[(WIDTH*12)-1:(WIDTH*11)];
             
