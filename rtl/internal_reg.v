@@ -8,7 +8,7 @@ module internal_reg #(parameter WIDTH = 32,
  //
      input wire [31:0] SRCADDR_UPDATED,
     input wire [31:0]  DESADDR_UPDATED,
-    input wire [31:0]  XSIZE_UPDATED,
+    input wire [31:0]  XSIZE_UPDATED,YSIZE_UPDATED,
     input wire  wr_en_for_updated,
     input wire STAT_CMD_DONE,
     
@@ -82,10 +82,10 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
  output  wire reg_wr_en,
  output wire [31:0] wrkregval_rd,
  input wire [31:0] cfg_WRKREGPTR,
- input wire [31:0] SRCADDR_INITIAL,
- input wire [31:0] DESADDR_INITIAL,
- input wire [31:0] SRCXSIZE_INITIAL,
- input wire [31:0] DESXSIZE_INITIAL//inputs from data fsm
+ input wire [31:0] SRCADDR_INITIAL,SRCADDR_LINEINITIAL,
+ input wire [31:0] DESADDR_INITIAL,DESADDR_LINEINITIAL,
+ input wire [31:0] SRCXSIZE_INITIAL,DESYSIZE_INITIAL,
+ input wire [31:0] DESXSIZE_INITIAL,SRCYSIZE_INITIAL//inputs from data fsm
  );
  
  integer i;
@@ -181,6 +181,10 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  'd3:WRKREGVAL_temp = DESADDR_INITIAL;
  'd5:WRKREGVAL_temp = SRCXSIZE_INITIAL;
  'd6:WRKREGVAL_temp = DESXSIZE_INITIAL;
+ 'd7:WRKREGVAL_temp = SRCADDR_LINEINITIAL;
+ 'd9:WRKREGVAL_temp = DESADDR_LINEINITIAL;
+ 'd11:WRKREGVAL_temp = SRCYSIZE_INITIAL;
+ 'd12:WRKREGVAL_temp = DESYSIZE_INITIAL;
  default:WRKREGVAL_temp = 'd0;
  endcase
  end
