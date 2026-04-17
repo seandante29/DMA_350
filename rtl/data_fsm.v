@@ -62,6 +62,7 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     input wire [15:0] cmd_restart_cnt,//
     input wire [2:0] reg_reload_type,//
     input wire [2:0] done_type,
+    input wire done_pause_en,
     
     // Config
     input  wire [ADDR_W-1:0]    SRC_ADDR,
@@ -412,7 +413,7 @@ end
     
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin 
-            {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA,STAT_DONE_DATA} <= 'b0;
+            {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA,STAT_DONE_DATA,STAT_PAUSED_DATA} <= 'b0;
             
         end else begin 
             if (disable_cmd_partsel || stop_cmd_apb)
@@ -435,10 +436,21 @@ end
                 STAT_STOP_DATA <= 0;
                 STOPCMD_DATA <= 0;
             end
+            if(wr_state == W_PAUSED && rd_state == RD_PAUSED) begin
+                STAT_PAUSED_DATA <= 1;
+                STAT_RESUMEWAIT_DATA <= 1;
+            end
+            else begin
+                STAT_PAUSED_DATA <= 0;
+                STAT_RESUMEWAIT_DATA <= 0;
+            end
             if(wr_state == W_DONE_ST)
-    STAT_DONE_DATA <= !(link_en || cmd_restart_en || restart_cnt_reg >0 ) ? 1 : 0;
-                else
-            STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA : 0;
+                STAT_DONE_DATA <= (done_type == 0)? 0 : 
+                                       (done_type == 1)? 1:
+                                       (done_type == 3)? (1 & (cmd_restart_en || restart_cnt_reg>0)):0;
+//    STAT_DONE_DATA <= !(link_en || cmd_restart_en || restart_cnt_reg >0 ) ? 1 : 0;
+            else
+                STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA : 0;
         end
     end
 
@@ -463,7 +475,7 @@ end
         if (stop_cmd_apb) begin
             rd_next_st = RD_IDLE;
         end
-        else if(pause_cmd_partsel)begin
+        else if(pause_cmd_partsel || (STAT_DONE_DATA && done_pause_en))begin
             rd_next_st = RD_PAUSED;
         end else begin
             case (rd_state)
@@ -584,7 +596,7 @@ end
                       else if(src_x_left == 0 && src_y_left > 0 && fill_count == 0)
                             rd_next_st = RD_ROWS;
                        
-                     else if (src_x_left == 0 && fill_count == 0)
+                     else if (src_x_left == 0 && fill_count == 0 && fill_count_y == 0)
                         rd_next_st = RD_IDLE;
                       else
                         rd_next_st = RD_WRAP_FILL;
@@ -615,7 +627,7 @@ end
         if (stop_cmd_apb) begin
             wr_next_st = W_IDLE;
         end 
-        else if(pause_cmd_partsel)begin
+        else if(pause_cmd_partsel /*|| (STAT_DONE_DATA && done_pause_en)*/)begin
             wr_next_st = W_PAUSED;
         end
         else begin
@@ -629,7 +641,7 @@ end
                 end
              W_PAUSED:
                     if(resume_cmd_partsel)
-                            wr_next_st = wr_pause_state;
+                            wr_next_st = (wr_pause_state== W_DONE_ST)? W_IDLE : wr_pause_state;
              W_AW:
                 if (AWVALID && AWREADY)
                     if(des_tmplt [l] == 1 || des_tmplt_size == 0) 
@@ -663,6 +675,9 @@ end
                 end
             
             W_DONE_ST:
+                if(done_pause_en && !resume_cmd_partsel)
+                wr_next_st = W_PAUSED;
+                else
                 wr_next_st = W_IDLE;
             
             W_ERROR_ST:
@@ -671,8 +686,10 @@ end
             begin
             if(des_y_left>1)
             wr_next_st = W_AW;
+//            else
+//            wr_next_st = W_IDLE;
             else
-            wr_next_st = W_IDLE;
+            wr_next_st = W_TRIG_OUT;
             end
             
             default: wr_next_st = W_IDLE;
@@ -1353,11 +1370,11 @@ end
                             src_ysize_remaining <= src_ysize_remaining - 1;
                             src_y_left <= src_y_left - 1; 
                             end
-                    if(src_y_left > 0 )
+                    if(src_y_left > 1 )
                     begin
                         if(src_x_left == 0 )begin
                             fill_count <= ((src_x_left_initial < des_x_left_initial) && x_type == 3 && (case2 || case6)) ? ((des_x_left_initial - src_x_left_initial) & 16'hFFFF) : 0;end
-                        src_x_left <= src_x_left_initial;
+                        src_x_left <=  src_x_left_initial;
                         src_xsize_remaining <= (case6 && x_type ==2 )? srcxsize_initial_reg : src_x_left_initial;
                         //src_xsize_remaining <= src_x_left_initial;
                         if(ycase5 && ((((srcxsize_reg * srcysize_reg)% desxsize_reg ) != 0) && x_type == 1)&& y_type == 2 /*&& srcxsize_reg > desxsize_reg*/ && (src_y_left == 2) &&(area_src < area_des))begin
@@ -1790,7 +1807,7 @@ end
                  if(des_x_left == 0)
                             des_y_left <= des_y_left - 1; 
          
-                    if(des_y_left > 0 )
+                    if(des_y_left > 1 )
                     begin
                     if(ycase5 && ((((srcxsize_reg * srcysize_reg)% desxsize_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcxsize_reg > desxsize_reg*/ && (des_y_left == 2) &&(area_src < area_des))begin
                             des_x_left <= area_src % desxsize;
@@ -1814,6 +1831,5 @@ end
     end 
     
 endmodule
-
 
 
