@@ -571,7 +571,7 @@ end
             ARBURST <=0;
             ARVALID <=0;
             ARQOS <= 0;
-            RDATA_O <= 0;
+           // RDATA_O <= 0;
             LINKHDRERR <= 0;
             LINK_HEADER <= 0;
             STAT_CMD_DONE <= 1'b0;
@@ -599,7 +599,7 @@ end
                     ARVALID <=0;
                     if(count2 ==0) begin
                         temp_wptr <= 0;
-                        temp_rptr <= 0;
+                        //temp_rptr <= 0;
                     end
                     if(~STAT_ERROR_PARTSEL)
                     begin
