@@ -6,11 +6,11 @@ module internal_reg #(parameter WIDTH = 32,
  input wire [(WIDTH * 21) -1:0] data_in,
  
  //
-     input wire [31:0] SRCADDR_UPDATED,
-    input wire [31:0]  DESADDR_UPDATED,
-    input wire [31:0]  XSIZE_UPDATED,YSIZE_UPDATED,
-    input wire  wr_en_for_updated,
-    input wire STAT_CMD_DONE,
+//     input wire [31:0] SRCADDR_UPDATED,
+//    input wire [31:0]  DESADDR_UPDATED,
+//    input wire [31:0]  XSIZE_UPDATED,YSIZE_UPDATED,
+    //input wire  wr_en_for_updated,
+    //input wire STAT_CMD_DONE,
     
     input wire boot_en,
       input wire [29:0] boot_addr,
