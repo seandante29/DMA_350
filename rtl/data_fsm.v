@@ -598,7 +598,7 @@ end
                             
                          else if((cmd_restart_en || restart_cnt_reg != 0))
                           rd_next_st = RD_R; 
-                         else if((src_y_left > 0) &&(!src_tmplt_size))
+                         else if((src_y_left > 0) &&(src_tmplt_size == 0))
                           rd_next_st  = RD_ROWS;
                          else
                         rd_next_st = RD_IDLE;      
@@ -684,7 +684,7 @@ end
                     if(BRESP < 1) begin
                         if(des_x_left > 'd0)
                             wr_next_st = W_AW;     
-                        else if(des_y_left > 0 &&(!src_tmplt_size))
+                        else if(des_y_left > 0 &&(src_tmplt_size == 0))
                             wr_next_st = W_ROWS;
                         else
                             wr_next_st = W_TRIG_OUT; end
@@ -728,8 +728,8 @@ end
             {ARVALID, RREADY,des_addr_reg, src_addr_reg, wdata_mask,r1,
             ard_error, ARADDR, desxsize_reg,desysize_reg, ARID, ARSIZE,ARQOS, ARBURST, srcxsize_reg, srcysize_reg,ARLEN,src_xsize_remaining,src_ysize_remaining,src_trig_req_type_reg,des_trig_req_type_reg,
              arpoison_error, bus_error_r, cmd_done_reg} <= 0;
-            { STAT_RESUMEWAIT_DATA,
-              STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
+//            { STAT_RESUMEWAIT_DATA,
+//              STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA} <= 'b0;
             {config_error_size, config_error_src,config_error_transize, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
             {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
@@ -741,7 +741,7 @@ end
           // fifo_rptr       <= 0;
             src_x_left        <= 0;
             src_x_left_initial <= 0;
-            des_x_left_initial <= 0;
+           // des_x_left_initial <= 0;
             src_x_addr_inital <= 0;
             des_x_addr_initial <= 0;
             fill_count      <= 0;
@@ -759,7 +759,7 @@ end
             reg2 <= 0;
             restart_cnt_reg <= 0;
             src_y_left <=0;
-            des_y_left <=0;
+           // des_y_left <=0;
             
             for(j=0; j<32; j=j+1) begin
                 fifo_mem[j] <= 'd0;
@@ -774,10 +774,10 @@ end
             cmd_done_reg <= cmd_done;
             reg1 <= 0;
             reg2 <= 0;
-            STAT_RESUMEWAIT_DATA     <= 'd0;
-            STAT_PAUSED_DATA         <= 'd0;
-            STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
-            STAT_DESTRIGINWAIT_DATA  <= 1'b0;
+//            STAT_RESUMEWAIT_DATA     <= 'd0;
+//            STAT_PAUSED_DATA         <= 'd0;
+//            STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
+//            STAT_DESTRIGINWAIT_DATA  <= 1'b0;
              if( m == src_tmplt_size  )
                    initial_tmplt_addr_src  <= ARADDR + ((src_tmplt_size + 1) - k) *(2**transize);
                   
@@ -902,7 +902,7 @@ end
                          srcysize_reg <= 0;
                         desysize_reg <= 0;
                         src_addr_reg <= 0;
-                        des_addr_reg <= 0;
+                       
                         end
                         else if(reg_reload_type == 1) begin
                         srcxsize_reg <= src_xsize_reload;
@@ -923,7 +923,7 @@ end
                         desxsize_reg <= des_xsize_reload;
                         srcysize_reg <= src_ysize_reload;
                         desysize_reg <= des_ysize_reload;
-                        des_addr_reg <= des_addr_reload;end
+                        end
                         
                         else if(reg_reload_type == 7)begin
                         srcxsize_reg <= src_xsize_reload;
@@ -931,7 +931,7 @@ end
                         srcysize_reg <= src_ysize_reload;
                         desysize_reg <= des_ysize_reload;
                         src_addr_reg <= src_addr_reload;
-                        des_addr_reg <= des_addr_reload;end
+                        end
                         
                    des_trig_req_type_reg <= 'd1;
                    src_trig_req_type_reg <= 'd1;
@@ -1076,7 +1076,7 @@ end
                                             1: begin src_x_left <= srcxsize;end
                                             2: begin src_x_left <= desxsize;end
                                             3: begin src_x_left <= srcxsize;end
-                                            default: begin src_x_left <= srcxsize; config_error_case6 <= 1; end
+                                            default: begin src_x_left <= srcxsize;  end
                                         endcase 
                                       
                                         case(y_type)
@@ -1503,7 +1503,23 @@ always @(posedge clk or negedge resetn) begin
             case (wr_state)
 W_IDLE: begin
     l <= 0;
-
+     
+     
+     if((cmd_restart_en || restart_cnt_reg != 0) && src_x_left == 0)
+                        if(reg_reload_type == 0)begin
+                        
+                        des_addr_reg <= 0;
+                        end
+                       
+                        
+                        else if(reg_reload_type == 5)begin
+                        
+                        des_addr_reg <= des_addr_reload;end
+                        
+                        else if(reg_reload_type == 7)begin
+                        
+                        des_addr_reg <= des_addr_reload;end
+                        
     des_yaddr_stride_reg <= des_yaddr_stride_signed;
     des_y_left           <= des_ysize;
     des_x_left_initial   <= des_x_left;
@@ -1840,11 +1856,10 @@ end
                     end
                     
                     else
-                        src_x_left <= src_x_left;
+                        des_x_left <= des_x_left;
                 end
             endcase
         end
     end 
     
 endmodule
-
