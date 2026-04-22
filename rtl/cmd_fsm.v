@@ -385,7 +385,7 @@ module cmd_fsm
     output reg BUSERR,//any axi error assterts this
     input wire STAT_ERROR_PARTSEL
     );
-    reg [5:0] temp_wptr,temp_rptr;
+    reg [4:0] temp_wptr,temp_rptr;
     reg [DATA_W - 1 : 0] fifo_temp [0:31]; 
     reg wr_en_reg;
     reg [3:0] current_state, next_state;
@@ -395,7 +395,7 @@ module cmd_fsm
     reg data_done_reg;
     reg link_enable_reg;
     reg STAT_ERROR_reg;
-    integer i;
+    integer i,j;
     reg count_flag;
     reg [$clog2(DATA_W/32)-1:0] chunk_cnt;
 reg [DATA_W-1:0] aligned_data;
@@ -528,11 +528,12 @@ always @(posedge clk or negedge resetn) begin
         else if (current_state == R)
         CMD_DONE <= ( (count2==0 && count_flag ) ? 1 : CMD_DONE) ;
 
-        if(count1 > 0 && current_state == AR)
-            count2 <= count1  ;
+//        if(count1 > 0 && current_state == AR)
+//            count2 <= count1  ;
         if(current_state == AR) begin
             wptr <= (count1 == 0)? 0 :wptr;
             chunk_cnt <= byte_offset/4;
+            count2 <= (count1 > 0)?count1:count2  ;
         end 
         // FIFO not empty
         else if (temp_rptr != temp_wptr && count2 !='h0) begin
@@ -559,6 +560,8 @@ end
     begin
         if(!resetn)
         begin
+            for(j=0;j<32;j=j+1) begin
+                fifo_temp[j] <= 'd0;end
             count_flag <= 0;
             //CMD_DONE <= 0; //done signal to data fsm
             AXIRDRESPERR <= 0;//address out of range error
@@ -569,6 +572,7 @@ end
             ARLEN  <= 0;
             ARSIZE <= 'd2;
             ARBURST <=0;
+             temp_wptr <= 0;
             ARVALID <=0;
             ARQOS <= 0;
            // RDATA_O <= 0;
@@ -643,10 +647,10 @@ end
                             //wptr <= wptr + 1; 
                             temp_wptr <= temp_wptr +1;
                         end
-                        else if(RLAST  && !(|((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 'hffffFFFF))
+                        else if(RLAST  && !(|(( (RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8)) ) & 32'hffffFFFF)))
                             LINKHDRERR <= 1;
-                        else if(RLAST  && (|((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 'hffffFFFF) && count ==0)begin 
-                            LINK_HEADER <=(((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 'hffffFFFF);// RDATA_I >> (byte_offset * 8);
+                        else if(RLAST  && (|(((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 32'hffffFFFF)) && count ==0)begin 
+                            LINK_HEADER <=(((RDATA_I >> ((ARADDR[$clog2(DATA_W/8)-1:0]) * 8))) & 32'hffffFFFF);// RDATA_I >> (byte_offset * 8);
                             temp_wptr <= 0; 
                         end
                         
