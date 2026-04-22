@@ -61,7 +61,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     else
                         PRDATA = 0;
     end
-    reg [3:0]count;
+    reg [4:0]count;
 
 
        always@(*)
@@ -146,11 +146,11 @@ module apb_slave #( parameter DATA_WIDTH = 32,
             if(current_state== ACCESS_ST)
                  begin
                 if((cfg_addr == 'h1004))
-                    count <= count+1;
+                    count <= count[3:0]+1;
                 else if((cfg_addr == 'h1020) && enable_cmd_to_apb)
-                    count <= count+1;
+                    count <= count[3:0]+1;
                 else if((cfg_addr == 'h1010) || (cfg_addr == 'h1018))
-                    count <= count+1;
+                    count <= count[3:0]+1;
 //               else if(((cfg_addr == 'h1010) || (cfg_addr == 'h1018))&& (count == 2) && !enable_cmd_to_apb)
 //                   count <= 0; 
                 else if(((cfg_addr == 'h1010) || (cfg_addr == 'h1018) || (cfg_addr == 'h1020))&& (count == 1) && enable_cmd_to_apb)
@@ -159,7 +159,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                  ||(cfg_addr == 'h1050) ||(cfg_addr == 'h104C) ||(cfg_addr == 'h1030) ||(cfg_addr == 'h102C) 
                  ||(cfg_addr == 'h1028) ||(cfg_addr == 'h100C) ||(cfg_addr == 'h1008) ||(cfg_addr == 'h1000)
                   ||(cfg_addr == 'h1090)||(cfg_addr == 'h1088) ||(cfg_addr == 'h108C) )
-                    count <= count+1;      
+                    count <= count[3:0]+1;      
                    
            
                  end
