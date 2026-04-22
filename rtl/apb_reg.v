@@ -12,7 +12,7 @@ module apb_reg #(parameter DATA_WIDTH = 32,
         input wire PENABLE,
         input wire PSEL,
         input wire enable_cmd_to_apb,
-        input  wire [(WIDTH*17)-1 : 0] chn_reg_in,
+        input  wire [(WIDTH*18)-1 : 0] chn_reg_in,
         input wire [DATA_WIDTH-1 : 0] PWDATA,
         input wire [STRB_WIDTH-1 : 0] PSTRB,
         output wire [DATA_WIDTH-1 : 0] PRDATA,
@@ -60,7 +60,10 @@ module apb_reg #(parameter DATA_WIDTH = 32,
 
       
       
-      apb_slave dut0
+      apb_slave// #(.DATA_WIDTH(DATA_WIDTH),
+		//  .ADDR_WIDTH(ADDR_WIDTH),
+		 // .STRB_WIDTH(STRB_WIDTH))
+		  dut0
          (.PCLK(clk),
         .PRESETn(resetn),
        .PADDR(PADDR),
@@ -142,6 +145,7 @@ module apb_reg #(parameter DATA_WIDTH = 32,
         .chn_srctmplt_wr_en_o(chn_srctmplt_wr_en_o),
         .chn_yaddrestride_wr_en_o(chn_yaddrestride_wr_en_o),
         .chn_ysize_wr_en_o(chn_ysize_wr_en_o),
+        .cfg_CH_AUTOCFG(cfg_CH_AUTOCFG),
         .src_des_xsize_updated(src_des_xsize_updated),
         .wrkregval_rd(wrkregval_rd)
         );
