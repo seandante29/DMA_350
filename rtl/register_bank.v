@@ -1,15 +1,15 @@
 module register_bank #(parameter WIDTH = 32,
     parameter ADDR_WIDTH = 32,
-	parameter DEPTH = 145)
+	parameter DEPTH = 256)
 	(input wire clk,
 	input wire resetn,
 	input wire cfg_rd_en,cfg_wr_en,//reg_wr_en,// write enable from apb to reg, 
 	input wire [ WIDTH-1 : 0] cfg_data_in,//from apb to reg
 	input wire [ADDR_WIDTH-1:0 ] addr_in,// from apb
-	input wire [(WIDTH*17)-1 : 0] chn_reg_in,// from channel
+	input wire [(WIDTH*18)-1 : 0] chn_reg_in,// from channel
 	input wire [WIDTH-1 : 0] wrkregval_rd,
 	output wire [ WIDTH-1 : 0] cfg_data_out, // to apb
-	output wire chn_wr_en, //to channel
+	//output wire chn_wr_en, //to channel
 	output wire [WIDTH-1 : 0] cfg_CH_CMD,// to mux logic
 	output wire [WIDTH-1 : 0] cfg_CH_STATUS,
 	output wire [WIDTH-1 : 0] cfg_CH_INTREN,
@@ -36,12 +36,14 @@ module register_bank #(parameter WIDTH = 32,
 	chn_trigout_wr_en_o,chn_autocfg_wr_en_o,chn_linkaddr_wr_en_o,chn_wrkregptr_wr_en_o,chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_yaddrestride_wr_en_o,chn_ysize_wr_en_o,//to channel   ,// to mux logic
 	input wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated
 	);
-	
+	reg [WIDTH-1:0] cfg_data_out_reg;	
 	reg [ WIDTH-1:0 ] reg_mem [ 0:DEPTH-1 ];
-	wire [7:0] addr_w; 
+	
+	wire [31:0] addr_w_32; 
+	wire [7:0] addr_w = addr_w_32[7:0];
 	integer i;
 
-	assign addr_w = (addr_in & 32'hFFFFFFFC) - 'h1000;
+	assign addr_w_32 = ((addr_in & 32'hFFFFFFFC) - 'h1000)&8'hFF;
 	assign cfg_CH_CMD = reg_mem[0];
 	assign cfg_CH_STATUS = reg_mem[4];
 	assign cfg_CH_INTREN = reg_mem[8];
@@ -88,17 +90,21 @@ module register_bank #(parameter WIDTH = 32,
 	assign chn_yaddrestride_wr_en_o = cfg_wr_en && ( addr_w == 8'h34);
 	assign chn_ysize_wr_en_o = cfg_wr_en && ( addr_w == 8'h3C);
 
-	assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_w] : cfg_data_out ;//'d0
+	assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_w] : cfg_data_out_reg ;//'d0
 	
 	always @(posedge clk or negedge resetn)
 	begin
 	  if(!resetn) begin
 	   for(i=0;i<DEPTH;i=i+1)
 		reg_mem [i] <= {WIDTH{1'b0}};                       
+	   
+		cfg_data_out_reg <= 0;
 	   end
 	   
 	  else 
 	   begin
+		
+		cfg_data_out_reg <= cfg_data_out;
 	   if(cfg_wr_en)
 	   begin
 		if (! (addr_w == 'h80 || addr_w == 'h8C || addr_w == 'h90 ))
