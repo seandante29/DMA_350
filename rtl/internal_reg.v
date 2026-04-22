@@ -48,7 +48,7 @@ module internal_reg #(parameter WIDTH = 32,
  
  
  // to reg bank
- output wire [(WIDTH*17)-1 : 0] chn_reg_out,
+ output wire [(WIDTH*18)-1 : 0] chn_reg_out,
  // to partselect module
  output  wire [31:0] CH_CTRL_O,
  output  wire [31:0] CH_INTREN_O,
@@ -106,7 +106,7 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
         | (|intr_mem[8][31:11]) | (|intr_mem[8][7:4])
         | (|intr_mem[12][31:30]) | (|intr_mem[12][17:15]) | (intr_mem[12][8]) | (|intr_mem[12][3]) 
         | (|intr_mem[40][31:20]) | (|intr_mem[40][15:12]) 
-        | (intr_mem[44][31:20]) | (|intr_mem[44][15:12])
+        | (|intr_mem[44][31:20]) | (|intr_mem[44][15:12])
         | (|intr_mem[76][31:24]) | (|intr_mem[76][15:12])
         | (|intr_mem[80][31:24]) | (|intr_mem[80][15:12])
         | (|intr_mem[84][31:10]) | (|intr_mem[84][7:6])
@@ -126,16 +126,37 @@ output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
 
    
    reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd; 
+// reg resetn_d;
+//wire resetn_posedge;
+//reg resetn_posedge_1;
+//always @(posedge clk) begin
+//    if(!resetn)begin
+//    resetn_d <= 0;
+//    resetn_posedge_1 <= 0;
+//    end
+    
+//    else begin
+//    resetn_d <= resetn;
+//    resetn_posedge_1 <= resetn_posedge;end
+//end
+
+//assign resetn_posedge = resetn & ~resetn_d;
+ 
+ 
  reg resetn_d;
-wire resetn_posedge;
-reg resetn_posedge_1;
-always @(posedge clk) begin
-    resetn_d <= resetn;
-    resetn_posedge_1 <= resetn_posedge;
+reg resetn_posedge;
+
+always @(posedge clk or negedge resetn) begin
+    if(!resetn) begin
+        resetn_d       <= 1'b0;
+        resetn_posedge <= 1'b0;
+    end
+    else begin
+        resetn_posedge <= resetn & ~resetn_d;
+        resetn_d       <= resetn;
+    end
 end
 
-assign resetn_posedge = resetn & ~resetn_d;
- 
  assign INTR_TRIGOUTACKWAIT = (STAT_TRIGOUTACKWAIT_DATA && intr_mem[8][10]);
  assign INTR_DESTRIGINWAIT = (STAT_DESTRIGINWAIT_DATA && intr_mem [8][9]);
  assign INTR_SRCTRIGINWAIT = (STAT_SRCTRIGINWAIT_DATA && intr_mem [8][8]);
@@ -147,7 +168,8 @@ assign resetn_posedge = resetn & ~resetn_d;
  
  //to reg bank
  assign reg_wr_en = IRQ  ? 1: 0;
- assign chn_reg_out = {intr_mem[0],intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],intr_mem[64],intr_mem[68],intr_mem[72],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[120],intr_mem[144],intr_mem[52],intr_mem[60]};// error,status 
+ assign chn_reg_out = {intr_mem[0],intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],
+ intr_mem[64],intr_mem[68],intr_mem[72],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[116],intr_mem[120],intr_mem[144],intr_mem[52],intr_mem[60]};// error,status 
 assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign wrkregval_rd = intr_mem[140];
  
@@ -232,7 +254,7 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
    intr_mem[80] <= data_in [(WIDTH * 16) -1 : (WIDTH*15)];
    intr_mem[84] <= data_in [(WIDTH * 17) -1 : (WIDTH*16)];
    intr_mem[116] <= data_in [(WIDTH * 18) -1 : (WIDTH*17)];
-   intr_mem[120]<= (resetn_posedge_1 && boot_en) ? {boot_addr,1'b0,boot_en}:data_in [(WIDTH * 19) -1 : (WIDTH*18)];
+   intr_mem[120]<= (resetn_posedge && boot_en) ? {boot_addr,1'b0,boot_en}:data_in [(WIDTH * 19) -1 : (WIDTH*18)];
    intr_mem [52]<= data_in [(WIDTH * 20) -1 : (WIDTH*19)];
    intr_mem [60]<= data_in [(WIDTH * 21) -1 : (WIDTH*20)];
          intr_mem[144] <= {6'd0,(regval_error | config_error| regval_err_reserved_bits),LINKHDERR,5'd0,{AXIRDPOISERR|AXIRDPOISERR_CMDFSM},AXIWRRESPERR,{AXIRDRESPERR|AXIRDRESPERR_CMDFSM},11'd0,
