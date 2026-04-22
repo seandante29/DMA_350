@@ -55,12 +55,12 @@ module dma_channel
     input wire chn_trigout_wr_en_o,
     input wire chn_autocfg_wr_en_o,
     input wire chn_linkaddr_wr_en_o,
-    input wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_ysize_wr_en_o,chn_yaddrestride_wr_en_o,
+    input wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_ysize_wr_en_o,chn_yaddrestride_wr_en_o,chn_wrkregptr_wr_en_o,
 
 
 
     //inter reg signals    
-    output wire [(WIDTH*17)-1 : 0] chn_reg_out,              
+    output wire [(WIDTH*18)-1 : 0] chn_reg_out,              
     output wire reg_wr_en,         
     output  wire IRQ,
     //cmd fsm signal
@@ -318,11 +318,11 @@ module dma_channel
 	.boot_addr(boot_addr),
 	.boot_en(boot_en),
 	.data_in(mux_logic_in),
-	.STAT_CMD_DONE(CMD_DONE),
-	.SRCADDR_UPDATED(SRCADDR_UPDATED),
-	.DESADDR_UPDATED(DESADDR_UPDATED),
-	.XSIZE_UPDATED(XSIZE_UPDATED),
-	.wr_en_for_updated(wr_en_for_updated),
+//	.STAT_CMD_DONE(CMD_DONE),
+//	.SRCADDR_UPDATED(SRCADDR_UPDATED),
+//	.DESADDR_UPDATED(DESADDR_UPDATED),
+//	.XSIZE_UPDATED(XSIZE_UPDATED),
+//	.wr_en_for_updated(wr_en_for_updated),
 	.AXIRDRESPERR(AXIRDRESPERR),
 	.AXIRDPOISERR(AXIRDPOISERR),
 	.AXIWRRESPERR(AXIWRRESPERR),
@@ -418,6 +418,7 @@ module dma_channel
 	.y_type(y_type),
 	.transize(transize),
 	.srcxsize(srcxsize),
+	.done_pause_en(done_pause_en),
 	.desxsize(desxsize),
 	.linkaddr(linkaddr),
 	.linkaddren(linkaddren),
@@ -595,6 +596,8 @@ module dma_channel
 	.DESADDR_UPDATED(DESADDR_UPDATED),
 	.XSIZE_UPDATED(XSIZE_UPDATED),
 	.LINKHDERR(LINKHDERR),
+		.des_trigin_sw_type(des_trigin_sw_type),
+		.src_trigin_sw_type(src_trigin_sw_type),
 	.cmd_restart_en(cmd_restart_en),
 	.cmd_restart_cnt(cmd_restart_cnt),
 	.reg_reload_type(reg_reload_type),
