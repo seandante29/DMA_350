@@ -61,27 +61,27 @@ module trigger_matrix (
             DESTRIGINSELERR = 1'b0;
             TRIGOUTSELERR   = 1'b0;
         end
-        
+        else begin
         // Source trigger select error
-        if (use_src_trigin && src_trigin_type == 2'b10 && src_trigin_sel > 1)
+        if ((use_src_trigin && src_trigin_type == 2'b10 && src_trigin_sel > 1) ||(use_src_trigin && use_des_trigin && src_trigin_type == 2'b10 && des_trigin_type == 2'b10 &&
+                                                                            src_trigin_sel == des_trigin_sel))
             SRCTRIGINSELERR = 1'b1;
-        
+        else 
+  SRCTRIGINSELERR = 1'b0;
         // Destination trigger select error
-        if (use_des_trigin && des_trigin_type == 2'b10 && des_trigin_sel > 1)
+        if ((use_des_trigin && des_trigin_type == 2'b10 && des_trigin_sel > 1) || (use_src_trigin && use_des_trigin && src_trigin_type == 2'b10 && des_trigin_type == 2'b10 &&
+                                                                            src_trigin_sel == des_trigin_sel))
             DESTRIGINSELERR = 1'b1;
+  else
+  DESTRIGINSELERR = 1'b0;
         
         // Trigger OUT select error
         if (use_trigout && trigout_type == 2'b10 && trigout_sel > 1)
             TRIGOUTSELERR = 1'b1;
+        else
+   TRIGOUTSELERR = 1'b0;
         
-        //  same trigger for src & des
-        if (use_src_trigin && use_des_trigin && src_trigin_type == 2'b10 && des_trigin_type == 2'b10 &&
-                                                                            src_trigin_sel == des_trigin_sel)
-        begin
-            SRCTRIGINSELERR = 1'b1;
-            DESTRIGINSELERR = 1'b1;
         end
-        
         
         // SOURCE trigger routing
         if (use_src_trigin && src_trigin_type == 2'b10 && !SRCTRIGINSELERR) begin
@@ -114,7 +114,7 @@ module trigger_matrix (
                 trig1_ack_type    = ch_des_ack_type;
             end
         end
-        // TRIGGER OUT routing (DMA → Peripheral)
+        // TRIGGER OUT routing (DMA  Peripheral)
         if (use_trigout && ch_trigout_req && trigout_type == 2'b10 && !TRIGOUTSELERR) begin
             if (trigout_sel == 1'b0) begin
                 trig0_out_req       = 1'b1;
