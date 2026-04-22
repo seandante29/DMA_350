@@ -1,23 +1,3 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 01/05/2026 02:46:58 PM
-// Design Name: 
-// Module Name: top_mod
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 module top_mod#( 
     parameter WIDTH = 32,
     parameter DATA_W = 128,
@@ -88,7 +68,7 @@ module top_mod#(
      input wire BVALID,
      input wire [1:0] BRESP,
  
-      
+      output wire [3:0] ARQOS,AWQOS,
        output wire [ID_W -1 : 0] ARID,
       output wire [7:0] ARLEN,
       output wire[2:0] ARSIZE,
@@ -121,7 +101,7 @@ module top_mod#(
     wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
     wire reg_wr_en;
       wire  [(WIDTH * 17) -1:0] reg_chn_out;
-      wire [(WIDTH*17)-1 : 0] chn_reg_out;
+      wire [(WIDTH*18)-1 : 0] chn_reg_out;
      // wire ch_wr_en_o;
       // from channel to trigger matrix
    wire        use_src_trigin;
@@ -192,7 +172,7 @@ wire chn_trigout_wr_en_o;
 wire chn_linkaddr_wr_en_o;
 wire chn_autocfg_wr_en_o,chn_yaddrestride_wr_en_o,chn_ysize_wr_en_o,chn_srctmplt_wr_en_o,chn_destmplt_wr_en_o,chn_tmpltcfg_wr_en_o,chn_wrkregptr_wr_en_o;
 
-wire [31:0] cfg_WRKREGPTR;
+wire [31:0] cfg_WRKREGPTR,YSIZE_UPDATED;
 wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire [31:0]  XSIZE_UPDATED;  
     dma_channel #(
     .WIDTH(WIDTH),
@@ -210,6 +190,8 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .chn_reg_out        (chn_reg_out),
     .reg_wr_en (reg_wr_en),
     .IRQ                (IRQ),
+    .ARQOS(ARQOS),
+    .AWQOS(AWQOS),
     .stat_err (stat_err),
     .cfg_CH_CMD            (cfg_CH_CMD),
     .cfg_CH_STATUS         (cfg_CH_STATUS),
@@ -250,9 +232,12 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
     .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
     .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
+        .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
     .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
     .chn_ysize_wr_en_o(chn_ysize_wr_en_o),
     .chn_yaddrestride_wr_en_o(chn_yaddrestride_wr_en_o),
+    .YSIZE_UPDATED(YSIZE_UPDATED),
+    .enable_cmd_to_apb(enable_cmd_to_apb),
     // AXI Read Address/Data (General/Descriptor)
     .ARID               (ARID),
     .ARADDR             (ARADDR),
@@ -388,8 +373,7 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
      apb_reg #(.DATA_WIDTH (DATA_WIDTH),
         .ADDR_WIDTH (ADDR_WIDTH),
          .STRB_WIDTH (STRB_WIDTH),
-         .WIDTH (WIDTH),
-         .DEPTH(DEPTH))
+         .WIDTH (WIDTH))
      dut2 (
      
 	.SRCADDR_UPDATED(SRCADDR_UPDATED),
@@ -410,6 +394,7 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .PSLVERR    (PSLVERR),
     .chn_reg_in (chn_reg_out),
 //   .reg_wr_en (reg_wr_en),
+.YSIZE_UPDATED(YSIZE_UPDATED),
       .cfg_CH_CMD            (cfg_CH_CMD),
     .cfg_CH_STATUS         (cfg_CH_STATUS),
     .cfg_CH_INTREN         (cfg_CH_INTREN),
@@ -450,6 +435,7 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
     .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
     .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+    .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
     .chn_ysize_wr_en_o(chn_ysize_wr_en_o),
     .chn_yaddrestride_wr_en_o(chn_yaddrestride_wr_en_o),
     .src_des_xsize_updated(src_des_xsize_updated),
