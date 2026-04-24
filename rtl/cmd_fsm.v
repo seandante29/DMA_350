@@ -531,6 +531,7 @@ always @(posedge clk or negedge resetn) begin
 //        if(count1 > 0 && current_state == AR)
 //            count2 <= count1  ;
         if(current_state == AR) begin
+            temp_rptr <= 0;
             wptr <= (count1 == 0)? 0 :wptr;
             chunk_cnt <= byte_offset/4;
             count2 <= (count1 > 0)?count1:count2  ;
