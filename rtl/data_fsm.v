@@ -1536,7 +1536,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                 end
             endcase
             
-            if((rd_state == RD_R&& RLAST)||(rd_state == RD_WRAP_FILL && rd_next_st == RD_IDLE && fill_count == 0)||(ycase2))
+            if((rd_state == RD_R&& RLAST)||(rd_state == RD_WRAP_FILL && fill_count == 0)||(ycase2))
                 wr_start <= 1;
         end
     end
