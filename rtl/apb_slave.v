@@ -23,9 +23,9 @@ module apb_slave #( parameter DATA_WIDTH = 32,
      output reg [ DATA_WIDTH-1 : 0 ]cfg_wdata,// to reg bank
      output reg [ ADDR_WIDTH-1 : 0 ]cfg_addr,// to reg bank
      output reg cfg_wr_en,cfg_rd_en,// to reg bank
-    input wire [31:0] SRCADDR_UPDATED,cfg_CH_SRCADDR,
-    input wire [31:0]  DESADDR_UPDATED,cfg_CH_DESADDR,
-    input wire [31:0]  XSIZE_UPDATED,cfg_CH_XSIZE,YSIZE_UPDATED,cfg_CH_YSIZE,
+    input wire [31:0] read_base_addr_UPDATED,cfg_read_base_addr,
+    input wire [31:0]  write_base_addr_UPDATED,cfg_write_base_addr,
+    input wire [31:0]  x_transfer_count_UPDATED,cfg_x_transfer_count,y_transfer_count_UPDATED,cfg_y_transfer_count,
     output wire stop_cmd_apb
      );
     localparam IDLE_ST   = 3'b001;
@@ -48,13 +48,13 @@ module apb_slave #( parameter DATA_WIDTH = 32,
       if(current_state == ACCESS_ST && PREADY && PWRITE == 0 && PENABLE )
          begin
          if((cfg_addr == 'h1010))
-                      PRDATA = (enable_cmd_to_apb) ?  SRCADDR_UPDATED : cfg_CH_SRCADDR;
+                      PRDATA = (enable_cmd_to_apb) ?  read_base_addr_UPDATED : cfg_read_base_addr;
          else if((cfg_addr == 'h1018))
-                      PRDATA = (enable_cmd_to_apb) ? DESADDR_UPDATED : cfg_CH_DESADDR;
+                      PRDATA = (enable_cmd_to_apb) ? write_base_addr_UPDATED : cfg_write_base_addr;
          else if((cfg_addr == 'h1020))
-                     PRDATA = (enable_cmd_to_apb) ? XSIZE_UPDATED : cfg_CH_XSIZE;
+                     PRDATA = (enable_cmd_to_apb) ? x_transfer_count_UPDATED : cfg_x_transfer_count;
         else if((cfg_addr == 'h103C))
-                     PRDATA = (enable_cmd_to_apb) ? YSIZE_UPDATED : cfg_CH_YSIZE;
+                     PRDATA = (enable_cmd_to_apb) ? y_transfer_count_UPDATED : cfg_y_transfer_count;
           else
                       PRDATA = cfg_rdata;
     end
