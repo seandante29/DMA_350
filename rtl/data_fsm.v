@@ -1033,7 +1033,7 @@ end
                     end else if (case2  || ycase2) begin  //write only
                         if ((x_type == 3 && case2)||(ycase2 && y_type == 3 && x_type ==3)) 
                         begin
-                            src_x_left <= desx_transfer_count;
+                            src_x_left <= 0;
                         end else if (x_type == 0 && y_type == 0)
                             config_error_x_type <= 0;
                         else
@@ -1536,7 +1536,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                 end
             endcase
             
-            if((rd_state == RD_R&& RLAST)||(ycase2))
+            if((rd_state == RD_R&& RLAST)||(rd_state == RD_WRAP_FILL && rd_next_st == RD_IDLE && fill_count == 0)||(ycase2))
                 wr_start <= 1;
         end
     end
