@@ -4,7 +4,7 @@
 // (
 //    input clk, 
 //    input resetn,
-//    input [31:0]LINKADDR,// fro intern reg
+//    input [31:0]next_cmd_addr,// fro intern reg
 //    input link_enable,// fro intern reg
 //    input data_done,// fro intern reg
 //    input wire wr_en,//or of every write enable 
@@ -273,12 +273,12 @@
 //                    //CMD_DONE <= 0;
 //                    ARVALID <= 1;          
 //                    if (count == 0) begin
-//                        ARADDR <= LINKADDR;
+//                        ARADDR <= next_cmd_addr;
 //                        ARLEN <= 0;
 //                         ARBURST <= 1;
 //                    end
 //                    else begin
-//                        ARADDR <= LINKADDR + 4;
+//                        ARADDR <= next_cmd_addr + 4;
 //                        ARLEN <= (count - 1 + (byte_offset/4))/(DATA_W/32) ;
 //                        ARBURST <= 1;  //changes done
 //                    end
@@ -350,7 +350,7 @@ module cmd_fsm
  (
     input clk, 
     input resetn,
-    input [31:0]LINKADDR,// fro intern reg
+    input [31:0]next_cmd_addr,// fro intern reg
     input link_enable,// fro intern reg
     input data_done,// fro intern reg
     input wire wr_en,//or of every write enable 
@@ -626,12 +626,12 @@ end
                     //CMD_DONE <= 0;
                     ARVALID <= 1;          
                     if (count == 0) begin
-                        ARADDR <= LINKADDR;
+                        ARADDR <= next_cmd_addr;
                         ARLEN <= 0;
                          ARBURST <= 1;
                     end
                     else begin
-                        ARADDR <= LINKADDR + 4;
+                        ARADDR <= next_cmd_addr + 4;
                         ARLEN <= (count - 1 + (byte_offset/4))/(DATA_W/32) ;
                         ARBURST <= 1;  //changes done
                     end
