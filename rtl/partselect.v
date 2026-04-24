@@ -1,37 +1,37 @@
 
 module partselect (
 // INTERNAL REGISTERS
-    input  wire [31:0] CH_CTRL,
-    input  wire [31:0] CH_XSIZE,
-    input  wire [31:0] CH_LINKADDR,
-    input  wire [31:0] CH_CMD,
-    input  wire [31:0] CH_STATUS,
+    input  wire [31:0] control_config,
+    input  wire [31:0] x_transfer_count,
+    input  wire [31:0] CH_next_cmd_addr,
+    input  wire [31:0] channel_start,
+    input  wire [31:0] channel_status,
     //input  wire [31:0] ERROR_INFO,
-    input  wire [31:0] CH_XADDRINC,
-    input  wire [31:0] CH_SRCTRIGINCFG,
-    input  wire [31:0] CH_DESTRIGINCFG,
-    input  wire [31:0] CH_TRIGOUTCFG,
-    input  wire [31:0] CH_SRCADDR,
-    input  wire [31:0] CH_DESADDR,
-    input  wire [31:0] CH_FILLVAL,
-     input wire [31:0] CH_TMPLTCFG,
-     input wire [31:0]CH_YADDRSTRIDE,
-     input wire [31:0] CH_YSIZE,
- input wire [31:0] CH_SRCTMPLT,
- input wire [31:0] CH_DESTMPLT,
- input wire [31:0] CH_DESTRANSCFG,
- input wire [31:0] CH_SRCTRANSCFG,
- input wire [31:0] CH_AUTOCFG,
+    input  wire [31:0] addr_increment_cfg,
+    input  wire [31:0] read_trigger_cfg,
+    input  wire [31:0] write_trigger_cfg,
+    input  wire [31:0] trigger_out_cfg,
+    input  wire [31:0] read_base_addr,
+    input  wire [31:0] write_base_addr,
+    input  wire [31:0] fill_data,
+     input wire [31:0] template_config,
+     input wire [31:0]line_stride,
+     input wire [31:0] y_transfer_count,
+ input wire [31:0] read_template_data,
+ input wire [31:0] write_template_data,
+ input wire [31:0] write_transfer_cfg,
+ input wire [31:0] read_transfer_cfg,
+ input wire [31:0] auto_restart_config,
 // CONTROL / CONFIG OUTPUTS
     output wire        use_trigout,
     output wire        use_des_trigin,
     output wire        use_src_trigin,
     output wire [2:0]  x_type,y_type,
     output wire [2:0]  transize,
-    output wire [15:0] srcxsize,
-    output wire [15:0] desxsize,
-    output wire [31:0] linkaddr,
-    output wire        linkaddren,
+    output wire [15:0] srcx_transfer_count,
+    output wire [15:0] desx_transfer_count,
+    output wire [31:0] next_cmd_addr,
+    output wire        next_cmd_addren,
     output wire [4:0] des_tmplt_size,
     output wire [4:0] src_tmplt_size,
     output wire [31:0] des_tmplt,
@@ -73,8 +73,8 @@ module partselect (
         
     output [15:0] src_yaddr_stride,
     output [15:0] des_yaddr_stride,
-    output [15:0] src_ysize,
-    output [15:0] des_ysize,
+    output [15:0] src_y_transfer_count,
+    output [15:0] des_y_transfer_count,
     output wire done_pause_en,
     output wire cmd_restart_en,//
     output wire [15:0] cmd_restart_cnt,//
@@ -95,77 +95,77 @@ module partselect (
     output wire        cfgerr,
     output wire        buserr */
 );
-// CH_CTRL
-assign use_trigout     = CH_CTRL[27];
-assign use_des_trigin  = CH_CTRL[26];
-assign use_src_trigin  = CH_CTRL[25];
-assign x_type          = CH_CTRL[11:9];
-assign y_type          = CH_CTRL[14:12]; 
-assign transize        = CH_CTRL[2:0];
-// CH_XSIZE
-assign desxsize = CH_XSIZE[31:16];
-assign srcxsize = CH_XSIZE[15:0];
-assign src_yaddr_stride = CH_YADDRSTRIDE[15:0];
-assign des_yaddr_stride = CH_YADDRSTRIDE[31:16];
-assign src_ysize = CH_YSIZE[15:0];
-assign des_ysize = CH_YSIZE[31:16];
+// control_config
+assign use_trigout     = control_config[27];
+assign use_des_trigin  = control_config[26];
+assign use_src_trigin  = control_config[25];
+assign x_type          = control_config[11:9];
+assign y_type          = control_config[14:12]; 
+assign transize        = control_config[2:0];
+// x_transfer_count
+assign desx_transfer_count = x_transfer_count[31:16];
+assign srcx_transfer_count = x_transfer_count[15:0];
+assign src_yaddr_stride = line_stride[15:0];
+assign des_yaddr_stride = line_stride[31:16];
+assign src_y_transfer_count = y_transfer_count[15:0];
+assign des_y_transfer_count = y_transfer_count[31:16];
 
     
-// CH_LINKADDR
-assign linkaddr   = {2'b00,CH_LINKADDR[31:2]};
-assign linkaddren = CH_LINKADDR[0];
-// CH_CMD
-assign trigout_ack_sw      = CH_CMD[24];
-assign des_trigin_sw_type  = CH_CMD[22:21];
-assign des_trigin_sw       = CH_CMD[20];
-assign src_trigin_sw_type  = CH_CMD[18:17];
-assign src_trigin_sw       = CH_CMD[16];
-assign resume_cmd          = CH_CMD[5];
-assign pause_cmd           = CH_CMD[4];
-assign stop_cmd              = CH_CMD[3];
-assign disable_cmd         = CH_CMD[2];
-assign enable_cmd          = CH_CMD[0];
-// CH_STATUS
-assign stat_err  = CH_STATUS[17];
-assign stat_done = CH_STATUS[16];
-//assign stat_disable_part = CH_STATUS [18];
-//assign stat_stop_part = CH_STATUS [19];
+// CH_next_cmd_addr
+assign next_cmd_addr   = {2'b00,CH_next_cmd_addr[31:2]};
+assign next_cmd_addren = CH_next_cmd_addr[0];
+// channel_start
+assign trigout_ack_sw      = channel_start[24];
+assign des_trigin_sw_type  = channel_start[22:21];
+assign des_trigin_sw       = channel_start[20];
+assign src_trigin_sw_type  = channel_start[18:17];
+assign src_trigin_sw       = channel_start[16];
+assign resume_cmd          = channel_start[5];
+assign pause_cmd           = channel_start[4];
+assign stop_cmd              = channel_start[3];
+assign disable_cmd         = channel_start[2];
+assign enable_cmd          = channel_start[0];
+// channel_status
+assign stat_err  = channel_status[17];
+assign stat_done = channel_status[16];
+//assign stat_disable_part = channel_status [18];
+//assign stat_stop_part = channel_status [19];
 
-// CH_XADDRINC
-assign des_xaddr_inc = CH_XADDRINC[31:16];
-assign src_xaddr_inc = CH_XADDRINC[15:0];
-// CH_SRCTRIGINCFG
-assign src_trigin_mode = CH_SRCTRIGINCFG[11:10];
-assign src_trigin_type = CH_SRCTRIGINCFG[9:8];
-assign src_trigin_sel  = CH_SRCTRIGINCFG[7:0];
-// CH_DESTRIGINCFG
-assign des_trigin_mode = CH_DESTRIGINCFG[11:10];
-assign des_trigin_type = CH_DESTRIGINCFG[9:8];
-assign des_trigin_sel  = CH_DESTRIGINCFG[7:0];
-// CH_TRIGOUTCFG
-assign trigout_type = CH_TRIGOUTCFG[9:8];
-assign trigout_sel  = CH_TRIGOUTCFG[5:0];
+// addr_increment_cfg
+assign des_xaddr_inc = addr_increment_cfg[31:16];
+assign src_xaddr_inc = addr_increment_cfg[15:0];
+// read_trigger_cfg
+assign src_trigin_mode = read_trigger_cfg[11:10];
+assign src_trigin_type = read_trigger_cfg[9:8];
+assign src_trigin_sel  = read_trigger_cfg[7:0];
+// write_trigger_cfg
+assign des_trigin_mode = write_trigger_cfg[11:10];
+assign des_trigin_type = write_trigger_cfg[9:8];
+assign des_trigin_sel  = write_trigger_cfg[7:0];
+// trigger_out_cfg
+assign trigout_type = trigger_out_cfg[9:8];
+assign trigout_sel  = trigger_out_cfg[5:0];
 // ADDRESSES / FILL
-assign src_addr = CH_SRCADDR;
-assign des_addr = CH_DESADDR;
-assign fillval  = CH_FILLVAL;
+assign src_addr = read_base_addr;
+assign des_addr = write_base_addr;
+assign fillval  = fill_data;
 
-assign src_tmplt = CH_SRCTMPLT;
-assign des_tmplt = CH_DESTMPLT;
-assign src_tmplt_size = CH_TMPLTCFG[12:8];
-assign des_tmplt_size =  CH_TMPLTCFG [20:16];
+assign src_tmplt = read_template_data;
+assign des_tmplt = write_template_data;
+assign src_tmplt_size = template_config[12:8];
+assign des_tmplt_size =  template_config [20:16];
 
-assign src_trigin_blk_size = CH_SRCTRIGINCFG[23:16];
-assign des_trigin_blk_size = CH_DESTRIGINCFG[23:16];
+assign src_trigin_blk_size = read_trigger_cfg[23:16];
+assign des_trigin_blk_size = write_trigger_cfg[23:16];
 
-assign des_max_burst_len = CH_DESTRANSCFG[19:16];
-assign src_max_burst_len = CH_SRCTRANSCFG[19:16];
+assign des_max_burst_len = write_transfer_cfg[19:16];
+assign src_max_burst_len = read_transfer_cfg[19:16];
 
-assign cmd_restart_en = CH_AUTOCFG [16];
-assign cmd_restart_cnt = CH_AUTOCFG [15:0];
-assign reg_reload_type = CH_CTRL[20:18];
-assign done_type = CH_CTRL[23:21];
-assign done_pause_en = CH_CTRL [24];
+assign cmd_restart_en = auto_restart_config [16];
+assign cmd_restart_cnt = auto_restart_config [15:0];
+assign reg_reload_type = control_config[20:18];
+assign done_type = control_config[23:21];
+assign done_pause_en = control_config [24];
 // ERROR_INFO
 /*
 assign cfgconflerr        = ERROR_INFO[26];
