@@ -10,31 +10,31 @@ module register_bank #(parameter WIDTH = 32,
 	input wire [WIDTH-1 : 0] wrkregval_rd,
 	output wire [ WIDTH-1 : 0] cfg_data_out, // to apb
 	//output wire chn_wr_en, //to channel
-	output wire [WIDTH-1 : 0] cfg_CH_CMD,// to mux logic
-	output wire [WIDTH-1 : 0] cfg_CH_STATUS,
-	output wire [WIDTH-1 : 0] cfg_CH_INTREN,
-	output wire [WIDTH-1 : 0] cfg_CH_CTRL,
-	output wire [WIDTH-1 : 0] cfg_CH_SRCADDR,
-	output wire [WIDTH-1 : 0] cfg_CH_DESADDR,
-	output wire [WIDTH-1 : 0] cfg_CH_XSIZE,
-	output wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG,
-	output wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG,
-	output wire [WIDTH-1 : 0] cfg_CH_XADDRINC,
-	output wire [WIDTH-1 : 0] cfg_CH_FILLVAL,
-	output wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
-	output wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
-	output wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
-	output wire [WIDTH-1 : 0] cfg_CH_AUTOCFG,
-	output wire [WIDTH-1 : 0] cfg_LINKADDR,// to mux logic
-	output wire [WIDTH-1 : 0] cfg_WRKREGPTR,cfg_CH_YADDRSTRIDE,cfg_CH_YSIZE,
-	output wire [31:0] cfg_CH_SRCTMPLT,
-	output wire [31:0] cfg_CH_DESTMPLT,
-	output wire [31:0] cfg_CH_TMPLTCFG,
+	output wire [WIDTH-1 : 0] cfg_channel_start,// to mux logic
+	output wire [WIDTH-1 : 0] cfg_channel_status,
+	output wire [WIDTH-1 : 0] cfg_interrupt_enable,
+	output wire [WIDTH-1 : 0] cfg_control_config,
+	output wire [WIDTH-1 : 0] cfg_read_base_addr,
+	output wire [WIDTH-1 : 0] cfg_write_base_addr,
+	output wire [WIDTH-1 : 0] cfg_x_transfer_count,
+	output wire [WIDTH-1 : 0] cfg_read_transfer_cfg,
+	output wire [WIDTH-1 : 0] cfg_write_transfer_cfg,
+	output wire [WIDTH-1 : 0] cfg_addr_increment_cfg,
+	output wire [WIDTH-1 : 0] cfg_fill_data,
+	output wire [WIDTH-1 : 0] cfg_read_trigger_cfg,
+	output wire [WIDTH-1 : 0] cfg_write_trigger_cfg,
+	output wire [WIDTH-1 : 0] cfg_trigger_out_cfg,
+	output wire [WIDTH-1 : 0] cfg_auto_restart_config,
+	output wire [WIDTH-1 : 0] cfg_next_cmd_addr,// to mux logic
+	output wire [WIDTH-1 : 0] cfg_work_reg_pointer,cfg_line_stride,cfg_y_transfer_count,
+	output wire [31:0] cfg_read_template_data,
+	output wire [31:0] cfg_write_template_data,
+	output wire [31:0] cfg_template_config,
 	output wire chn_cmd_wr_en_o, chn_stat_wr_en_o, chn_intren_wr_en_o,
-	chn_ctrl_wr_en_o,chn_srcaddr_wr_en_o, chn_desaddr_wr_en_o, chn_xsize_wr_en_o, chn_srctrans_wr_en_o,
+	chn_ctrl_wr_en_o,chn_read_base_addr_wr_en_o, chn_write_base_addr_wr_en_o, chn_x_transfer_count_wr_en_o, chn_srctrans_wr_en_o,
 	chn_destrans_wr_en_o,chn_xaddrinc_wr_en_o,chn_fillval_wr_en_o,chn_srctrigin_wr_en_o,chn_destrigin_wr_en_o,
-	chn_trigout_wr_en_o,chn_autocfg_wr_en_o,chn_linkaddr_wr_en_o,chn_wrkregptr_wr_en_o,chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_yaddrestride_wr_en_o,chn_ysize_wr_en_o,//to channel   ,// to mux logic
-	input wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated
+	chn_trigout_wr_en_o,chn_autocfg_wr_en_o,chn_next_cmd_addr_wr_en_o,chn_work_reg_pointer_wr_en_o,chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_yaddrestride_wr_en_o,chn_y_transfer_count_wr_en_o,//to channel   ,// to mux logic
+	input wire [(WIDTH*3)-1 : 0]  src_des_x_transfer_count_updated
 	);
 	reg [WIDTH-1:0] cfg_data_out_reg;	
 	reg [ WIDTH-1:0 ] reg_mem [ 0:DEPTH-1 ];
@@ -44,36 +44,36 @@ module register_bank #(parameter WIDTH = 32,
 	integer i;
 
 	assign addr_w_32 = ((addr_in & 32'hFFFFFFFC) - 'h1000)&8'hFF;
-	assign cfg_CH_CMD = reg_mem[0];
-	assign cfg_CH_STATUS = reg_mem[4];
-	assign cfg_CH_INTREN = reg_mem[8];
-	assign cfg_CH_CTRL = reg_mem[12];
-	assign cfg_CH_SRCADDR = reg_mem[16];
-	assign cfg_CH_DESADDR = reg_mem[24];
-	assign cfg_CH_XSIZE = reg_mem[32];
-	assign cfg_CH_SRCTRANSCFG = reg_mem[40];
-	assign cfg_CH_DESTRANSCFG = reg_mem[44];
-	assign cfg_CH_XADDRINC = reg_mem[48];
-	assign cfg_CH_FILLVAL = reg_mem[56];
-	assign cfg_CH_TMPLTCFG = reg_mem[64];
-	assign cfg_CH_SRCTMPLT = reg_mem[68];
-	assign cfg_CH_DESTMPLT = reg_mem[72];
-	assign cfg_CH_YADDRSTRIDE = reg_mem[52];
-	assign cfg_CH_YSIZE = reg_mem[60];
-	assign cfg_CH_SRCTRIGINCFG = reg_mem[76];
-	assign cfg_CH_DESTRIGINCFG = reg_mem[80];
-	assign cfg_CH_TRIGOUTCFG = reg_mem[84];
-	assign cfg_CH_AUTOCFG = reg_mem[116];
-	assign cfg_LINKADDR = reg_mem[120];
-	assign cfg_WRKREGPTR = reg_mem[136];
+	assign cfg_channel_start = reg_mem[0];
+	assign cfg_channel_status = reg_mem[4];
+	assign cfg_interrupt_enable = reg_mem[8];
+	assign cfg_control_config = reg_mem[12];
+	assign cfg_read_base_addr = reg_mem[16];
+	assign cfg_write_base_addr = reg_mem[24];
+	assign cfg_x_transfer_count = reg_mem[32];
+	assign cfg_read_transfer_cfg = reg_mem[40];
+	assign cfg_write_transfer_cfg = reg_mem[44];
+	assign cfg_addr_increment_cfg = reg_mem[48];
+	assign cfg_fill_data = reg_mem[56];
+	assign cfg_template_config = reg_mem[64];
+	assign cfg_read_template_data = reg_mem[68];
+	assign cfg_write_template_data = reg_mem[72];
+	assign cfg_line_stride = reg_mem[52];
+	assign cfg_y_transfer_count = reg_mem[60];
+	assign cfg_read_trigger_cfg = reg_mem[76];
+	assign cfg_write_trigger_cfg = reg_mem[80];
+	assign cfg_trigger_out_cfg = reg_mem[84];
+	assign cfg_auto_restart_config = reg_mem[116];
+	assign cfg_next_cmd_addr = reg_mem[120];
+	assign cfg_work_reg_pointer = reg_mem[136];
 
 	assign chn_cmd_wr_en_o = cfg_wr_en && (addr_w == 0);
 	assign chn_stat_wr_en_o = cfg_wr_en && ( addr_w == 8'h4);
 	assign chn_intren_wr_en_o = cfg_wr_en && ( addr_w == 8'h8);
 	assign chn_ctrl_wr_en_o = cfg_wr_en && ( addr_w == 8'hc) ;
-	assign chn_srcaddr_wr_en_o = cfg_wr_en && ( addr_w == 8'h10);
-	assign chn_desaddr_wr_en_o = cfg_wr_en && ( addr_w == 8'h18);
-	assign chn_xsize_wr_en_o = cfg_wr_en && ( addr_w == 8'h20);
+	assign chn_read_base_addr_wr_en_o = cfg_wr_en && ( addr_w == 8'h10);
+	assign chn_write_base_addr_wr_en_o = cfg_wr_en && ( addr_w == 8'h18);
+	assign chn_x_transfer_count_wr_en_o = cfg_wr_en && ( addr_w == 8'h20);
 	assign chn_srctrans_wr_en_o = cfg_wr_en && ( addr_w == 8'h28);
 	assign chn_destrans_wr_en_o = cfg_wr_en && ( addr_w == 8'h2c);
 	assign chn_xaddrinc_wr_en_o = cfg_wr_en && ( addr_w == 8'h30);
@@ -82,13 +82,13 @@ module register_bank #(parameter WIDTH = 32,
 	assign chn_destrigin_wr_en_o = cfg_wr_en &&( addr_w == 8'h50) ;
 	assign chn_trigout_wr_en_o = cfg_wr_en && ( addr_w == 8'h54);
 	assign chn_autocfg_wr_en_o = cfg_wr_en && (addr_w == 8'h74);
-	assign chn_linkaddr_wr_en_o = cfg_wr_en && ( addr_w == 8'h78);
-	assign chn_wrkregptr_wr_en_o =  cfg_wr_en && ( addr_w == 8'h8C);
+	assign chn_next_cmd_addr_wr_en_o = cfg_wr_en && ( addr_w == 8'h78);
+	assign chn_work_reg_pointer_wr_en_o =  cfg_wr_en && ( addr_w == 8'h8C);
 	assign chn_srctmplt_wr_en_o = cfg_wr_en && ( addr_w == 8'h44);
 	assign chn_destmplt_wr_en_o = cfg_wr_en && ( addr_w == 8'h48);
 	assign chn_tmpltcfg_wr_en_o = cfg_wr_en && ( addr_w == 8'h40);
 	assign chn_yaddrestride_wr_en_o = cfg_wr_en && ( addr_w == 8'h34);
-	assign chn_ysize_wr_en_o = cfg_wr_en && ( addr_w == 8'h3C);
+	assign chn_y_transfer_count_wr_en_o = cfg_wr_en && ( addr_w == 8'h3C);
 
 	assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_w] : cfg_data_out_reg ;//'d0
 	
@@ -115,7 +115,7 @@ module register_bank #(parameter WIDTH = 32,
 	   begin
 		{reg_mem[0],reg_mem[4] , reg_mem[12],reg_mem[40] , reg_mem[44],reg_mem[48] ,reg_mem[56],reg_mem[64] ,reg_mem[68] ,reg_mem[72] ,reg_mem[76] ,
 						  reg_mem[80],reg_mem[84] ,reg_mem[116],reg_mem[120], reg_mem[144], reg_mem[52],reg_mem[60]} <= chn_reg_in;
-		{reg_mem [16] , reg_mem[24],reg_mem [32]} <=src_des_xsize_updated;
+		{reg_mem [16] , reg_mem[24],reg_mem [32]} <=src_des_x_transfer_count_updated;
 		reg_mem[140] <= wrkregval_rd; 
 		end
 	   end
