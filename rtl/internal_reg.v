@@ -6,9 +6,9 @@ module internal_reg #(parameter WIDTH = 32,
  input wire [(WIDTH * 21) -1:0] data_in,
  
  //
-//     input wire [31:0] SRCADDR_UPDATED,
-//    input wire [31:0]  DESADDR_UPDATED,
-//    input wire [31:0]  XSIZE_UPDATED,YSIZE_UPDATED,
+//     input wire [31:0] read_base_addr_UPDATED,
+//    input wire [31:0]  write_base_addr_UPDATED,
+//    input wire [31:0]  x_transfer_count_UPDATED,y_transfer_count_UPDATED,
     //input wire  wr_en_for_updated,
     //input wire STAT_CMD_DONE,
     
@@ -50,42 +50,42 @@ module internal_reg #(parameter WIDTH = 32,
  // to reg bank
  output wire [(WIDTH*18)-1 : 0] chn_reg_out,
  // to partselect module
- output  wire [31:0] CH_CTRL_O,
- output  wire [31:0] CH_INTREN_O,
- output  wire [31:0] CH_XSIZE_O,
- output  wire [31:0] CH_LINKADDR_O,
- output  wire [31:0] CH_CMD_O,
- output  wire [31:0] CH_STATUS_O,
- output  wire [31:0] CH_XADDRINC_O,
- output  wire [31:0] CH_SRCTRANSCFG_O,
- output  wire [31:0] CH_DESTRANSCFG_O,
- output  wire [31:0] CH_SRCTRIGINCFG_O,
- output  wire [31:0] CH_DESTRIGINCFG_O,
- output  wire [31:0] CH_TRIGOUTCFG_O,
- output  wire [31:0] CH_SRCADDR_O,
- output  wire [31:0] CH_DESADDR_O,
- output  wire [31:0] CH_FILLVAL_O,
- output wire [31:0] CH_TMPLTCFG_O,
- output wire [31:0] CH_SRCTMPLT_O,
- output wire [31:0] CH_DESTMPLT_O,
- output wire [31:0] CH_AUTOCFG_O,
+ output  wire [31:0] control_config_O,
+ output  wire [31:0] interrupt_enable_O,
+ output  wire [31:0] x_transfer_count_O,
+ output  wire [31:0] CH_next_cmd_addr_O,
+ output  wire [31:0] channel_start_O,
+ output  wire [31:0] channel_status_O,
+ output  wire [31:0] addr_increment_cfg_O,
+ output  wire [31:0] read_transfer_cfg_O,
+ output  wire [31:0] write_transfer_cfg_O,
+ output  wire [31:0] read_trigger_cfg_O,
+ output  wire [31:0] write_trigger_cfg_O,
+ output  wire [31:0] trigger_out_cfg_O,
+ output  wire [31:0] read_base_addr_O,
+ output  wire [31:0] write_base_addr_O,
+ output  wire [31:0] fill_data_O,
+ output wire [31:0] template_config_O,
+ output wire [31:0] read_template_data_O,
+ output wire [31:0] write_template_data_O,
+ output wire [31:0] auto_restart_config_O,
  
- output wire [31:0] CH_YADDRSTRIDE_O,
- output wire [31:0] CH_YSIZE_O,
+ output wire [31:0] line_stride_O,
+ output wire [31:0] y_transfer_count_O,
  output  wire IRQ,
 output wire stat_done_intr_reg,//data fsm
 output wire stat_disable_intr_reg ,
 output wire stat_stopped_intr_reg ,
 output wire  stat_err_intr_reg,
-output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
+output wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated,
  
  output  wire reg_wr_en,
  output wire [31:0] wrkregval_rd,
- input wire [31:0] cfg_WRKREGPTR,
- input wire [31:0] SRCADDR_INITIAL,SRCADDR_LINEINITIAL,
- input wire [31:0] DESADDR_INITIAL,DESADDR_LINEINITIAL,
- input wire [31:0] SRCXSIZE_INITIAL,DESYSIZE_INITIAL,
- input wire [31:0] DESXSIZE_INITIAL,SRCYSIZE_INITIAL//inputs from data fsm
+ input wire [31:0] cfg_work_reg_pointer,
+ input wire [31:0] read_base_addr_INITIAL,read_base_addr_LINEINITIAL,
+ input wire [31:0] write_base_addr_INITIAL,write_base_addr_LINEINITIAL,
+ input wire [31:0] SRCx_transfer_count_INITIAL,DESy_transfer_count_INITIAL,
+ input wire [31:0] DESx_transfer_count_INITIAL,SRCy_transfer_count_INITIAL//inputs from data fsm
  );
  
  integer i;
@@ -170,43 +170,43 @@ end
  assign reg_wr_en = IRQ  ? 1: 0;
  assign chn_reg_out = {intr_mem[0],intr_mem[4],intr_mem[12],intr_mem[40],intr_mem[44],intr_mem[48],intr_mem[56],
  intr_mem[64],intr_mem[68],intr_mem[72],intr_mem[76],intr_mem[80],intr_mem[84],intr_mem[116],intr_mem[120],intr_mem[144],intr_mem[52],intr_mem[60]};// error,status 
-assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
+assign src_des_x_transfer_count_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
  assign wrkregval_rd = intr_mem[140];
  
- assign CH_CMD_O = intr_mem [0];
- assign CH_STATUS_O = intr_mem[4];
- assign CH_INTREN_O = intr_mem [8];
- assign CH_CTRL_O = intr_mem [12];
- assign CH_SRCADDR_O = intr_mem [16];
- assign CH_DESADDR_O = intr_mem [24];
- assign CH_XSIZE_O = intr_mem [32];
- assign CH_SRCTRANSCFG_O = intr_mem [40];
- assign CH_DESTRANSCFG_O = intr_mem [44];
- assign CH_XADDRINC_O = intr_mem [48];
- assign CH_FILLVAL_O = intr_mem [56];
- assign CH_DESTMPLT_O = intr_mem[72];
- assign CH_SRCTMPLT_O = intr_mem[68];
- assign CH_TMPLTCFG_O = intr_mem[64];
- assign CH_SRCTRIGINCFG_O = intr_mem [76];
- assign CH_DESTRIGINCFG_O = intr_mem [80];
- assign CH_AUTOCFG_O = intr_mem [116];
- assign CH_TRIGOUTCFG_O = intr_mem [84];
- assign CH_LINKADDR_O = intr_mem [120];
- assign CH_YADDRSTRIDE_O = intr_mem [52];
- assign CH_YSIZE_O = intr_mem [60];
+ assign channel_start_O = intr_mem [0];
+ assign channel_status_O = intr_mem[4];
+ assign interrupt_enable_O = intr_mem [8];
+ assign control_config_O = intr_mem [12];
+ assign read_base_addr_O = intr_mem [16];
+ assign write_base_addr_O = intr_mem [24];
+ assign x_transfer_count_O = intr_mem [32];
+ assign read_transfer_cfg_O = intr_mem [40];
+ assign write_transfer_cfg_O = intr_mem [44];
+ assign addr_increment_cfg_O = intr_mem [48];
+ assign fill_data_O = intr_mem [56];
+ assign write_template_data_O = intr_mem[72];
+ assign read_template_data_O = intr_mem[68];
+ assign template_config_O = intr_mem[64];
+ assign read_trigger_cfg_O = intr_mem [76];
+ assign write_trigger_cfg_O = intr_mem [80];
+ assign auto_restart_config_O = intr_mem [116];
+ assign trigger_out_cfg_O = intr_mem [84];
+ assign CH_next_cmd_addr_O = intr_mem [120];
+ assign line_stride_O = intr_mem [52];
+ assign y_transfer_count_O = intr_mem [60];
 
  
  always @(*)
  begin
- case(cfg_WRKREGPTR)
- 'd1:WRKREGVAL_temp = SRCADDR_INITIAL;
- 'd3:WRKREGVAL_temp = DESADDR_INITIAL;
- 'd5:WRKREGVAL_temp = SRCXSIZE_INITIAL;
- 'd6:WRKREGVAL_temp = DESXSIZE_INITIAL;
- 'd7:WRKREGVAL_temp = SRCADDR_LINEINITIAL;
- 'd9:WRKREGVAL_temp = DESADDR_LINEINITIAL;
- 'd11:WRKREGVAL_temp = SRCYSIZE_INITIAL;
- 'd12:WRKREGVAL_temp = DESYSIZE_INITIAL;
+ case(cfg_work_reg_pointer)
+ 'd1:WRKREGVAL_temp = read_base_addr_INITIAL;
+ 'd3:WRKREGVAL_temp = write_base_addr_INITIAL;
+ 'd5:WRKREGVAL_temp = SRCx_transfer_count_INITIAL;
+ 'd6:WRKREGVAL_temp = DESx_transfer_count_INITIAL;
+ 'd7:WRKREGVAL_temp = read_base_addr_LINEINITIAL;
+ 'd9:WRKREGVAL_temp = write_base_addr_LINEINITIAL;
+ 'd11:WRKREGVAL_temp = SRCy_transfer_count_INITIAL;
+ 'd12:WRKREGVAL_temp = DESy_transfer_count_INITIAL;
  default:WRKREGVAL_temp = 'd0;
  endcase
  end
@@ -238,10 +238,10 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
    intr_mem[12] <= data_in [(WIDTH * 4) -1 : (WIDTH*3)];
    intr_mem[16] <=data_in [(WIDTH * 5) -1 : (WIDTH*4)];
     intr_mem[24] <=  data_in [(WIDTH * 6) -1 : (WIDTH*5)];//
-   //intr_mem[16] <= wr_en_for_updated ? SRCADDR_UPDATED : data_in [(WIDTH * 5) -1 : (WIDTH*4)];//
-  // intr_mem[24] <=  wr_en_for_updated ? DESADDR_UPDATED : data_in [(WIDTH * 6) -1 : (WIDTH*5)];//
-  //  intr_mem[32] <=  wr_en_for_updated ? XSIZE_UPDATED :  data_in [(WIDTH * 7) -1 : (WIDTH*6)];//
-   //intr_mem[32] <=  wr_en_for_updated ? XSIZE_UPDATED : STAT_CMD_DONE? data_in [(WIDTH * 7) -1 : (WIDTH*6)]:intr_mem[32] ;//
+   //intr_mem[16] <= wr_en_for_updated ? read_base_addr_UPDATED : data_in [(WIDTH * 5) -1 : (WIDTH*4)];//
+  // intr_mem[24] <=  wr_en_for_updated ? write_base_addr_UPDATED : data_in [(WIDTH * 6) -1 : (WIDTH*5)];//
+  //  intr_mem[32] <=  wr_en_for_updated ? x_transfer_count_UPDATED :  data_in [(WIDTH * 7) -1 : (WIDTH*6)];//
+   //intr_mem[32] <=  wr_en_for_updated ? x_transfer_count_UPDATED : STAT_CMD_DONE? data_in [(WIDTH * 7) -1 : (WIDTH*6)]:intr_mem[32] ;//
    intr_mem[32] <=data_in [(WIDTH * 7) -1 : (WIDTH*6)];
    intr_mem[40] <= data_in [(WIDTH * 8) -1 : (WIDTH*7)];
    intr_mem[44] <= data_in [(WIDTH * 9) -1 : (WIDTH*8)];
@@ -264,7 +264,7 @@ assign src_des_xsize_updated = {intr_mem[16],intr_mem[24],intr_mem[32]};
        stat_disable_intr_reg,stat_err_intr_reg,stat_done_intr_reg,5'd0,INTR_TRIGOUTACKWAIT,INTR_DESTRIGINWAIT,INTR_SRCTRIGINWAIT,4'd0,
        INTR_STOPPED,INTR_DISABLED,INTR_ERR,INTR_DONE};
        
-       intr_mem[136] <= cfg_WRKREGPTR;
+       intr_mem[136] <= cfg_work_reg_pointer;
        intr_mem[140] <= WRKREGVAL_temp;
     
    
