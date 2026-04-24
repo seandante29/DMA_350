@@ -98,7 +98,7 @@ module top_mod#(
       output  wire IRQ
     );
     wire enable_cmd_to_apb;
-    wire [(WIDTH*3)-1 : 0]  src_des_xsize_updated;
+    wire [(WIDTH*3)-1 : 0]  src_des_x_transfer_count_updated;
     wire reg_wr_en;
       wire  [(WIDTH * 17) -1:0] reg_chn_out;
       wire [(WIDTH*18)-1 : 0] chn_reg_out;
@@ -114,9 +114,9 @@ module top_mod#(
    wire [1:0]  trigout_type;    // 2'b10 = HW
    wire [5:0]  trigout_sel;      // 0 = trig0, 1 = trig1
    
-//  wire [31:0] cfg_CH_SRCTMPLT;
-//      wire [31:0] cfg_CH_DESTMPLT;
-//      wire [31:0] cfg_CH_TMPLTCFG;
+//  wire [31:0] cfg_read_template_data;
+//      wire [31:0] cfg_write_template_data;
+//      wire [31:0] cfg_template_config;
 //      wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o;
        // To DMA Channel (REQ view)
     wire src_trig_req;
@@ -134,34 +134,34 @@ module top_mod#(
       
     wire chn_wr_en;
     
-wire [WIDTH-1 : 0] cfg_CH_CMD;
-wire [WIDTH-1 : 0] cfg_CH_STATUS;
-wire [WIDTH-1 : 0] cfg_CH_INTREN;
-wire [WIDTH-1 : 0] cfg_CH_CTRL;
-wire [WIDTH-1 : 0] cfg_CH_SRCADDR;
-wire [WIDTH-1 : 0] cfg_CH_DESADDR;
-wire [WIDTH-1 : 0] cfg_CH_XSIZE;
-wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG;
-wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG;
-wire [WIDTH-1 : 0] cfg_CH_XADDRINC;
-wire [WIDTH-1 : 0] cfg_CH_FILLVAL;
-wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG;
-wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG;
-wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG;
-wire [WIDTH-1 : 0] cfg_CH_AUTOCFG;
-wire [WIDTH-1 : 0] cfg_LINKADDR,cfg_CH_YADDRSTRIDE,cfg_CH_YSIZE;
-wire [31:0] cfg_CH_SRCTMPLT;
-wire [31:0] cfg_CH_DESTMPLT;
-wire [31:0] cfg_CH_TMPLTCFG;
+wire [WIDTH-1 : 0] cfg_channel_start;
+wire [WIDTH-1 : 0] cfg_channel_status;
+wire [WIDTH-1 : 0] cfg_interrupt_enable;
+wire [WIDTH-1 : 0] cfg_control_config;
+wire [WIDTH-1 : 0] cfg_read_base_addr;
+wire [WIDTH-1 : 0] cfg_write_base_addr;
+wire [WIDTH-1 : 0] cfg_x_transfer_count;
+wire [WIDTH-1 : 0] cfg_read_transfer_cfg;
+wire [WIDTH-1 : 0] cfg_write_transfer_cfg;
+wire [WIDTH-1 : 0] cfg_addr_increment_cfg;
+wire [WIDTH-1 : 0] cfg_fill_data;
+wire [WIDTH-1 : 0] cfg_read_trigger_cfg;
+wire [WIDTH-1 : 0] cfg_write_trigger_cfg;
+wire [WIDTH-1 : 0] cfg_trigger_out_cfg;
+wire [WIDTH-1 : 0] cfg_auto_restart_config;
+wire [WIDTH-1 : 0] cfg_next_cmd_addr,cfg_line_stride,cfg_y_transfer_count;
+wire [31:0] cfg_read_template_data;
+wire [31:0] cfg_write_template_data;
+wire [31:0] cfg_template_config;
 wire [WIDTH-1:0] wrkregval_rd;
 
 wire chn_cmd_wr_en_o;
 wire chn_stat_wr_en_o;
 wire chn_intren_wr_en_o;
 wire chn_ctrl_wr_en_o;
-wire chn_srcaddr_wr_en_o;
-wire chn_desaddr_wr_en_o;
-wire chn_xsize_wr_en_o;
+wire chn_read_base_addr_wr_en_o;
+wire chn_write_base_addr_wr_en_o;
+wire chn_x_transfer_count_wr_en_o;
 wire chn_srctrans_wr_en_o;
 wire chn_destrans_wr_en_o;
 wire chn_xaddrinc_wr_en_o;
@@ -169,11 +169,11 @@ wire chn_fillval_wr_en_o;
 wire chn_srctrigin_wr_en_o;
 wire chn_destrigin_wr_en_o;
 wire chn_trigout_wr_en_o;
-wire chn_linkaddr_wr_en_o;
-wire chn_autocfg_wr_en_o,chn_yaddrestride_wr_en_o,chn_ysize_wr_en_o,chn_srctmplt_wr_en_o,chn_destmplt_wr_en_o,chn_tmpltcfg_wr_en_o,chn_wrkregptr_wr_en_o;
+wire chn_next_cmd_addr_wr_en_o;
+wire chn_autocfg_wr_en_o,chn_yaddrestride_wr_en_o,chn_y_transfer_count_wr_en_o,chn_srctmplt_wr_en_o,chn_destmplt_wr_en_o,chn_tmpltcfg_wr_en_o,chn_work_reg_pointer_wr_en_o;
 
-wire [31:0] cfg_WRKREGPTR,YSIZE_UPDATED;
-wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire [31:0]  XSIZE_UPDATED;  
+wire [31:0] cfg_work_reg_pointer,y_transfer_count_UPDATED;
+wire stop_cmd_apb;wire [31:0] read_base_addr_UPDATED;wire [31:0]  write_base_addr_UPDATED;wire [31:0]  x_transfer_count_UPDATED;  
     dma_channel #(
     .WIDTH(WIDTH),
     .DATA_W(DATA_W),
@@ -193,27 +193,27 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .ARQOS(ARQOS),
     .AWQOS(AWQOS),
     .stat_err (stat_err),
-    .cfg_CH_CMD            (cfg_CH_CMD),
-    .cfg_CH_STATUS         (cfg_CH_STATUS),
-    .cfg_CH_INTREN         (cfg_CH_INTREN),
-    .cfg_CH_CTRL           (cfg_CH_CTRL),
-    .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
-    .cfg_CH_DESADDR        (cfg_CH_DESADDR),
-    .cfg_CH_XSIZE          (cfg_CH_XSIZE),
-    .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
-    .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
-    .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
-    .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
-    .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
-    .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
-    .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
-    .cfg_LINKADDR          (cfg_LINKADDR),
-    .cfg_CH_YADDRSTRIDE    (cfg_CH_YADDRSTRIDE),
-    .cfg_CH_YSIZE          (cfg_CH_YSIZE),
-    .cfg_CH_AUTOCFG        (cfg_CH_AUTOCFG),
-    .cfg_CH_SRCTMPLT       (cfg_CH_SRCTMPLT),
-    .cfg_CH_DESTMPLT       (cfg_CH_DESTMPLT),
-    .cfg_CH_TMPLTCFG       (cfg_CH_TMPLTCFG),
+    .cfg_channel_start            (cfg_channel_start),
+    .cfg_channel_status         (cfg_channel_status),
+    .cfg_interrupt_enable         (cfg_interrupt_enable),
+    .cfg_control_config           (cfg_control_config),
+    .cfg_read_base_addr        (cfg_read_base_addr),
+    .cfg_write_base_addr        (cfg_write_base_addr),
+    .cfg_x_transfer_count          (cfg_x_transfer_count),
+    .cfg_read_transfer_cfg    (cfg_read_transfer_cfg),
+    .cfg_write_transfer_cfg    (cfg_write_transfer_cfg),
+    .cfg_addr_increment_cfg       (cfg_addr_increment_cfg),
+    .cfg_fill_data        (cfg_fill_data),
+    .cfg_read_trigger_cfg   (cfg_read_trigger_cfg),
+    .cfg_write_trigger_cfg   (cfg_write_trigger_cfg),
+    .cfg_trigger_out_cfg     (cfg_trigger_out_cfg),
+    .cfg_next_cmd_addr          (cfg_next_cmd_addr),
+    .cfg_line_stride    (cfg_line_stride),
+    .cfg_y_transfer_count          (cfg_y_transfer_count),
+    .cfg_auto_restart_config        (cfg_auto_restart_config),
+    .cfg_read_template_data       (cfg_read_template_data),
+    .cfg_write_template_data       (cfg_write_template_data),
+    .cfg_template_config       (cfg_template_config),
     .chn_autocfg_wr_en_o   (chn_autocfg_wr_en_o),
     .chn_srctmplt_wr_en_o  (chn_srctmplt_wr_en_o),
     .chn_destmplt_wr_en_o  (chn_destmplt_wr_en_o),
@@ -222,9 +222,9 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .chn_stat_wr_en_o      (chn_stat_wr_en_o),
     .chn_intren_wr_en_o    (chn_intren_wr_en_o),
     .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
-    .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
-    .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
-    .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+    .chn_read_base_addr_wr_en_o   (chn_read_base_addr_wr_en_o),
+    .chn_write_base_addr_wr_en_o   (chn_write_base_addr_wr_en_o),
+    .chn_x_transfer_count_wr_en_o     (chn_x_transfer_count_wr_en_o),
     .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
     .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
     .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
@@ -232,11 +232,11 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
     .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
     .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
-        .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
-    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
-    .chn_ysize_wr_en_o(chn_ysize_wr_en_o),
+        .chn_work_reg_pointer_wr_en_o(chn_work_reg_pointer_wr_en_o),
+    .chn_next_cmd_addr_wr_en_o  (chn_next_cmd_addr_wr_en_o),
+    .chn_y_transfer_count_wr_en_o(chn_y_transfer_count_wr_en_o),
     .chn_yaddrestride_wr_en_o(chn_yaddrestride_wr_en_o),
-    .YSIZE_UPDATED(YSIZE_UPDATED),
+    .y_transfer_count_UPDATED(y_transfer_count_UPDATED),
     .enable_cmd_to_apb(enable_cmd_to_apb),
     // AXI Read Address/Data (General/Descriptor)
     .ARID               (ARID),
@@ -292,7 +292,7 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
 
     // Trigger and Control Signals
   //  .data_done          (data_done),
-   // .linkaddren         (linkaddren),
+   // .next_cmd_addren         (next_cmd_addren),
     .SRCTRIGINSELERR    (SRCTRIGINSELERR),
     .DESTRIGINSELERR    (DESTRIGINSELERR),
     .TRIGOUTSELERR      (TRIGOUTSELERR),
@@ -321,13 +321,13 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .use_trigout        (use_trigout),
     .trigout_type       (trigout_type),
     .trigout_sel        (trigout_sel),
-    .src_des_xsize_updated(src_des_xsize_updated),
+    .src_des_x_transfer_count_updated(src_des_x_transfer_count_updated),
     .wrkregval_rd(wrkregval_rd),
-    .cfg_WRKREGPTR(cfg_WRKREGPTR),
+    .cfg_work_reg_pointer(cfg_work_reg_pointer),
     .stop_cmd_apb(stop_cmd_apb),
-	.SRCADDR_UPDATED(SRCADDR_UPDATED),
-	.DESADDR_UPDATED(DESADDR_UPDATED),
-	.XSIZE_UPDATED(XSIZE_UPDATED) );
+	.read_base_addr_UPDATED(read_base_addr_UPDATED),
+	.write_base_addr_UPDATED(write_base_addr_UPDATED),
+	.x_transfer_count_UPDATED(x_transfer_count_UPDATED) );
     
     
         trigger_matrix dut1(
@@ -376,9 +376,9 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
          .WIDTH (WIDTH))
      dut2 (
      
-	.SRCADDR_UPDATED(SRCADDR_UPDATED),
-	.DESADDR_UPDATED(DESADDR_UPDATED),
-	.XSIZE_UPDATED(XSIZE_UPDATED),
+	.read_base_addr_UPDATED(read_base_addr_UPDATED),
+	.write_base_addr_UPDATED(write_base_addr_UPDATED),
+	.x_transfer_count_UPDATED(x_transfer_count_UPDATED),
     .clk        (clk),
     .resetn     (resetn),
 //    .PCLK       (clk),     // single clock
@@ -394,28 +394,28 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .PSLVERR    (PSLVERR),
     .chn_reg_in (chn_reg_out),
 //   .reg_wr_en (reg_wr_en),
-.YSIZE_UPDATED(YSIZE_UPDATED),
-      .cfg_CH_CMD            (cfg_CH_CMD),
-    .cfg_CH_STATUS         (cfg_CH_STATUS),
-    .cfg_CH_INTREN         (cfg_CH_INTREN),
-    .cfg_CH_CTRL           (cfg_CH_CTRL),
-    .cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
-    .cfg_CH_DESADDR        (cfg_CH_DESADDR),
-    .cfg_CH_XSIZE          (cfg_CH_XSIZE),
-    .cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
-    .cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
-    .cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
-    .cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
-    .cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
-    .cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
-    .cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
-    .cfg_LINKADDR          (cfg_LINKADDR),
-    .cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
-    .cfg_CH_YADDRSTRIDE    (cfg_CH_YADDRSTRIDE),
-    .cfg_CH_YSIZE          (cfg_CH_YSIZE),
-        .cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
-        .cfg_CH_TMPLTCFG(cfg_CH_TMPLTCFG),
-        .cfg_CH_AUTOCFG(cfg_CH_AUTOCFG),
+.y_transfer_count_UPDATED(y_transfer_count_UPDATED),
+      .cfg_channel_start            (cfg_channel_start),
+    .cfg_channel_status         (cfg_channel_status),
+    .cfg_interrupt_enable         (cfg_interrupt_enable),
+    .cfg_control_config           (cfg_control_config),
+    .cfg_read_base_addr        (cfg_read_base_addr),
+    .cfg_write_base_addr        (cfg_write_base_addr),
+    .cfg_x_transfer_count          (cfg_x_transfer_count),
+    .cfg_read_transfer_cfg    (cfg_read_transfer_cfg),
+    .cfg_write_transfer_cfg    (cfg_write_transfer_cfg),
+    .cfg_addr_increment_cfg       (cfg_addr_increment_cfg),
+    .cfg_fill_data        (cfg_fill_data),
+    .cfg_read_trigger_cfg   (cfg_read_trigger_cfg),
+    .cfg_write_trigger_cfg   (cfg_write_trigger_cfg),
+    .cfg_trigger_out_cfg     (cfg_trigger_out_cfg),
+    .cfg_next_cmd_addr          (cfg_next_cmd_addr),
+    .cfg_read_template_data(cfg_read_template_data),
+    .cfg_line_stride    (cfg_line_stride),
+    .cfg_y_transfer_count          (cfg_y_transfer_count),
+        .cfg_write_template_data(cfg_write_template_data),
+        .cfg_template_config(cfg_template_config),
+        .cfg_auto_restart_config(cfg_auto_restart_config),
     .chn_autocfg_wr_en_o(chn_autocfg_wr_en_o),
 .chn_srctmplt_wr_en_o(chn_srctmplt_wr_en_o),
         .chn_destmplt_wr_en_o(chn_destmplt_wr_en_o),
@@ -424,9 +424,9 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .chn_stat_wr_en_o      (chn_stat_wr_en_o),
     .chn_intren_wr_en_o    (chn_intren_wr_en_o),
     .chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
-    .chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
-    .chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
-    .chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+    .chn_read_base_addr_wr_en_o   (chn_read_base_addr_wr_en_o),
+    .chn_write_base_addr_wr_en_o   (chn_write_base_addr_wr_en_o),
+    .chn_x_transfer_count_wr_en_o     (chn_x_transfer_count_wr_en_o),
     .chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
     .chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
     .chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
@@ -434,13 +434,13 @@ wire stop_cmd_apb;wire [31:0] SRCADDR_UPDATED;wire [31:0]  DESADDR_UPDATED;wire 
     .chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
     .chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
     .chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
-    .chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
-    .chn_wrkregptr_wr_en_o(chn_wrkregptr_wr_en_o),
-    .chn_ysize_wr_en_o(chn_ysize_wr_en_o),
+    .chn_next_cmd_addr_wr_en_o  (chn_next_cmd_addr_wr_en_o),
+    .chn_work_reg_pointer_wr_en_o(chn_work_reg_pointer_wr_en_o),
+    .chn_y_transfer_count_wr_en_o(chn_y_transfer_count_wr_en_o),
     .chn_yaddrestride_wr_en_o(chn_yaddrestride_wr_en_o),
-    .src_des_xsize_updated(src_des_xsize_updated),
+    .src_des_x_transfer_count_updated(src_des_x_transfer_count_updated),
     .wrkregval_rd(wrkregval_rd),
-    .cfg_WRKREGPTR(cfg_WRKREGPTR),
+    .cfg_work_reg_pointer(cfg_work_reg_pointer),
     .stop_cmd_apb(stop_cmd_apb),
     .enable_cmd_to_apb(enable_cmd_to_apb)
   );
