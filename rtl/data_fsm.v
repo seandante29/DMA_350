@@ -377,7 +377,7 @@ end
           //  src_yaddr_stride_reg <='d0;
         end
         else begin
-            wr_en_for_updated <=(rd_state > RD_CONFIG && rd_state <= RD_PAUSED);
+            wr_en_for_updated <=(rd_state > RD_AR && rd_state <= RD_PAUSED);
             read_base_addr_UPDATED <= read_base_addr_UPDATED;
             write_base_addr_UPDATED <= write_base_addr_UPDATED;
             //x_transfer_count_UPDATED <= (case6 && x_type == 2)?(src_x_transfer_count_remaining == 0 && src_x_left <= srcx_transfer_count_reg && src_x_left!=0)?x_transfer_count_UPDATED:(src_x_transfer_count_remaining>=src_x_left)?({des_x_left,src_x_left}):{des_x_left,srcx_transfer_count_reg-((desx_transfer_count_reg -src_x_left)%srcx_transfer_count_reg)}
@@ -1049,9 +1049,9 @@ end
                                         src_x_left <= desx_transfer_count;
                                      case(y_type)
                                           0:src_y_left <= 0;
-                                            1:src_y_left <= src_y_transfer_count;
-                                            2:src_y_left <= des_y_transfer_count;
-                                            3:src_y_left <= src_y_transfer_count;
+                                            1:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:des_y_transfer_count;
+                                            2:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
+                                            3:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:des_y_transfer_count;
                                             default : src_y_left <= src_y_transfer_count;
                                        endcase
                                    end
@@ -1585,7 +1585,7 @@ always @(posedge clk or negedge resetn) begin
            // STAT_RESUMEWAIT_DATA <= 'd0;
            // STAT_PAUSED_DATA <= 'd0;
             STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
-              des_addr_reg <= des_ADDR;
+              des_addr_reg <= (rd_state == RD_CONFIG)?des_ADDR:des_addr_reg;
             //STAT_SRCTRIGINWAIT_DATA <= 1'b0;
            // STAT_DESTRIGINWAIT_DATA <= 1'b0;
         if( l == des_tmplt_size )
@@ -1618,10 +1618,10 @@ W_IDLE: begin
                             
                             des_addr_reg <= des_addr_reload;end
                             else
-                                begin des_addr_reg <= des_addr_reg;end
+                                begin des_addr_reg <= (rd_state == RD_CONFIG)?des_ADDR:des_addr_reg;end
                                 end
                         else
-                               begin des_addr_reg <= des_addr_reg; end
+                               begin des_addr_reg <= (rd_state == RD_CONFIG)?des_ADDR:des_addr_reg; end
     des_yaddr_stride_reg <= des_yaddr_stride_signed;
     des_y_left           <= des_y_transfer_count;
     des_x_left_initial   <= des_x_left;
@@ -1636,7 +1636,7 @@ W_IDLE: begin
     end
 
     fifo_rptr <= 0;
-
+if(rd_state == RD_CONFIG) begin
     //------------------------------------------
     // MAIN CASE HANDLING
     //------------------------------------------
@@ -1664,7 +1664,7 @@ W_IDLE: begin
 
             case (y_type)
                 0: des_y_left <= 0;
-                1: des_y_left <= src_y_transfer_count;
+                1: des_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
                 2: des_y_left <= des_y_transfer_count;
                 3: des_y_left <= des_y_transfer_count;
                 default: des_y_left <= des_y_transfer_count;
@@ -1857,6 +1857,7 @@ W_IDLE: begin
         endcase
     end
 
+end
 end
                 W_AW: begin
                    // AWVALID <= 1;
