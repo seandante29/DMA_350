@@ -8,28 +8,28 @@ module dma_channel
 (
     input wire clk,resetn,                 
     // reg bank signals
-    input wire [WIDTH-1 : 0] cfg_CH_CMD,
-    input wire [WIDTH-1 : 0] cfg_CH_STATUS,
-    input wire [WIDTH-1 : 0] cfg_CH_INTREN,
-    input wire [WIDTH-1 : 0] cfg_CH_CTRL,
-    input wire [WIDTH-1 : 0] cfg_CH_SRCADDR,
-    input wire [WIDTH-1 : 0] cfg_CH_DESADDR,
-    input wire [WIDTH-1 : 0] cfg_CH_XSIZE,
-    input wire [WIDTH-1 : 0] cfg_CH_SRCTRANSCFG,
-    input wire [WIDTH-1 : 0] cfg_CH_DESTRANSCFG,
-    input wire [WIDTH-1 : 0] cfg_CH_XADDRINC,
-    input wire [WIDTH-1 : 0] cfg_CH_FILLVAL,
-    input wire [WIDTH-1 : 0] cfg_CH_SRCTRIGINCFG,
-    input wire [WIDTH-1 : 0] cfg_CH_DESTRIGINCFG,
-    input wire [WIDTH-1 : 0] cfg_CH_TRIGOUTCFG,
-    input wire [WIDTH-1 : 0] cfg_CH_AUTOCFG,
-    input wire [WIDTH-1 : 0] cfg_LINKADDR,
-    input wire [WIDTH-1 : 0] cfg_WRKREGPTR,
-     input wire [WIDTH-1 : 0] cfg_CH_SRCTMPLT,
-      input wire [WIDTH-1 : 0] cfg_CH_DESTMPLT,
-      input wire [WIDTH-1 : 0] cfg_CH_TMPLTCFG,
-      input wire [WIDTH-1 : 0] cfg_CH_YADDRSTRIDE,
-      input wire [WIDTH-1 : 0] cfg_CH_YSIZE,
+    input wire [WIDTH-1 : 0] cfg_channel_start,
+    input wire [WIDTH-1 : 0] cfg_channel_status,
+    input wire [WIDTH-1 : 0] cfg_interrupt_enable,
+    input wire [WIDTH-1 : 0] cfg_control_config,
+    input wire [WIDTH-1 : 0] cfg_read_base_addr,
+    input wire [WIDTH-1 : 0] cfg_write_base_addr,
+    input wire [WIDTH-1 : 0] cfg_x_transfer_count,
+    input wire [WIDTH-1 : 0] cfg_read_transfer_cfg,
+    input wire [WIDTH-1 : 0] cfg_write_transfer_cfg,
+    input wire [WIDTH-1 : 0] cfg_addr_increment_cfg,
+    input wire [WIDTH-1 : 0] cfg_fill_data,
+    input wire [WIDTH-1 : 0] cfg_read_trigger_cfg,
+    input wire [WIDTH-1 : 0] cfg_write_trigger_cfg,
+    input wire [WIDTH-1 : 0] cfg_trigger_out_cfg,
+    input wire [WIDTH-1 : 0] cfg_auto_restart_config,
+    input wire [WIDTH-1 : 0] cfg_next_cmd_addr,
+    input wire [WIDTH-1 : 0] cfg_work_reg_pointer,
+     input wire [WIDTH-1 : 0] cfg_read_template_data,
+      input wire [WIDTH-1 : 0] cfg_write_template_data,
+      input wire [WIDTH-1 : 0] cfg_template_config,
+      input wire [WIDTH-1 : 0] cfg_line_stride,
+      input wire [WIDTH-1 : 0] cfg_y_transfer_count,
     
 //        input wire [1:0] des_trig_req_type,
 //        input wire [1:0] src_trig_req_type,
@@ -43,9 +43,9 @@ module dma_channel
     input wire chn_stat_wr_en_o,
     input wire chn_intren_wr_en_o,
     input wire chn_ctrl_wr_en_o,
-    input wire chn_srcaddr_wr_en_o,
-    input wire chn_desaddr_wr_en_o,
-    input wire chn_xsize_wr_en_o,
+    input wire chn_read_base_addr_wr_en_o,
+    input wire chn_write_base_addr_wr_en_o,
+    input wire chn_x_transfer_count_wr_en_o,
     input wire chn_srctrans_wr_en_o,
     input wire chn_destrans_wr_en_o,
     input wire chn_xaddrinc_wr_en_o,
@@ -54,8 +54,8 @@ module dma_channel
     input wire chn_destrigin_wr_en_o,
     input wire chn_trigout_wr_en_o,
     input wire chn_autocfg_wr_en_o,
-    input wire chn_linkaddr_wr_en_o,
-    input wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_ysize_wr_en_o,chn_yaddrestride_wr_en_o,chn_wrkregptr_wr_en_o,
+    input wire chn_next_cmd_addr_wr_en_o,
+    input wire chn_tmpltcfg_wr_en_o,chn_destmplt_wr_en_o,chn_srctmplt_wr_en_o,chn_y_transfer_count_wr_en_o,chn_yaddrestride_wr_en_o,chn_work_reg_pointer_wr_en_o,
 
 
 
@@ -144,12 +144,12 @@ module dma_channel
     output wire        use_trigout,
     output wire        use_des_trigin,
     output wire        use_src_trigin,
-     output wire [(WIDTH*3)-1 : 0] src_des_xsize_updated,
+     output wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated,
      output wire [WIDTH -1:0]wrkregval_rd,
     output wire [(DATA_W/8)-1:0] WSTRB,
-    output   wire [WIDTH -1:0] SRCADDR_UPDATED,
-    output wire [WIDTH -1:0]  DESADDR_UPDATED,
-   output wire [WIDTH -1:0]  XSIZE_UPDATED,YSIZE_UPDATED,
+    output   wire [WIDTH -1:0] read_base_addr_UPDATED,
+    output wire [WIDTH -1:0]  write_base_addr_UPDATED,
+   output wire [WIDTH -1:0]  x_transfer_count_UPDATED,y_transfer_count_UPDATED,
    output wire enable_cmd_to_apb     
                       
 );
@@ -164,39 +164,39 @@ module dma_channel
 	wire [7:0]src_trigin_blk_size;
     wire [15:0] src_yaddr_stride;
     wire [15:0] des_yaddr_stride;
-    wire [15:0] src_ysize;
-    wire[15:0] des_ysize;
+    wire [15:0] src_y_transfer_count;
+    wire[15:0] des_y_transfer_count;
 
-	wire [31:0] SRCADDR_INITIAL,SRCADDR_LINEINITIAL;
-	wire [31:0] DESADDR_INITIAL,DESADDR_LINEINITIAL;
-	wire [31:0] SRCXSIZE_INITIAL,DESYSIZE_INITIAL;
-	wire [31:0] DESXSIZE_INITIAL,SRCYSIZE_INITIAL;
+	wire [31:0] read_base_addr_INITIAL,read_base_addr_LINEINITIAL;
+	wire [31:0] write_base_addr_INITIAL,write_base_addr_LINEINITIAL;
+	wire [31:0] SRCx_transfer_count_INITIAL,DESy_transfer_count_INITIAL;
+	wire [31:0] DESx_transfer_count_INITIAL,SRCy_transfer_count_INITIAL;
 	wire cmd_done_1;
 	wire [(WIDTH * 21) -1:0]  mux_logic_in;
 
 	// wires to part select
 
-	wire [31:0] CH_CTRL_O;
-	wire [31:0] CH_INTREN_O;
-	wire [31:0] CH_XSIZE_O;
-	wire [31:0] CH_LINKADDR_O;
-	wire [31:0] CH_CMD_O;
-	wire [31:0] CH_STATUS_O;
-	wire [31:0] CH_XADDRINC_O;
-	wire [31:0] CH_SRCTRANSCFG_O;
-	wire [31:0] CH_DESTRANSCFG_O;
-	wire [31:0] CH_SRCTRIGINCFG_O;
-	wire [31:0] CH_DESTRIGINCFG_O;
-	wire [31:0] CH_TRIGOUTCFG_O;
-	wire [31:0] CH_SRCADDR_O;
-	wire [31:0] CH_DESADDR_O;
-	wire [31:0] CH_FILLVAL_O;
-	wire [31:0] CH_DESTMPLT_O;
-	wire [31:0] CH_SRCTMPLT_O;
-	wire [31:0] CH_TMPLTCFG_O;
-	wire [31:0] CH_AUTOCFG_O;
-    wire [31:0] CH_YADDRSTRIDE_O;
-    wire [31:0] CH_YSIZE_O;
+	wire [31:0] control_config_O;
+	wire [31:0] interrupt_enable_O;
+	wire [31:0] x_transfer_count_O;
+	wire [31:0] CH_next_cmd_addr_O;
+	wire [31:0] channel_start_O;
+	wire [31:0] channel_status_O;
+	wire [31:0] addr_increment_cfg_O;
+	wire [31:0] read_transfer_cfg_O;
+	wire [31:0] write_transfer_cfg_O;
+	wire [31:0] read_trigger_cfg_O;
+	wire [31:0] write_trigger_cfg_O;
+	wire [31:0] trigger_out_cfg_O;
+	wire [31:0] read_base_addr_O;
+	wire [31:0] write_base_addr_O;
+	wire [31:0] fill_data_O;
+	wire [31:0] write_template_data_O;
+	wire [31:0] read_template_data_O;
+	wire [31:0] template_config_O;
+	wire [31:0] auto_restart_config_O;
+    wire [31:0] line_stride_O;
+    wire [31:0] y_transfer_count_O;
 	wire cmd_restart_en;
 	wire [15:0] cmd_restart_cnt;
 	wire [2:0] reg_reload_type;
@@ -211,10 +211,10 @@ module dma_channel
 	//wire use_src_trigin;
 	wire [2:0] x_type,y_type;
 	wire [2:0] transize;
-	wire [15:0] srcxsize;
-	wire [15:0] desxsize;
-	wire [31:0] linkaddr;
-	wire linkaddren;
+	wire [15:0] srcx_transfer_count;
+	wire [15:0] desx_transfer_count;
+	wire [31:0] next_cmd_addr;
+	wire next_cmd_addren;
 	wire stop_cmd;
 	wire enable_cmd;
 	wire disable_cmd;
@@ -259,7 +259,7 @@ module dma_channel
 
 
 	// wires to cmd fsm
-	//  wire [31:0]LINKADDR;
+	//  wire [31:0]next_cmd_addr;
 	// wire data_done;
 	wire [31:0] RDATA_O;
 	wire [31:0] LINK_HEADER;
@@ -279,10 +279,10 @@ module dma_channel
 	wire src_trigack;
 	wire stat_done_intr_reg ,stat_disable_intr_reg,stat_stopped_intr_reg ,stat_err_intr_reg ;
 	assign wr_en =chn_ctrl_wr_en_o || chn_stat_wr_en_o || chn_intren_wr_en_o  || 
-				chn_srcaddr_wr_en_o || chn_desaddr_wr_en_o || chn_xsize_wr_en_o 
+				chn_read_base_addr_wr_en_o || chn_write_base_addr_wr_en_o || chn_x_transfer_count_wr_en_o 
 				|| chn_srctrans_wr_en_o || chn_destrans_wr_en_o || chn_xaddrinc_wr_en_o || 
 				chn_fillval_wr_en_o || chn_srctrigin_wr_en_o || chn_destrigin_wr_en_o || 
-				chn_trigout_wr_en_o || chn_linkaddr_wr_en_o || chn_autocfg_wr_en_o || chn_srctmplt_wr_en_o || chn_destmplt_wr_en_o || chn_tmpltcfg_wr_en_o;
+				chn_trigout_wr_en_o || chn_next_cmd_addr_wr_en_o || chn_autocfg_wr_en_o || chn_srctmplt_wr_en_o || chn_destmplt_wr_en_o || chn_tmpltcfg_wr_en_o;
 
 
 	wire [3:0] ARID_D;
@@ -319,9 +319,9 @@ module dma_channel
 	.boot_en(boot_en),
 	.data_in(mux_logic_in),
 //	.STAT_CMD_DONE(CMD_DONE),
-//	.SRCADDR_UPDATED(SRCADDR_UPDATED),
-//	.DESADDR_UPDATED(DESADDR_UPDATED),
-//	.XSIZE_UPDATED(XSIZE_UPDATED),
+//	.read_base_addr_UPDATED(read_base_addr_UPDATED),
+//	.write_base_addr_UPDATED(write_base_addr_UPDATED),
+//	.x_transfer_count_UPDATED(x_transfer_count_UPDATED),
 //	.wr_en_for_updated(wr_en_for_updated),
 	.AXIRDRESPERR(AXIRDRESPERR),
 	.AXIRDPOISERR(AXIRDPOISERR),
@@ -350,78 +350,78 @@ module dma_channel
 	.chn_reg_out(chn_reg_out),
 	//.ch_wr_en_o(ch_wr_en_o),
 	.reg_wr_en(reg_wr_en),
-	.CH_CTRL_O(CH_CTRL_O),
-	.CH_INTREN_O(CH_INTREN_O),
-	.CH_XSIZE_O(CH_XSIZE_O),
-	.CH_LINKADDR_O(CH_LINKADDR_O),
-	.CH_CMD_O(CH_CMD_O),
-	.CH_STATUS_O(CH_STATUS_O),
-	.CH_XADDRINC_O(CH_XADDRINC_O),
-	.CH_SRCTRANSCFG_O(CH_SRCTRANSCFG_O),
-	.CH_DESTRANSCFG_O(CH_DESTRANSCFG_O),
-	.CH_SRCTRIGINCFG_O(CH_SRCTRIGINCFG_O),
-	.CH_DESTRIGINCFG_O(CH_DESTRIGINCFG_O),
-	.CH_TRIGOUTCFG_O(CH_TRIGOUTCFG_O),
-	.CH_SRCADDR_O(CH_SRCADDR_O),
-	.CH_DESADDR_O(CH_DESADDR_O),
-	.CH_FILLVAL_O(CH_FILLVAL_O),
-	.CH_AUTOCFG_O(CH_AUTOCFG_O),
-	.CH_YADDRSTRIDE_O(CH_YADDRSTRIDE_O),
-    .CH_YSIZE_O(CH_YSIZE_O),
+	.control_config_O(control_config_O),
+	.interrupt_enable_O(interrupt_enable_O),
+	.x_transfer_count_O(x_transfer_count_O),
+	.CH_next_cmd_addr_O(CH_next_cmd_addr_O),
+	.channel_start_O(channel_start_O),
+	.channel_status_O(channel_status_O),
+	.addr_increment_cfg_O(addr_increment_cfg_O),
+	.read_transfer_cfg_O(read_transfer_cfg_O),
+	.write_transfer_cfg_O(write_transfer_cfg_O),
+	.read_trigger_cfg_O(read_trigger_cfg_O),
+	.write_trigger_cfg_O(write_trigger_cfg_O),
+	.trigger_out_cfg_O(trigger_out_cfg_O),
+	.read_base_addr_O(read_base_addr_O),
+	.write_base_addr_O(write_base_addr_O),
+	.fill_data_O(fill_data_O),
+	.auto_restart_config_O(auto_restart_config_O),
+	.line_stride_O(line_stride_O),
+    .y_transfer_count_O(y_transfer_count_O),
 	.stat_done_intr_reg(stat_done_intr_reg),
 	.stat_disable_intr_reg(stat_disable_intr_reg),
 	.stat_stopped_intr_reg (stat_stopped_intr_reg ),
 	.stat_err_intr_reg (stat_err_intr_reg ),
 	.IRQ(IRQ),
-	.src_des_xsize_updated(src_des_xsize_updated),
-	.SRCADDR_INITIAL(SRCADDR_INITIAL),
-	.DESADDR_INITIAL(DESADDR_INITIAL),
-	.DESADDR_LINEINITIAL(DESADDR_LINEINITIAL),
-	.SRCADDR_LINEINITIAL(SRCADDR_LINEINITIAL),
-	.SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
-	.DESXSIZE_INITIAL(DESXSIZE_INITIAL),
-	.DESYSIZE_INITIAL(DESYSIZE_INITIAL),
-	.SRCYSIZE_INITIAL(SRCYSIZE_INITIAL),
+	.src_des_x_transfer_count_updated(src_des_x_transfer_count_updated),
+	.read_base_addr_INITIAL(read_base_addr_INITIAL),
+	.write_base_addr_INITIAL(write_base_addr_INITIAL),
+	.write_base_addr_LINEINITIAL(write_base_addr_LINEINITIAL),
+	.read_base_addr_LINEINITIAL(read_base_addr_LINEINITIAL),
+	.SRCx_transfer_count_INITIAL(SRCx_transfer_count_INITIAL),
+	.DESx_transfer_count_INITIAL(DESx_transfer_count_INITIAL),
+	.DESy_transfer_count_INITIAL(DESy_transfer_count_INITIAL),
+	.SRCy_transfer_count_INITIAL(SRCy_transfer_count_INITIAL),
 	.wrkregval_rd(wrkregval_rd),
-	.cfg_WRKREGPTR(cfg_WRKREGPTR),
-	.CH_TMPLTCFG_O(CH_TMPLTCFG_O),
-	.CH_SRCTMPLT_O(CH_SRCTMPLT_O),
-	.CH_DESTMPLT_O(CH_DESTMPLT_O)
+	.cfg_work_reg_pointer(cfg_work_reg_pointer),
+	.template_config_O(template_config_O),
+	.read_template_data_O(read_template_data_O),
+	.write_template_data_O(write_template_data_O)
 
 	);
 
 	partselect dut1(
-	.CH_CTRL(CH_CTRL_O),
-	.CH_XSIZE(CH_XSIZE_O),
-	.CH_LINKADDR(CH_LINKADDR_O),
-	.CH_CMD(CH_CMD_O),
-	.CH_STATUS(CH_STATUS_O),
-	.CH_XADDRINC(CH_XADDRINC_O),
-	.CH_SRCTRIGINCFG(CH_SRCTRIGINCFG_O),
-	.CH_DESTRIGINCFG(CH_DESTRIGINCFG_O),
-	.CH_TRIGOUTCFG(CH_TRIGOUTCFG_O),
-	.CH_SRCTRANSCFG(CH_SRCTRANSCFG_O),
-	.CH_DESTRANSCFG(CH_DESTRANSCFG_O),
-	.CH_SRCADDR(CH_SRCADDR_O),
-	.CH_DESADDR(CH_DESADDR_O),
-	.CH_FILLVAL(CH_FILLVAL_O),
-	.CH_TMPLTCFG(CH_TMPLTCFG_O),
-	.CH_SRCTMPLT(CH_SRCTMPLT_O),
-	.CH_DESTMPLT(CH_DESTMPLT_O),
-	.CH_AUTOCFG(CH_AUTOCFG_O),
-	.CH_YADDRSTRIDE(CH_YADDRSTRIDE_O),
-    .CH_YSIZE(CH_YSIZE_O),
+	.control_config(control_config_O),
+	.x_transfer_count(x_transfer_count_O),
+	.CH_next_cmd_addr(CH_next_cmd_addr_O),
+	.channel_start(channel_start_O),
+	.channel_status(channel_status_O),
+	.addr_increment_cfg(addr_increment_cfg_O),
+	.read_trigger_cfg(read_trigger_cfg_O),
+	.write_trigger_cfg(write_trigger_cfg_O),
+	.trigger_out_cfg(trigger_out_cfg_O),
+	.read_transfer_cfg(read_transfer_cfg_O),
+	.write_transfer_cfg(write_transfer_cfg_O),
+	.read_base_addr(read_base_addr_O),
+	.write_base_addr(write_base_addr_O),
+	.fill_data(fill_data_O),
+	.template_config(template_config_O),
+	.read_template_data(read_template_data_O),
+	.write_template_data(write_template_data_O),
+	.auto_restart_config(auto_restart_config_O),
+	.line_stride(line_stride_O),
+    .y_transfer_count(y_transfer_count_O),
 	.use_trigout(use_trigout),
 	.use_des_trigin(use_des_trigin),
 	.use_src_trigin(use_src_trigin),
 	.x_type(x_type),
 	.y_type(y_type),
 	.transize(transize),
-	.srcxsize(srcxsize),
+	.srcx_transfer_count(srcx_transfer_count),
 	.done_pause_en(done_pause_en),
-	.desxsize(desxsize),
-	.linkaddr(linkaddr),
-	.linkaddren(linkaddren),
+	.desx_transfer_count(desx_transfer_count),
+	.next_cmd_addr(next_cmd_addr),
+	.next_cmd_addren(next_cmd_addren),
 	.enable_cmd(enable_cmd),
 	.disable_cmd(disable_cmd),
 	.pause_cmd(pause_cmd),
@@ -461,8 +461,8 @@ module dma_channel
 	.done_type(done_type),
 	.src_yaddr_stride(src_yaddr_stride),
     .des_yaddr_stride(des_yaddr_stride),
-    .src_ysize(src_ysize),
-    .des_ysize(des_ysize)
+    .src_y_transfer_count(src_y_transfer_count),
+    .des_y_transfer_count(des_y_transfer_count)
 
 	);
 
@@ -471,8 +471,8 @@ module dma_channel
 	) dut2(.clk(clk), 
 	.resetn(resetn),
 	.STAT_ERROR_PARTSEL(stat_err),
-	.LINKADDR(linkaddr),
-	.link_enable(linkaddren),
+	.next_cmd_addr(next_cmd_addr),
+	.link_enable(next_cmd_addren),
 	.wr_en(wr_en),
 	.stat_disable_intr_reg(stat_disable_intr_reg),
 	.data_done(DONE),
@@ -506,72 +506,72 @@ module dma_channel
 	dut3  (.cmd_data(RDATA_O),
 	.clk(clk),
 	.resetn(resetn),
-	.SRCADDR_UPDATED(SRCADDR_UPDATED),
-	.DESADDR_UPDATED(DESADDR_UPDATED),
-	.XSIZE_UPDATED(XSIZE_UPDATED),
-	.YSIZE_UPDATED(YSIZE_UPDATED),
+	.read_base_addr_UPDATED(read_base_addr_UPDATED),
+	.write_base_addr_UPDATED(write_base_addr_UPDATED),
+	.x_transfer_count_UPDATED(x_transfer_count_UPDATED),
+	.y_transfer_count_UPDATED(y_transfer_count_UPDATED),
 	.wr_en_for_updated(wr_en_for_updated),
 	.wptr(wptr),
 	.data_done(DONE),
 	.cmd_done(STAT_CMD_DONE),
-	.link_en(linkaddren),
+	.link_en(next_cmd_addren),
 	.header_in(LINK_HEADER),
-	.CH_STATUS(CH_STATUS_O),
-	.CH_CTRL(CH_CTRL_O),
-	.CH_INTREN(CH_INTREN_O),
-	.CH_XSIZE(CH_XSIZE_O),
-	.CH_LINKADDR(CH_LINKADDR_O),
-	.CH_XADDRINC(CH_XADDRINC_O),
-	.CH_SRCTRANSCFG(CH_SRCTRANSCFG_O),
-	.CH_DESTRANSCFG(CH_DESTRANSCFG_O),
-	.CH_SRCTRIGINCFG(CH_SRCTRIGINCFG_O),
-	.CH_DESTRIGINCFG(CH_DESTRIGINCFG_O),
-	.CH_TRIGOUTCFG(CH_TRIGOUTCFG_O),
-	.CH_SRCADDR(CH_SRCADDR_O),
-	.CH_DESADDR(CH_DESADDR_O),
-	.CH_FILLVAL(CH_FILLVAL_O),
-	.CH_TMPLTCFG(CH_TMPLTCFG_O),
-	.CH_DESTMPLT(CH_DESTMPLT_O),
-	.CH_SRCTMPLT(CH_SRCTMPLT_O),
-	.CH_AUTOCFG(CH_AUTOCFG_O),
-	.CH_YADDRSTRIDE(CH_YADDRSTRIDE_O),
-    .CH_YSIZE(CH_YSIZE_O),
-	.SRCADDR_INITIAL(SRCADDR_INITIAL),
-	.DESADDR_INITIAL(DESADDR_INITIAL),
-	.DESADDR_LINEINITIAL(DESADDR_LINEINITIAL),
-	.SRCADDR_LINEINITIAL(SRCADDR_LINEINITIAL),
-	.SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
-	.DESXSIZE_INITIAL(DESXSIZE_INITIAL),
-	.DESYSIZE_INITIAL(DESYSIZE_INITIAL),
-	.SRCYSIZE_INITIAL(SRCYSIZE_INITIAL), 
-	.cfg_CH_CMD            (cfg_CH_CMD),
-	.cfg_CH_STATUS         (cfg_CH_STATUS),
-	.cfg_CH_INTREN         (cfg_CH_INTREN),
-	.cfg_CH_CTRL           (cfg_CH_CTRL),
-	.cfg_CH_SRCADDR        (cfg_CH_SRCADDR),
-	.cfg_CH_DESADDR        (cfg_CH_DESADDR),
-	.cfg_CH_XSIZE          (cfg_CH_XSIZE),
-	.cfg_CH_SRCTRANSCFG    (cfg_CH_SRCTRANSCFG),
-	.cfg_CH_DESTRANSCFG    (cfg_CH_DESTRANSCFG),
-	.cfg_CH_XADDRINC       (cfg_CH_XADDRINC),
-	.cfg_CH_FILLVAL        (cfg_CH_FILLVAL),
-	.cfg_CH_SRCTRIGINCFG   (cfg_CH_SRCTRIGINCFG),
-	.cfg_CH_DESTRIGINCFG   (cfg_CH_DESTRIGINCFG),
-	.cfg_CH_TRIGOUTCFG     (cfg_CH_TRIGOUTCFG),
-	.cfg_LINKADDR          (cfg_LINKADDR),
-	.cfg_CH_TMPLTCFG(cfg_CH_TMPLTCFG),
-	.cfg_CH_SRCTMPLT(cfg_CH_SRCTMPLT),
-	.cfg_CH_DESTMPLT(cfg_CH_DESTMPLT),
-	.cfg_CH_AUTOCFG (cfg_CH_AUTOCFG),
-	.cfg_CH_YADDRSTRIDE(cfg_CH_YADDRSTRIDE),
-    .cfg_CH_YSIZE(cfg_CH_YSIZE),
+	.channel_status(channel_status_O),
+	.control_config(control_config_O),
+	.interrupt_enable(interrupt_enable_O),
+	.x_transfer_count(x_transfer_count_O),
+	.CH_next_cmd_addr(CH_next_cmd_addr_O),
+	.addr_increment_cfg(addr_increment_cfg_O),
+	.read_transfer_cfg(read_transfer_cfg_O),
+	.write_transfer_cfg(write_transfer_cfg_O),
+	.read_trigger_cfg(read_trigger_cfg_O),
+	.write_trigger_cfg(write_trigger_cfg_O),
+	.trigger_out_cfg(trigger_out_cfg_O),
+	.read_base_addr(read_base_addr_O),
+	.write_base_addr(write_base_addr_O),
+	.fill_data(fill_data_O),
+	.template_config(template_config_O),
+	.write_template_data(write_template_data_O),
+	.read_template_data(read_template_data_O),
+	.auto_restart_config(auto_restart_config_O),
+	.line_stride(line_stride_O),
+    .y_transfer_count(y_transfer_count_O),
+	.read_base_addr_INITIAL(read_base_addr_INITIAL),
+	.write_base_addr_INITIAL(write_base_addr_INITIAL),
+	.write_base_addr_LINEINITIAL(write_base_addr_LINEINITIAL),
+	.read_base_addr_LINEINITIAL(read_base_addr_LINEINITIAL),
+	.SRCx_transfer_count_INITIAL(SRCx_transfer_count_INITIAL),
+	.DESx_transfer_count_INITIAL(DESx_transfer_count_INITIAL),
+	.DESy_transfer_count_INITIAL(DESy_transfer_count_INITIAL),
+	.SRCy_transfer_count_INITIAL(SRCy_transfer_count_INITIAL), 
+	.cfg_channel_start            (cfg_channel_start),
+	.cfg_channel_status         (cfg_channel_status),
+	.cfg_interrupt_enable         (cfg_interrupt_enable),
+	.cfg_control_config           (cfg_control_config),
+	.cfg_read_base_addr        (cfg_read_base_addr),
+	.cfg_write_base_addr        (cfg_write_base_addr),
+	.cfg_x_transfer_count          (cfg_x_transfer_count),
+	.cfg_read_transfer_cfg    (cfg_read_transfer_cfg),
+	.cfg_write_transfer_cfg    (cfg_write_transfer_cfg),
+	.cfg_addr_increment_cfg       (cfg_addr_increment_cfg),
+	.cfg_fill_data        (cfg_fill_data),
+	.cfg_read_trigger_cfg   (cfg_read_trigger_cfg),
+	.cfg_write_trigger_cfg   (cfg_write_trigger_cfg),
+	.cfg_trigger_out_cfg     (cfg_trigger_out_cfg),
+	.cfg_next_cmd_addr          (cfg_next_cmd_addr),
+	.cfg_template_config(cfg_template_config),
+	.cfg_read_template_data(cfg_read_template_data),
+	.cfg_write_template_data(cfg_write_template_data),
+	.cfg_auto_restart_config (cfg_auto_restart_config),
+	.cfg_line_stride(cfg_line_stride),
+    .cfg_y_transfer_count(cfg_y_transfer_count),
 	.chn_cmd_wr_en_o       (chn_cmd_wr_en_o),
 	.chn_stat_wr_en_o      (chn_stat_wr_en_o),
 	.chn_intren_wr_en_o    (chn_intren_wr_en_o),
 	.chn_ctrl_wr_en_o      (chn_ctrl_wr_en_o),
-	.chn_srcaddr_wr_en_o   (chn_srcaddr_wr_en_o),
-	.chn_desaddr_wr_en_o   (chn_desaddr_wr_en_o),
-	.chn_xsize_wr_en_o     (chn_xsize_wr_en_o),
+	.chn_read_base_addr_wr_en_o   (chn_read_base_addr_wr_en_o),
+	.chn_write_base_addr_wr_en_o   (chn_write_base_addr_wr_en_o),
+	.chn_x_transfer_count_wr_en_o     (chn_x_transfer_count_wr_en_o),
 	.chn_srctrans_wr_en_o  (chn_srctrans_wr_en_o),
 	.chn_destrans_wr_en_o  (chn_destrans_wr_en_o),
 	.chn_xaddrinc_wr_en_o  (chn_xaddrinc_wr_en_o),
@@ -579,12 +579,12 @@ module dma_channel
 	.chn_srctrigin_wr_en_o (chn_srctrigin_wr_en_o),
 	.chn_destrigin_wr_en_o (chn_destrigin_wr_en_o),
 	.chn_trigout_wr_en_o   (chn_trigout_wr_en_o),
-	.chn_linkaddr_wr_en_o  (chn_linkaddr_wr_en_o),
+	.chn_next_cmd_addr_wr_en_o  (chn_next_cmd_addr_wr_en_o),
 	.chn_tmpltcfg_wr_en_o (chn_tmpltcfg_wr_en_o),
 	.chn_destmplt_wr_en_o (chn_destmplt_wr_en_o),
 	.chn_srctmplt_wr_en_o (chn_srctmplt_wr_en_o),
 	.chn_autocfg_wr_en_o (chn_autocfg_wr_en_o),
-	.chn_ysize_wr_en_o(chn_ysize_wr_en_o),
+	.chn_y_transfer_count_wr_en_o(chn_y_transfer_count_wr_en_o),
 	.chn_yaddr_wr_en_o(chn_yaddrestride_wr_en_o),
 	.mux_out_reg(mux_logic_in)
 	);               
@@ -592,9 +592,9 @@ module dma_channel
 	data_fsm #(.ADDR_W(ADDR_W),.DATA_W(DATA_W), .ID_W(ID_W)) dut4(
 	.clk(clk),
 	.resetn(resetn),
-	.SRCADDR_UPDATED(SRCADDR_UPDATED),
-	.DESADDR_UPDATED(DESADDR_UPDATED),
-	.XSIZE_UPDATED(XSIZE_UPDATED),
+	.read_base_addr_UPDATED(read_base_addr_UPDATED),
+	.write_base_addr_UPDATED(write_base_addr_UPDATED),
+	.x_transfer_count_UPDATED(x_transfer_count_UPDATED),
 	.LINKHDERR(LINKHDERR),
 		.des_trigin_sw_type(des_trigin_sw_type),
 		.src_trigin_sw_type(src_trigin_sw_type),
@@ -608,7 +608,7 @@ module dma_channel
 	.wr_en_for_updated(wr_en_for_updated),
 	.stat_error_intr_reg(stat_err_intr_reg),
 	.stat_done_intr_reg(stat_done_intr_reg),
-	.link_en(linkaddren),
+	.link_en(next_cmd_addren),
 	.des_tmplt_size(des_tmplt_size),
 	.src_tmplt_size(src_tmplt_size),
 	.des_tmplt(des_tmplt),
@@ -654,8 +654,8 @@ module dma_channel
 	.SRC_ADDR(src_addr),//
 	.des_ADDR(des_addr),
 	.transize(transize),
-	.srcxsize(srcxsize),
-	.desxsize(desxsize),
+	.srcx_transfer_count(srcx_transfer_count),
+	.desx_transfer_count(desx_transfer_count),
 	.x_type(x_type),
 	.y_type(y_type),
 	.fillval(fillval),
@@ -711,23 +711,23 @@ module dma_channel
 	.STAT_PAUSED_DATA(STAT_PAUSED_DATA),
 	// .cmd_done_stop(cmd_done_stop),
 	.STAT_DONE_DATA(STAT_DONE_DATA),
-	.SRCADDR_INITIAL(SRCADDR_INITIAL),
-	.DESADDR_INITIAL(DESADDR_INITIAL),
-	.DESADDR_LINEINITIAL(DESADDR_LINEINITIAL),
-	.SRCADDR_LINEINITIAL(SRCADDR_LINEINITIAL),
-	.SRCXSIZE_INITIAL(SRCXSIZE_INITIAL),
-	.DESXSIZE_INITIAL(DESXSIZE_INITIAL),
-	.YSIZE_UPDATED(YSIZE_UPDATED),
-	.DESYSIZE_INITIAL(DESYSIZE_INITIAL),
-	.SRCYSIZE_INITIAL(SRCYSIZE_INITIAL),
+	.read_base_addr_INITIAL(read_base_addr_INITIAL),
+	.write_base_addr_INITIAL(write_base_addr_INITIAL),
+	.write_base_addr_LINEINITIAL(write_base_addr_LINEINITIAL),
+	.read_base_addr_LINEINITIAL(read_base_addr_LINEINITIAL),
+	.SRCx_transfer_count_INITIAL(SRCx_transfer_count_INITIAL),
+	.DESx_transfer_count_INITIAL(DESx_transfer_count_INITIAL),
+	.y_transfer_count_UPDATED(y_transfer_count_UPDATED),
+	.DESy_transfer_count_INITIAL(DESy_transfer_count_INITIAL),
+	.SRCy_transfer_count_INITIAL(SRCy_transfer_count_INITIAL),
 	.des_max_burst_len(des_max_burst_len),
 	.src_max_burst_len(src_max_burst_len),
 	.WSTRB(WSTRB),
 	.stop_cmd_apb(stop_cmd_apb),
 	.src_yaddr_stride(src_yaddr_stride),
     .des_yaddr_stride(des_yaddr_stride),
-    .src_ysize(src_ysize),
-    .des_ysize(des_ysize)
+    .src_y_transfer_count(src_y_transfer_count),
+    .des_y_transfer_count(des_y_transfer_count)
 	);
 
 endmodule
