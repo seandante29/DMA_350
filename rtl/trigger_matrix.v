@@ -15,15 +15,15 @@ module trigger_matrix (
     input  wire        trig0_out_ack,
     output reg         trig1_out_req,
     input  wire        trig1_out_ack,
-    // From CH_SRCTRIGINCFG
+    // From read_trigger_cfg
     input  wire        use_src_trigin,
     input  wire [1:0]  src_trigin_type,   // 2'b10 = HW
     input  wire [7:0]  src_trigin_sel,    // 0 = trig0, 1 = trig1  for peripheral 1 and 2 respectively
-    // From CH_DESTRIGINCFG
+    // From write_trigger_cfg
     input  wire        use_des_trigin,
     input  wire [1:0]  des_trigin_type,   // 2'b10 = HW
     input  wire [7:0]  des_trigin_sel,    // 0 = trig0, 1 = trig1
-    // From CH_TRIGOUTCFG
+    // From trigger_out_cfg
     input  wire        use_trigout,
     input  wire [1:0]  trigout_type,       // 2'b10 = HW
     input  wire [5:0]  trigout_sel,        // 0 = trig0, 1 = trig1
