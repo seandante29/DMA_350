@@ -1373,7 +1373,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                                ARADDR <= initial_tmplt_addr_src + m * (2**transize);      end                      
                    end
 
-                           else if (case6 && x_type == 'd2 && ((src_x_transfer_count_remaining == 0) || (src_x_left == srcx_transfer_count_initial_reg))) begin
+                           else if (case6 && x_type == 'd2 && !ARVALID_reg &&  ((src_x_transfer_count_remaining == 0) || (src_x_left == srcx_transfer_count_initial_reg))) begin
                         ARADDR <=src_addr_reg /*read_base_addr_INITIAL*/;
                          
                          ARVALID_reg <= 1;
@@ -1640,8 +1640,8 @@ W_IDLE: begin
     des_x_left_initial   <= des_x_left;
     //des_x_left_initial_integer <= des_x_left;
     //initial_tmplt_addr_des <= des_ADDR;
-    des_x_transfer_count_remaining  <= desx_transfer_count_reg;
-    des_x_transfer_count_remaining_2d<= desx_transfer_count_reg;
+    des_x_transfer_count_remaining  <= (case6 && x_type == 1&& (y_type == 0 || des_y_transfer_count == 1))?srcx_transfer_count_reg:desx_transfer_count_reg;
+    des_x_transfer_count_remaining_2d<= (case6 && x_type == 1&& (y_type == 0 || des_y_transfer_count == 1))?srcx_transfer_count_reg:desx_transfer_count_reg;
 
     if (stat_error_intr_reg == 0) begin
         awr_error  <= 0;
@@ -1889,14 +1889,14 @@ end
                                AWADDR <= initial_tmplt_addr_des + l * (2**transize);   end                         
                    end
                    else begin
-                         AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/ des_addr_reg + (desx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
+                         AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/  (case6 && x_type == 1 && y_type == 0)?des_addr_reg + (srcx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign):des_addr_reg + (desx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
                          AWVALID <= 1; end
                      if(des_tmplt_size > 0)
                         AWLEN <= 'd0;
                      else if(des_trig_req_type_reg == 'd0 && use_des_trigin  || (des_xaddr_inc > 1) || (des_xaddr_inc < 0)) 
                         AWLEN <= 'd0;
                     else if(des_trig_req_type_reg == 'd2) begin 
-                        if(ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (des_y_left == 1) &&(area_src < area_des))
+                        if((ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (des_y_left == 1) &&(area_src < area_des))/* || y_type == 0*/)
                             AWLEN <= ((des_x_left - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_left - 1;
                         else
                            AWLEN <= ((des_x_transfer_count_remaining - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_transfer_count_remaining - 1;//(case6 && x_type == 1)? srcx_transfer_count - 1: desx_transfer_count - 1;
