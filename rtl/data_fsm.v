@@ -537,7 +537,7 @@ end
         end else begin
             case (rd_state)
                 RD_IDLE:
-                    if (wr_state == W_IDLE && !wr_start && enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
+                    if (wr_state == W_IDLE && !wr_start && !done_signal && enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
                         if(LINKHDERR)  
                             rd_next_st = RD_IDLE;
                         else
@@ -567,8 +567,8 @@ end
                         rd_next_st = ((x_type == 3 && y_type == 3) ) ? RD_WAIT_TRIG : RD_ERROR_ST;
                    else if(ycase3)
                         rd_next_st = RD_WAIT_TRIG;
-                    else if (case3)
-                        rd_next_st = RD_ERROR_ST;
+//                    else if (case3)
+//                        rd_next_st = RD_IDLE;
                     else if (case6)
                         rd_next_st = (x_type == 0) ? RD_IDLE : RD_WAIT_TRIG;
                     else
@@ -691,7 +691,9 @@ end
             case (wr_state)
             W_IDLE:
                 if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
-                    if(done_signal)  
+                    if(done_signal && case3) 
+                        wr_next_st =W_TRIG_OUT; 
+                    else if(done_signal ) 
                         wr_next_st = W_DONE_ST;
                     else if(wr_start && !ycase3)
                         wr_next_st = W_AW;
@@ -998,7 +1000,7 @@ end
                         
                    des_trig_req_type_reg <= 'd2;
                    src_trig_req_type_reg <= 'd2;
-                    if ((case1 || x_type == 0)||(ycase1  &&(y_type != 0))) begin
+                    if ((case1 || x_type == 0 )||(ycase1  &&(y_type != 0))) begin
                     done_signal <= 1; end
 
                     wdata_mask <= {DATA_W{1'b0}};
@@ -1428,7 +1430,8 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                         fifo_wptr           <= fifo_wptr + 1;
                         src_x_left            <= src_x_left - 1;
                      
-                        
+                        if((case3 && y_type == 0) && src_x_left ==1 )
+                            done_signal <=1;
                 
                         if (RRESP == 2'b11) begin
                             bus_error_r <= 1'b1;
@@ -1544,12 +1547,12 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                     end
                     else
                         src_x_left <= src_x_left;
-                        if(ycase3 && src_y_left ==1 )
+                        if((ycase3) && src_y_left ==1 )
                             done_signal <=1;
                 end
             endcase
             
-            if((rd_state == RD_R&& RLAST)||(rd_state == RD_WRAP_FILL && fill_count == 0)||(ycase2))
+            if((rd_state == RD_R&& RLAST && !(case3 && y_type ==0))||(rd_state == RD_WRAP_FILL && fill_count == 0)||(ycase2))
                 wr_start <= 1;
         end
     end
