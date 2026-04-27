@@ -187,12 +187,13 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     reg [15:0] srcx_transfer_count_reg, desx_transfer_count_reg;
     reg [15:0] srcy_transfer_count_reg, desy_transfer_count_reg;  
     reg [15:0] srcx_transfer_count_initial_reg, desx_transfer_count_initial_reg; 
+    reg [15:0] srcx_transfer_count_initial_reg_2d_wrap, desx_transfer_count_initial_reg_2d_wrap;
 
     reg [DATA_W - 1:0] fifo_mem [0:31];
     reg [5:0]   fifo_wptr;
     reg [5:0]   fifo_rptr;
     integer     j,k,p;
-    
+    reg ARVALID_reg;
     reg [4:0] m,l;
 
     reg config_error_size, config_error_src, config_error_des, config_error_trigout,config_error_transize;
@@ -768,6 +769,7 @@ end
             read_base_addr_LINEINITIAL <= 0;
             fill_count_y <= 0;
             src_yaddr_stride_reg <=0;
+            ARVALID_reg <= 0;
             r <= 0;
             initial_tmplt_addr_src<=0;
             //rd_pause_state <= RD_IDLE;
@@ -784,6 +786,8 @@ end
             des_trigack     <= 0;
             desx_transfer_count_initial_reg <=0;
             srcx_transfer_count_initial_reg <=0;
+            srcx_transfer_count_initial_reg_2d_wrap <= 0;
+            desx_transfer_count_initial_reg_2d_wrap <= 0;
             area_src <= 0;
             area_des <= 0;
              src_y_transfer_count_reload <=0;
@@ -800,6 +804,7 @@ end
             m <= 0;
             reg2 <= 0;
             restart_cnt_reg <= 0;
+            
             src_y_left <=0;
            // des_y_left <=0;
             
@@ -809,6 +814,7 @@ end
         end else begin
             ARQOS <= 0;
              wr_start <= 'd0;
+             //ARVALID_reg <= 0;
             ARVALID      <= 0;
             RREADY       <= 0;
             src_trigack  <= 0;
@@ -894,6 +900,8 @@ end
                     desx_transfer_count_reg <= desx_transfer_count;//(des_trigin_blk_size > desx_transfer_count)?desx_transfer_count:des_trigin_blk_size;
                    srcx_transfer_count_initial_reg <=srcx_transfer_count;
                    desx_transfer_count_initial_reg <= desx_transfer_count;
+                   srcx_transfer_count_initial_reg_2d_wrap <= srcx_transfer_count;
+                     desx_transfer_count_initial_reg_2d_wrap <= desx_transfer_count;
                     srcy_transfer_count_reg <= src_y_transfer_count; 
                     desy_transfer_count_reg <= des_y_transfer_count;
                      src_addr_reg <= SRC_ADDR; //added for 2d change
@@ -1367,7 +1375,9 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
 
                            else if (case6 && x_type == 'd2 && ((src_x_transfer_count_remaining == 0) || (src_x_left == srcx_transfer_count_initial_reg))) begin
                         ARADDR <=src_addr_reg /*read_base_addr_INITIAL*/;
-                         ARVALID <= 1;
+                         
+                         ARVALID_reg <= 1;
+                         
                     end
 //                    else if ((src_x_transfer_count_remaining == src_x_left) && case6 && x_type == 2 && (ARVALID)) begin
 //                        ARADDR <= ARADDR;
@@ -1375,8 +1385,9 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
 //                    end
                     else if (case6 && x_type == 'd2 ) begin
                          ARVALID <= 1;
-                        ARADDR <= (ARVALID)?ARADDR : src_addr_reg + 
-                                  (srcx_transfer_count_initial_reg - src_x_transfer_count_remaining) * 
+                         
+                        ARADDR <= (ARVALID_reg)?ARADDR : src_addr_reg + 
+                                  (srcx_transfer_count_initial_reg_2d_wrap - src_x_transfer_count_remaining) * 
                                   ((2**transize) * src_xaddr_inc_sign);
                     end
                     else begin
@@ -1393,7 +1404,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
         
 
                 RD_R: begin
-                
+                ARVALID_reg <= 0;
                 if(src_x_left == 0 && DONE_temp)
                                 restart_cnt_reg <= restart_cnt_reg - 1;
                     if (full || (stop_cmd_apb))
@@ -1403,6 +1414,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                     if (RVALID && RREADY && RLAST) begin
 //                            if(src_x_left == 0)
 //                                restart_cnt_reg <= restart_cnt_reg - 1;
+                            srcx_transfer_count_initial_reg_2d_wrap <= (case6 && x_type == 'd2 && src_x_transfer_count_remaining == (ARLEN + 1)) ? (srcx_transfer_count_reg > src_x_left) ? src_x_left-1 : srcx_transfer_count_reg : (srcx_transfer_count_initial_reg_2d_wrap);
                             src_x_transfer_count_remaining <= src_x_transfer_count_remaining - (ARLEN + 1);
                             if(src_tmplt_size != 0) begin
                                  m <= m + 1;
@@ -1512,6 +1524,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                    
                     if(src_y_left > 1 )
                     begin
+                    srcx_transfer_count_initial_reg_2d_wrap <= srcx_transfer_count_initial_reg;
                         if(src_x_left == 0 )begin
                             fill_count <= ((src_x_left_initial < des_x_left_initial) && x_type == 3 && (case2 || case6)) ? ((des_x_left_initial - src_x_left_initial) & 16'hFFFF) : 0;end
                             
@@ -1522,12 +1535,12 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                             src_x_left <= area_des % srcx_transfer_count;
 //                        src_x_transfer_count_remaining <= area_des % srcx_transfer_count;
                     end
-//                        if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
-//                            src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
-//                            src_addr_reg  <= read_base_addr_INITIAL;
-//                        end
-//                        else 
-//                        src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
+                        if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
+                            src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
+                            src_addr_reg  <= read_base_addr_INITIAL;
+                        end
+                        else 
+                        src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
                     end
                     else
                         src_x_left <= src_x_left;
