@@ -383,7 +383,7 @@ end
             write_base_addr_UPDATED <= write_base_addr_UPDATED;
             //x_transfer_count_UPDATED <= (case6 && x_type == 2)?(src_x_transfer_count_remaining == 0 && src_x_left <= srcx_transfer_count_reg && src_x_left!=0)?x_transfer_count_UPDATED:(src_x_transfer_count_remaining>=src_x_left)?({des_x_left,src_x_left}):{des_x_left,srcx_transfer_count_reg-((desx_transfer_count_reg -src_x_left)%srcx_transfer_count_reg)}
             //                : (case6 && x_type == 1)? {(des_x_left+(desx_transfer_count_reg - srcx_transfer_count_reg)),src_x_left}:{des_x_left,src_x_left};// src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg)
-            if (case6 && x_type == 2 && !DONE_temp) begin
+            if (case6 && x_type == 2 && !DONE_temp ) begin
                 if (src_x_transfer_count_remaining == 0 && src_x_left <= srcx_transfer_count_reg && src_x_left != 0) begin
                     x_transfer_count_UPDATED <= x_transfer_count_UPDATED;
                 end
@@ -396,10 +396,10 @@ end
                 end
             end
             
-            else if (case6 && x_type == 1) begin
-                x_transfer_count_UPDATED <= {des_x_left + (desx_transfer_count_reg - srcx_transfer_count_reg), src_x_left};
+            else if (case6 && x_type == 1 ) begin
+                x_transfer_count_UPDATED <= {des_x_left /*+ (desx_transfer_count_reg - srcx_transfer_count_reg)*/, src_x_left};
             end
-            else if((cmd_restart_en || restart_cnt_reg != 0) && (src_x_left == 0 && DONE_temp) && (reg_reload_type != 0))
+            else if((cmd_restart_en || restart_cnt_reg != 0) && (src_x_left == 0 && DONE_temp) && (reg_reload_type != 0) && rd_state != RD_WAIT)
                  x_transfer_count_UPDATED <= {des_x_transfer_count_reload,src_x_transfer_count_reload};
             else begin
                 x_transfer_count_UPDATED <= {des_x_left, src_x_left};
@@ -434,28 +434,30 @@ end
             end
             else if(rd_state ==  RD_R && src_x_left !=0) begin
                 if(RVALID) begin
-                    if(src_xaddr_inc == 1)
-                    begin
-                        read_base_addr_UPDATED <= (case6 && x_type == 2) ? (src_x_left>(desx_transfer_count_reg - srcx_transfer_count_reg)) ? (src_addr_reg + ((srcx_transfer_count_reg +1  - (src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg))) *( 2**transize)*(src_xaddr_inc_sign))) 
+//                    if(src_xaddr_inc == 1)
+//                    begin
+                        read_base_addr_UPDATED <= (case6 && x_type == 2) ? (src_x_left>(desx_transfer_count_reg - srcx_transfer_count_reg)) ? /*(src_addr_reg + ((srcx_transfer_count_reg +1  - (src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg))) *( 2**transize)*(src_xaddr_inc_sign))) */src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
                                                     : src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
+                                                    :(case5)? src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
                                                     :src_addr_reg + ((srcx_transfer_count_reg - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) ;
-                    end
-                    else
-                        read_base_addr_UPDATED <=  src_addr_reg;
+//                    end
+//                    else
+//                        read_base_addr_UPDATED <=  src_addr_reg;
                 end
             end 
             
             if(wr_state == W_W  && des_x_left !=0) begin 
                 if(WREADY)
-                    if(des_xaddr_inc == 1)
-                    begin
+//                    if(des_xaddr_inc == 1)
+//                    begin
                         write_base_addr_UPDATED <= des_addr_reg + ((desx_transfer_count_reg - des_x_left+1) * (( 2**transize)*des_xaddr_inc_sign));
-                    end
-                    else
-                        write_base_addr_UPDATED <=  des_addr_reg;
+//                    end
+//                    else
+//                        write_base_addr_UPDATED <=  des_addr_reg;
                 else write_base_addr_UPDATED <= write_base_addr_UPDATED;
             end 
-            
+            else if (wr_state == W_IDLE && rd_state ==  RD_WAIT_TRIG)
+                    write_base_addr_UPDATED <= des_addr_reg ;
         end
     end
     
@@ -839,6 +841,7 @@ end
                // rd_pause_state <=(rd_next_st != RD_PAUSED )? rd_next_st :rd_pause_state; 
             case (rd_state)
                 RD_IDLE: begin
+                //if(DONE_temp)  {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
                     done_signal <= 0;
                       m <= 0;
                     if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
