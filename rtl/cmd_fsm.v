@@ -181,11 +181,11 @@ always @(posedge clk or negedge resetn) begin
         count2 <= 0;
     end
     else begin
-        CMD_DONE <= (link_enable_reg)?1:0;
+        CMD_DONE <= 1;
         if(temp_wptr == 0)
             temp_rptr <= 0;
         if(current_state == IDLE)
-        CMD_DONE <= ( (data_done || count2 > 0 ||!link_enable_reg) ? 0 : 1) ;
+        CMD_DONE <= ( (data_done || count2 > 0 /*||!link_enable_reg*/) ? 0 : 1) ;
         else if (current_state == AR || current_state == COUNT )
          CMD_DONE <= 0;
         else if (current_state == R)
@@ -261,7 +261,7 @@ end
                 IDLE:
                 begin
                     count_flag <= 0;
-                    cmd_done_1 <= (!CMD_DONE && count2 ==0 ) ;
+                    cmd_done_1 <= (!CMD_DONE && count2 ==0 && link_enable_reg);
                     ARADDR <= 0;
                     ARID   <= 1;
                      max_transfer_count <= 0;
