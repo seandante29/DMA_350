@@ -243,124 +243,124 @@ module mux_logic #(parameter WIDTH = 32)
             // WORD 1 : STATUS
             if (chn_stat_wr_en_reg)
             mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <= cfg_channel_status;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[51:48] <= 0;
             
             // WORD 2 : INTREN
             if (chn_intren_wr_en_reg)
             mux_out_reg[(WIDTH*3)-1:(WIDTH*2)] <= cfg_interrupt_enable;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*3)-1:(WIDTH*2)] <= concat_cmd[(WIDTH*1)-1:(WIDTH*0)];
             
             // WORD 3 : CTRL
             if (chn_ctrl_wr_en_reg)
             mux_out_reg[(WIDTH*4)-1:(WIDTH*3)] <= cfg_control_config;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*4)-1:(WIDTH*3)] <= concat_cmd[(WIDTH*2)-1:(WIDTH*1)];
             
             // WORD 4 : read_base_addr
             if (chn_read_base_addr_wr_en_reg)
             mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= cfg_read_base_addr;
             else if (wr_en_for_updated)  mux_out_reg[(WIDTH*5)-1:(WIDTH*4)]  <= read_base_addr_UPDATED;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*5)-1:(WIDTH*4)] <= concat_cmd[(WIDTH*3)-1:(WIDTH*2)];
             
             // WORD 5 : write_base_addr
             if (chn_write_base_addr_wr_en_reg)
             mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= cfg_write_base_addr;
             else if (wr_en_for_updated)  mux_out_reg[(WIDTH*6)-1:(WIDTH*5)]  <= write_base_addr_UPDATED;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) ||*/ cmd_done)
             mux_out_reg[(WIDTH*6)-1:(WIDTH*5)] <= concat_cmd[(WIDTH*4)-1:(WIDTH*3)];
             
             // WORD 6 : x_transfer_count
             if (chn_x_transfer_count_wr_en_reg)
             mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= cfg_x_transfer_count;
             else if (wr_en_for_updated)  mux_out_reg[(WIDTH*7)-1:(WIDTH*6)]  <= x_transfer_count_UPDATED;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) ||*/ cmd_done)
             mux_out_reg[(WIDTH*7)-1:(WIDTH*6)] <= concat_cmd[(WIDTH*5)-1:(WIDTH*4)];
             
             // WORD 7 : SRCTRANS
             if (chn_srctrans_wr_en_reg)
             mux_out_reg[(WIDTH*8)-1:(WIDTH*7)] <= cfg_read_transfer_cfg;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) ||*/ cmd_done)
             mux_out_reg[(WIDTH*8)-1:(WIDTH*7)] <= concat_cmd[(WIDTH*6)-1:(WIDTH*5)];
             
             // WORD 8 : DESTRANS
             if (chn_destrans_wr_en_reg)
             mux_out_reg[(WIDTH*9)-1:(WIDTH*8)] <= cfg_write_transfer_cfg;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*9)-1:(WIDTH*8)] <= concat_cmd[(WIDTH*7)-1:(WIDTH*6)];
             
             // WORD 9 : XADDRINC
             if (chn_xaddrinc_wr_en_reg)
             mux_out_reg[(WIDTH*10)-1:(WIDTH*9)] <= cfg_addr_increment_cfg;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*10)-1:(WIDTH*9)] <= concat_cmd[(WIDTH*8)-1:(WIDTH*7)];
             
             // WORD 9 : YADDRSTRIDE
             if (chn_yaddr_wr_en_reg)
             mux_out_reg[(WIDTH*20)-1:(WIDTH*19)] <= cfg_line_stride;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*20)-1:(WIDTH*19)] <= concat_cmd[(WIDTH*18)-1:(WIDTH*17)];
             
             // WORD 10 : y_transfer_count
             if (chn_y_transfer_count_wr_en_reg)
             mux_out_reg[(WIDTH*21)-1:(WIDTH*20)] <= cfg_y_transfer_count;
             else if (wr_en_for_updated)  mux_out_reg[(WIDTH*21)-1:(WIDTH*20)]  <= y_transfer_count_UPDATED;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*21)-1:(WIDTH*20)] <= concat_cmd[(WIDTH*19)-1:(WIDTH*18)];
             
             // WORD 10 : FILLVAL
             if (chn_fillval_wr_en_reg)
             mux_out_reg[(WIDTH*11)-1:(WIDTH*10)] <= cfg_fill_data;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*11)-1:(WIDTH*10)] <= concat_cmd[(WIDTH*9)-1:(WIDTH*8)];
             
             // tmplcfg
             if (chn_tmpltcfg_wr_en_reg)
             mux_out_reg[(WIDTH*12)-1:(WIDTH*11)] <= cfg_template_config;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*12)-1:(WIDTH*11)] <= concat_cmd[(WIDTH*10)-1:(WIDTH*9)];
             
             //srctmplt
              if (chn_srctmplt_wr_en_reg)
             mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= cfg_read_template_data;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= concat_cmd[(WIDTH*11)-1:(WIDTH*10)];
             
             //destmplt
              if (chn_destmplt_wr_en_reg)
             mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= cfg_write_template_data;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= concat_cmd[(WIDTH*12)-1:(WIDTH*11)];
             
             // WORD 11 : SRCTRIGIN
             if (chn_srctrigin_wr_en_reg)
             mux_out_reg[(WIDTH*15)-1:(WIDTH*14)] <= cfg_read_trigger_cfg;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*15)-1:(WIDTH*14)] <= concat_cmd[(WIDTH*13)-1:(WIDTH*12)];
             
             // WORD 12 : DESTRIGIN
             if (chn_destrigin_wr_en_reg)
             mux_out_reg[(WIDTH*16)-1:(WIDTH*15)] <= cfg_write_trigger_cfg;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*16)-1:(WIDTH*15)] <= concat_cmd[(WIDTH*14)-1:(WIDTH*13)];
             
             // WORD 13 : TRIGOUT
             if (chn_trigout_wr_en_reg)
             mux_out_reg[(WIDTH*17)-1:(WIDTH*16)] <= cfg_trigger_out_cfg;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*17)-1:(WIDTH*16)] <= concat_cmd[(WIDTH*15)-1:(WIDTH*14)];
             
              if (chn_autocfg_wr_en_reg)
             mux_out_reg[(WIDTH*18)-1:(WIDTH*17)] <= cfg_auto_restart_config;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) || */cmd_done)
             mux_out_reg[(WIDTH*18)-1:(WIDTH*17)] <= concat_cmd[(WIDTH*16)-1:(WIDTH*15)];
             
             // WORD 14 : next_cmd_addr
             if (chn_next_cmd_addr_wr_en_reg)
             mux_out_reg[(WIDTH*19)-1:(WIDTH*18)] <= cfg_next_cmd_addr;
-            else if ((link_en && data_done) || cmd_done)
+            else if (/*(link_en && data_done) ||*/ cmd_done)
             mux_out_reg[(WIDTH*19)-1:(WIDTH*18)] <= concat_cmd[(WIDTH*17)-1:(WIDTH*16)];
         end
     end
