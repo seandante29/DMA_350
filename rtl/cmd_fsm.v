@@ -5,6 +5,7 @@ module cmd_fsm
  (
     input clk, 
     input resetn,
+    input wire rst_posedge,
     input [31:0]next_cmd_addr,// fro intern reg
     input link_enable,// fro intern reg
     input data_done,// fro intern reg
@@ -47,6 +48,7 @@ module cmd_fsm
     reg [7:0] count;   
     reg [7:0] count1;
     reg [7:0] count2;
+    reg rst_posedge_reg;
     reg  max_transfer_count;
     reg data_done_reg;
     reg link_enable_reg;
@@ -70,9 +72,11 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
             data_done_reg <= 'd0;
             link_enable_reg <= 'd0;
             STAT_ERROR_reg <= 'd0;
+            rst_posedge_reg <= 0;
         end
         else begin
             data_done_reg <= data_done;
+            rst_posedge_reg <= rst_posedge;
             link_enable_reg <= link_enable;
             STAT_ERROR_reg <= STAT_ERROR_PARTSEL;
         end
@@ -91,7 +95,7 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
     begin
         case(current_state)
             IDLE:
-                if(link_enable_reg && data_done && !cmd_error && !stat_disable_intr_reg)
+                if(link_enable_reg && (data_done /*|| rst_posedge_reg*/) && !cmd_error && !stat_disable_intr_reg)
                 next_state = AR;
                 else
                 next_state = IDLE;
@@ -185,7 +189,7 @@ always @(posedge clk or negedge resetn) begin
         if(temp_wptr == 0)
             temp_rptr <= 0;
         if(current_state == IDLE)
-        CMD_DONE <= ( (data_done || count2 > 0 /*||!link_enable_reg*/) ? 0 : 1) ;
+        CMD_DONE <= ( (data_done || count2 > 0) ? 0 : 1) ;
         else if (current_state == AR || current_state == COUNT )
          CMD_DONE <= 0;
         else if (current_state == R)
@@ -261,7 +265,7 @@ end
                 IDLE:
                 begin
                     count_flag <= 0;
-                    cmd_done_1 <= (!CMD_DONE && count2 ==0 && link_enable_reg);
+                    cmd_done_1 <= (!CMD_DONE && count2 ==0  && link_enable_reg) ;
                     ARADDR <= 0;
                     ARID   <= 1;
                      max_transfer_count <= 0;
