@@ -69,7 +69,7 @@ module internal_reg #(parameter WIDTH = 32,
  output wire [31:0] read_template_data_O,
  output wire [31:0] write_template_data_O,
  output wire [31:0] auto_restart_config_O,
- 
+ output wire deassert_stat_done,
  output wire [31:0] line_stride_O,
  output wire [31:0] y_transfer_count_O,
  output  wire IRQ,
@@ -124,7 +124,7 @@ output reg rst_posedge,
    assign stat_stopped_intr_reg = (data_in [3] && data_in[0])?  STAT_STOPPED_DATA : (data_in [51]| data_in[0]) ? 0 :STAT_STOPPED_DATA ;
   assign stat_done_intr_reg = data_in [48] | data_in[0] ? 1'b0  : STAT_DONE_DATA;
   assign stat_err_intr_reg = data_in [49] | data_in[0] ? 1'b0  : STAT_ERR;
-
+  assign deassert_stat_done = data_in [48] | data_in[0];
    
    reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd; 
 // reg resetn_d;
