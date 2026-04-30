@@ -19,7 +19,7 @@ module data_fsm #(
     input wire                  stop_cmd_apb,
     input  wire                 stat_disable_intr_reg,
     input  wire                 stat_stop_intr_reg,
-    input  wire                 cmd_done,
+    input  wire                 cmd_done,deassert_stat_done,
 
     // Triggers
     
@@ -162,6 +162,7 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
      wire [(DATA_W/8)-1:0] WSTRB_wire,WSTRB_COMB;
     wire [6:0] transize_power = (2**transize) + write_base_addr_UPDATED_wire;
     reg [15:0] restart_cnt_reg;
+    reg [15:0] restart_cnt_reg1;
     wire       ERROR;
        wire  [DATA_W-1:0] prev_WDATA = WDATA;
     wire [15:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
@@ -184,6 +185,7 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     reg [7:0]  wrap_rd_ptr;
     reg [DATA_W-1:0] wdata_mask;
     integer    i;
+    reg restart_cnt_en_reg;
     reg [15:0] srcx_transfer_count_reg, desx_transfer_count_reg;
     reg [15:0] srcy_transfer_count_reg, desy_transfer_count_reg;  
     reg [15:0] srcx_transfer_count_initial_reg, desx_transfer_count_initial_reg; 
@@ -199,7 +201,7 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     reg config_error_size, config_error_src, config_error_des, config_error_trigout,config_error_transize;
     reg config_error_inc, config_error_x_type, config_error_case3, config_error_case6;
     reg regvalerr_src, regvalerr_des, regvalerr_trigout;
-
+     reg stat_done_data_fsm;
     reg [ADDR_W-1:0] src_addr_reg, des_addr_reg;
     reg case1,case2,case3,case4,case5,case6;  // chnaged from wire to reg
      reg ycase1, ycase2, ycase3, ycase4, ycase5;
@@ -332,32 +334,40 @@ end
 end
 
 always @(*) begin
-    k = 0;
-
-    if (rd_state == RD_CONFIG) begin
+   // k = 0;
+    k = k1;
+    if (rd_state == RD_CONFIG ) begin
         for (q = 0; q < 32; q = q + 1) begin
             if ((q <= src_tmplt_size) && src_tmplt[q]) begin
                 k = q;  // keeps updating ? highest index wins
             end
-            else 
-                k = k1;//added
+//            else 
+////                k = k1;//added
         end
-    end
+        end
+     else if(rd_state == RD_IDLE)
+        k = 0;
+//     else 
+//     k = k1;
+     
+    
 end
       integer d;
 
 always @(*) begin
-    p = 0;  // default
+    p = p1;  // default
 
     if (rd_state == RD_CONFIG) begin
         for (d = 0; d < 32; d = d + 1) begin
             if ((d <= des_tmplt_size) && des_tmplt[d]) begin
                 p = d;  // highest index wins
             end
-            else 
-                p = p1;
+//            else 
+//                p = p1;
         end
     end
+     else if(rd_state == RD_IDLE)
+        p = 0;
 end
 //      always@(*) begin
 //      if(rd_state == RD_R )
@@ -378,7 +388,7 @@ end
           //  src_yaddr_stride_reg <='d0;
         end
         else begin
-            wr_en_for_updated <=(rd_state > RD_AR && rd_state <= RD_PAUSED);
+            wr_en_for_updated <=(rd_state > RD_AR && rd_state <= RD_PAUSED) | (wr_state > W_AW && wr_state <= W_B);
             read_base_addr_UPDATED <= read_base_addr_UPDATED;
             write_base_addr_UPDATED <= write_base_addr_UPDATED;
             //x_transfer_count_UPDATED <= (case6 && x_type == 2)?(src_x_transfer_count_remaining == 0 && src_x_left <= srcx_transfer_count_reg && src_x_left!=0)?x_transfer_count_UPDATED:(src_x_transfer_count_remaining>=src_x_left)?({des_x_left,src_x_left}):{des_x_left,srcx_transfer_count_reg-((desx_transfer_count_reg -src_x_left)%srcx_transfer_count_reg)}
@@ -427,7 +437,10 @@ end
                 y_transfer_count_UPDATED <= {des_y_left, src_y_left};
             end 
             
-            if(rd_state == RD_WAIT_TRIG)
+            if(rd_state == RD_WAIT || (cmd_restart_en || restart_cnt_reg1 != 0))
+               // read_base_addr_UPDATED <= (cmd_restart_en || restart_cnt_reg != 0) ? ARADDR + 2**(transize)  : read_base_addr_UPDATED;
+                read_base_addr_UPDATED <= (DONE_temp) ? ARADDR + 2**(transize) : (cmd_restart_en || restart_cnt_reg1 != 0) ? ARADDR : read_base_addr_UPDATED;
+            else if(rd_state == RD_WAIT_TRIG )
             begin
                 read_base_addr_UPDATED <= src_addr_reg;
                 //write_base_addr_UPDATED <= des_addr_reg;
@@ -446,7 +459,19 @@ end
                 end
             end 
             
-            if(wr_state == W_W  && des_x_left !=0) begin 
+            if(wr_state == W_IDLE || (cmd_restart_en || restart_cnt_reg1 != 0)) begin
+                //write_base_addr_UPDATED <= (restart_cnt_en_reg == 0 || (restart_cnt_reg == cmd_restart_cnt))?des_addr_reg :(DONE_temp) ? AWADDR + 2**(transize) : (cmd_restart_en || restart_cnt_reg != 0) ? AWADDR  : write_base_addr_UPDATED;
+                if (((restart_cnt_en_reg == 0) || (restart_cnt_reg == cmd_restart_cnt)) && wr_state == W_IDLE) begin
+                    write_base_addr_UPDATED = des_addr_reg;
+                end
+                else if (DONE_temp) begin
+                    write_base_addr_UPDATED <= AWADDR + (2**transize);
+                end
+                else if ((cmd_restart_en || (restart_cnt_reg1 != 0)) && AWVALID) begin
+                    write_base_addr_UPDATED <= AWADDR;
+                end
+            end
+            else if(wr_state == W_W  && des_x_left !=0) begin 
                 if(WREADY)
 //                    if(des_xaddr_inc == 1)
 //                    begin
@@ -496,8 +521,8 @@ end
                 STAT_RESUMEWAIT_DATA <= 0;
             end
             if(wr_state == W_DONE_ST)
-                STAT_DONE_DATA <= (done_type == 0)? 0 : 
-                                       (done_type == 1)? 1:
+               STAT_DONE_DATA <= (done_type == 0)? 0 : 
+                                       (done_type == 1 && !(cmd_restart_en || restart_cnt_reg>0))? 1:
                                        (done_type == 3)? (1 & (cmd_restart_en || restart_cnt_reg>0)):0;
 //    STAT_DONE_DATA <= !(link_en || cmd_restart_en || restart_cnt_reg >0 ) ? 1 : 0;
             else
@@ -539,7 +564,7 @@ end
         end else begin
             case (rd_state)
                 RD_IDLE:
-                    if (wr_state == W_IDLE && !wr_start && !done_signal && enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
+                    if (wr_state == W_IDLE && !wr_start && !done_signal && enable_cmd_partsel && !stat_done_data_fsm && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
                         if(LINKHDERR)  
                             rd_next_st = RD_IDLE;
                         else
@@ -628,11 +653,12 @@ end
                         else if (( fill_count > 1) && ( (x_type == 3) && (case6  || case2)))
                             rd_next_st = RD_WRAP_FILL;
                        
-                            
+                          else if((src_y_left > 0) &&(src_tmplt_size == 0))
+                          rd_next_st  = RD_ROWS;
+                             
                          else if((cmd_restart_en || restart_cnt_reg != 0))
                           rd_next_st = RD_R; 
-                         else if((src_y_left > 0) &&(src_tmplt_size == 0))
-                          rd_next_st  = RD_ROWS;
+                        
                          else
                         rd_next_st = RD_IDLE;      
                         end   
@@ -692,7 +718,7 @@ end
         else begin
             case (wr_state)
             W_IDLE:
-                if (enable_cmd_partsel /*&& cmd_done*/ && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
+                if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
                     if(done_signal && case3) 
                         wr_next_st =W_TRIG_OUT; 
                     else if(done_signal ) 
@@ -770,6 +796,7 @@ end
             read_base_addr_INITIAL  <= 0;
             write_base_addr_INITIAL  <= 0;
             write_base_addr_LINEINITIAL <= 0;
+            restart_cnt_en_reg <=0;
             read_base_addr_LINEINITIAL <= 0;
             fill_count_y <= 0;
             src_yaddr_stride_reg <=0;
@@ -808,6 +835,8 @@ end
             m <= 0;
             reg2 <= 0;
             restart_cnt_reg <= 0;
+            restart_cnt_reg1 <= 0;
+            
             
             src_y_left <=0;
            // des_y_left <=0;
@@ -828,12 +857,13 @@ end
             read_base_addr_LINEINITIAL <= src_addr_reg;
             reg1 <= 0;
             reg2 <= 0;
+            // restart_cnt_en_reg <=0;
 //            STAT_RESUMEWAIT_DATA     <= 'd0;
 //            STAT_PAUSED_DATA         <= 'd0;
 //            STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
 //            STAT_DESTRIGINWAIT_DATA  <= 1'b0;
-             if( m == src_tmplt_size  )
-                   initial_tmplt_addr_src  <= ARADDR + ((src_tmplt_size + 1) - k) *(2**transize);
+             if( m == src_tmplt_size  /*&& rd_state != RD_AR*/ && !ARVALID)
+                   initial_tmplt_addr_src  <= /*(src_tmplt[src_tmplt_size] == 1 )?  ARADDR + *//*((src_tmplt_size + 1) - k) **//* (2**transize) :*/ ARADDR + ((src_tmplt_size + 1) - k) *(2**transize);
               else if(rd_state == RD_CONFIG)
                 initial_tmplt_addr_src <= src_addr_reg;
                 
@@ -843,6 +873,7 @@ end
                 RD_IDLE: begin
                 //if(DONE_temp)  {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
                     done_signal <= 0;
+                    restart_cnt_en_reg <= 0;
                       m <= 0;
                     if (enable_cmd_partsel && cmd_done && !stat_error_intr_reg && !DONE && !stat_disable_intr_reg && !stat_done_intr_reg && !STAT_STOP_DATA) begin
                         if(LINKHDERR) done_signal <= 1;
@@ -861,6 +892,7 @@ end
                 end
                 
                 RD_WAIT: begin
+                    m <= 0;
                     area_src <= srcx_transfer_count * src_y_transfer_count;
                     area_des <= desx_transfer_count * des_y_transfer_count;
                       if ((use_src_trigin && !((src_trigin_type == 2'b00 && src_trigin_sw)|| (src_trigin_type == 2'b10 && src_trigin))) && reg1) begin
@@ -925,6 +957,9 @@ end
                    des_addr_reload <= write_base_addr_INITIAL;
                    src_yaddr_stride_reg <= src_yaddr_stride_signed;  // initalize yaddr stride here
                    restart_cnt_reg <= (DONE_temp)? (restart_cnt_reg ): cmd_restart_cnt ;
+                   restart_cnt_reg1 <= (DONE_temp)? (restart_cnt_reg1 ): cmd_restart_cnt+1 ;
+                   
+                   restart_cnt_en_reg <= (cmd_restart_en || cmd_restart_cnt != 0); 
 //                    if(reg2) begin
 //                        case1 <= (srcx_transfer_count == 0 && desx_transfer_count == 0);
 //                        case2 <= (srcx_transfer_count == 0 && desx_transfer_count > 0);
@@ -1063,8 +1098,8 @@ end
                                      case(y_type)
                                           0:src_y_left <= 0;
                                             1:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:des_y_transfer_count;
-                                            2:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
-                                            3:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:des_y_transfer_count;
+                                            2:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?src_y_transfer_count:des_y_transfer_count;
+                                            3:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
                                             default : src_y_left <= src_y_transfer_count;
                                        endcase
                                    end
@@ -1341,7 +1376,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                             fill_count_y <= des_y_left - src_y_left;
                         end
                         else                                
-                            fill_count_y <= ((src_y_left < des_y_left) && y_type == 3 && (ycase2 || ycase5)) ? ((des_y_left - ((area_src / desx_transfer_count)& (16'hFFFF))) & 16'hFFFF) : 0;
+                            fill_count_y <= ((src_y_left < des_y_left) && y_type == 3 && (ycase2 || ycase5)) ? ((des_y_left - ((src_x_left * src_y_left / desx_transfer_count)& (16'hFFFF))) & 16'hFFFF) : 0;
                 end 
                 
                 RD_AR: begin                   
@@ -1410,8 +1445,10 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
 
                 RD_R: begin
                 ARVALID_reg <= 0;
-                if(src_x_left == 0 && DONE_temp)
+                if(src_x_left == 0 && DONE_temp)begin
                                 restart_cnt_reg <= restart_cnt_reg - 1;
+                                restart_cnt_reg1 <= restart_cnt_reg1 - 1;end
+                                
                     if (full || (stop_cmd_apb))
                         RREADY <= 0;
                     else
@@ -1448,8 +1485,10 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                     end
                     
                 RD_WRAP_FILL: begin
-                     if(src_x_left == 0 && fill_count == 0 && DONE_temp)
+                     if(src_x_left == 0 && fill_count == 0 && DONE_temp)begin
                                 restart_cnt_reg <= restart_cnt_reg - 1;
+                                restart_cnt_reg1 <= restart_cnt_reg1 - 1;
+                                end
                     case (x_type)
                         1: begin
                        // r1 <= 0;
@@ -1487,7 +1526,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                                 fifo_wptr           <= fifo_wptr + 1;
                             end
                             
-                            else if(desx_transfer_count_initial_reg > srcx_transfer_count_initial_reg && desy_transfer_count_reg > srcy_transfer_count_reg) begin
+                            else if(desx_transfer_count_initial_reg >= srcx_transfer_count_initial_reg && desy_transfer_count_reg > srcy_transfer_count_reg) begin
                                 if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5) && y_type == 3) begin
                                 //for(r = 0; r < des_x_left_initial_integer ; r=r+1)
                                 if(r1 < des_x_left_initial)
@@ -1581,6 +1620,7 @@ always @(posedge clk or negedge resetn) begin
            //WLAST <= 0;
            awr_error<=0;
            AWLEN <= 'd0;
+            stat_done_data_fsm <= 0;
            AWADDR <= 0;
            l <= 0;
            des_x_transfer_count_remaining <= 0;
@@ -1599,15 +1639,17 @@ always @(posedge clk or negedge resetn) begin
           WVALID       <= 0;
             BREADY       <= 0;
            DONE         <= stop_cmd_apb? 1: 0;
-           DONE_temp <= (rd_state ==RD_CONFIG || (rd_state ==RD_IDLE  && restart_cnt_reg == 0))?0:DONE_temp;
+           //DONE_temp <= (rd_state ==RD_CONFIG)?0:DONE_temp;
+            DONE_temp <= (rd_state ==RD_CONFIG || (rd_state ==RD_IDLE  && restart_cnt_reg == 0))?0:DONE_temp;
            trig_out_req <= 0;
            // STAT_RESUMEWAIT_DATA <= 'd0;
            // STAT_PAUSED_DATA <= 'd0;
             STAT_TRIGOUTACKWAIT_DATA <= 1'b0;
               des_addr_reg <= (rd_state == RD_CONFIG)?des_ADDR:des_addr_reg;
+                stat_done_data_fsm <= !deassert_stat_done ? stat_done_data_fsm: 0;
             //STAT_SRCTRIGINWAIT_DATA <= 1'b0;
            // STAT_DESTRIGINWAIT_DATA <= 1'b0;
-        if( l == des_tmplt_size )
+        if( l == des_tmplt_size /*&& wr_state != W_AW*/ && !AWVALID)
                    initial_tmplt_addr_des  <= AWADDR + ((des_tmplt_size + 1) - p) *(2**transize);
                    
            else if(wr_state == W_IDLE)
@@ -1922,6 +1964,12 @@ end
                      if(WVALID && WREADY && WLAST) begin
                         des_x_transfer_count_remaining <= des_x_transfer_count_remaining - (AWLEN + 1);
                         des_x_transfer_count_remaining_2d <= des_x_transfer_count_remaining_2d - (AWLEN + 1);
+                        
+                        if(des_tmplt_size != 0) begin
+                                 l <= l + 1;
+                            
+                                if(l >= des_tmplt_size)
+                                       l <= 0;end
                      end
                     
                     if (WREADY && des_x_left > 0 && WVALID) begin                       
@@ -1955,6 +2003,7 @@ end
                 W_DONE_ST: begin
                     DONE <= (restart_cnt_reg !=0 || cmd_restart_en)? 0 : 1;
                     DONE_temp <= 1;
+                     stat_done_data_fsm <= !(link_en || (restart_cnt_reg > 0||cmd_restart_en)) ? 1 : 0;
                     //STAT_DONE_DATA <= !link_en ? 1 : 0;
                 end
                 W_ROWS: begin
