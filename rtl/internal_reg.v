@@ -78,6 +78,7 @@ output wire stat_disable_intr_reg ,
 output wire stat_stopped_intr_reg ,
 output wire  stat_err_intr_reg,
 output wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated,
+output reg rst_posedge,
  
  output  wire reg_wr_en,
  output wire [31:0] wrkregval_rd,
@@ -150,12 +151,15 @@ always @(posedge clk or negedge resetn) begin
     if(!resetn) begin
         resetn_d       <= 1'b0;
         resetn_posedge <= 1'b0;
+        rst_posedge <= 0;
     end
     else begin
         resetn_posedge <= resetn & ~resetn_d;
         resetn_d       <= resetn;
+        rst_posedge <= resetn_posedge;
     end
 end
+
 
  assign INTR_TRIGOUTACKWAIT = (STAT_TRIGOUTACKWAIT_DATA && intr_mem[8][10]);
  assign INTR_DESTRIGINWAIT = (STAT_DESTRIGINWAIT_DATA && intr_mem [8][9]);
@@ -230,7 +234,7 @@ assign src_des_x_transfer_count_updated = {intr_mem[16],intr_mem[24],intr_mem[32
     data_in_0_1 <= data_in [0];
             stopcmd <= STOPCMD_DATA ? 0 :(data_in [3] && enablecmd)? 1: stopcmd; 
             disablecmd <= DISABLECMD_DATA ? 0 : (data_in [2] && enablecmd)? 1: disablecmd;
-            enablecmd <= data_in [0]|data_in_0_1 ?  1 : (ENABLECMD_DATA||stat_done_intr_reg||stat_err_intr_reg)  ? 0 : enablecmd;
+            enablecmd <= ((data_in [0]|data_in_0_1) || (boot_en && resetn_posedge) ) ?  1 : (ENABLECMD_DATA||stat_done_intr_reg||stat_err_intr_reg)  ? 0 : enablecmd;// for autoboot pg no - 100 trm
             pausecmd <=  STAT_PAUSED_DATA   ? 0 : (data_in [4] && enablecmd) ?1: pausecmd;
             resumecmd <=  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
    intr_mem[0] <= {data_in [31:6],resumecmd,pausecmd,stopcmd,disablecmd,data_in[1],enablecmd};
