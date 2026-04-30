@@ -165,7 +165,7 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     reg [15:0] restart_cnt_reg1;
     wire       ERROR;
        wire  [DATA_W-1:0] prev_WDATA = WDATA;
-    wire [15:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
+    wire [31:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
     reg [4:0] count_src_tmplt;//
     reg [4:0] count_des_tmplt;//
     wire [15:0] src_yaddr_stride_signed;
@@ -287,6 +287,7 @@ endgenerate
     assign SRCy_transfer_count_INITIAL = {16'd0, srcy_transfer_count_reg};
     assign DESy_transfer_count_INITIAL = {16'd0, desy_transfer_count_reg};     
     assign src_xaddr_inc_sign = $signed(src_xaddr_inc);
+  //src_xaddr_inc[15] ? (src_xaddr_inc * -1): src_xaddr_inc;
     assign des_xaddr_inc_sign = $signed(des_xaddr_inc);
     assign src_yaddr_stride_signed = $signed(src_yaddr_stride);
     assign des_yaddr_stride_signed = $signed(des_yaddr_stride);
@@ -968,8 +969,11 @@ end
                    src_addr_reload <= (DONE_temp)? src_addr_reload : SRC_ADDR;
                    des_addr_reload <= (DONE_temp)? des_addr_reload : des_ADDR;
                    src_yaddr_stride_reg <= src_yaddr_stride_signed;  // initalize yaddr stride here
+                   if(cmd_restart_en || cmd_restart_cnt > 0) 
+                   begin
                    restart_cnt_reg <= (DONE_temp)? (restart_cnt_reg ): cmd_restart_cnt ;
                    restart_cnt_reg1 <= (DONE_temp)? (restart_cnt_reg1 ): cmd_restart_cnt+1 ;
+                   end
                    
                    restart_cnt_en_reg <= (cmd_restart_en || cmd_restart_cnt != 0); 
 //                    if(reg2) begin
@@ -1447,8 +1451,8 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                          ARVALID <= 1;
                          
                         ARADDR <= (ARVALID_reg)?ARADDR : src_addr_reg + 
-                                  (srcx_transfer_count_initial_reg_2d_wrap - src_x_transfer_count_remaining) * 
-                                  ((2**transize) * src_xaddr_inc_sign);
+                                  ((srcx_transfer_count_initial_reg_2d_wrap - src_x_transfer_count_remaining) * 
+                                  ((2**transize) * src_xaddr_inc_sign));
                     end
                     else begin
                      ARVALID <= 1;
