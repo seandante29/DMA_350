@@ -173,7 +173,7 @@ module dma_channel
 	wire [31:0] DESx_transfer_count_INITIAL,SRCy_transfer_count_INITIAL;
 	wire cmd_done_1;
 	wire [(WIDTH * 21) -1:0]  mux_logic_in;
-
+    wire deassert_stat_done;
 	// wires to part select
 
 	wire [31:0] control_config_O;
@@ -317,6 +317,7 @@ module dma_channel
 	.resetn(resetn),
 	.boot_addr(boot_addr),
 	.boot_en(boot_en),
+	.deassert_stat_done(deassert_stat_done),
 	.data_in(mux_logic_in),
 //	.STAT_CMD_DONE(CMD_DONE),
 //	.read_base_addr_UPDATED(read_base_addr_UPDATED),
@@ -596,6 +597,7 @@ module dma_channel
 	.write_base_addr_UPDATED(write_base_addr_UPDATED),
 	.x_transfer_count_UPDATED(x_transfer_count_UPDATED),
 	.LINKHDERR(LINKHDERR),
+	.deassert_stat_done(deassert_stat_done),
 		.des_trigin_sw_type(des_trigin_sw_type),
 		.src_trigin_sw_type(src_trigin_sw_type),
 	.cmd_restart_en(cmd_restart_en),
