@@ -72,13 +72,14 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                 PREADY =1;
             else 
             begin
-                if( ((((cfg_addr == 'h1010)||(cfg_addr == 'h1018)||(cfg_addr == 'h1020))  && enable_cmd_to_apb) || cfg_addr == 'h1004)) begin
-                    if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 1) ||(((cfg_addr == 'h1018)&&count == 1))||(((cfg_addr == 'h1020)&&count == 1 /*&& enable_cmd_to_apb*/)))
+                if( ((((cfg_addr == 'h1010)||(cfg_addr == 'h1018)||(cfg_addr == 'h1020)||(cfg_addr == 'h103C))  && enable_cmd_to_apb) || cfg_addr == 'h1004)) begin
+                    if(((cfg_addr == 'h1004)&&count == 6)||((cfg_addr == 'h1010)&&count == 1) ||(((cfg_addr == 'h1018)&&count == 1))||(((cfg_addr == 'h1020)&&count == 1 ||(cfg_addr == 'h103C) && count == 1 /*&& enable_cmd_to_apb*/)))
                         PREADY =1;
                     else 
                         PREADY =0;    end
-                else if((((cfg_addr == 'h1038) || (cfg_addr == 'h1020) || (cfg_addr == 'h1018) || (cfg_addr == 'h1010) ||(cfg_addr == 'h1090)||(cfg_addr == 'h1088) ||(cfg_addr == 'h108C)
-                || (cfg_addr == 'h1078) ||(cfg_addr == 'h1054) ||(cfg_addr == 'h1050) ||(cfg_addr == 'h104C) ||(cfg_addr == 'h1030) ||(cfg_addr == 'h102C) 
+                else if((((cfg_addr == 'h1020) || (cfg_addr == 'h1018) || (cfg_addr == 'h1010) ||(cfg_addr == 'h1090)||(cfg_addr == 'h1088) ||(cfg_addr == 'h108C)
+                || (cfg_addr == 'h1078) ||(cfg_addr == 'h1074)||(cfg_addr == 'h1054) ||(cfg_addr == 'h1050) ||(cfg_addr == 'h104C) ||(cfg_addr == 'h1048) ||(cfg_addr == 'h1044)
+                 ||(cfg_addr == 'h1040) ||(cfg_addr == 'h103C) ||(cfg_addr == 'h1038) ||(cfg_addr == 'h1034) ||(cfg_addr == 'h1030) ||(cfg_addr == 'h102C) 
                  ||(cfg_addr == 'h1028) ||(cfg_addr == 'h100C) ||(cfg_addr == 'h1008) ) && count == 2) ||((cfg_addr == 'h1000) && count ==3))
                      PREADY =1;
                     
@@ -155,8 +156,9 @@ module apb_slave #( parameter DATA_WIDTH = 32,
 //                   count <= 0; 
                 else if(((cfg_addr == 'h1010) || (cfg_addr == 'h1018) || (cfg_addr == 'h1020))&& (count == 1) && enable_cmd_to_apb)
                    count <= 0; 
-                else if((cfg_addr == 'h1038) || (cfg_addr == 'h1020) || (cfg_addr == 'h1078) ||(cfg_addr == 'h1054)
-                 ||(cfg_addr == 'h1050) ||(cfg_addr == 'h104C) ||(cfg_addr == 'h1030) ||(cfg_addr == 'h102C) 
+                else if((cfg_addr == 'h1038) || (cfg_addr == 'h1020) || (cfg_addr == 'h1078)||(cfg_addr == 'h1074) ||(cfg_addr == 'h1054)
+                 ||(cfg_addr == 'h1050) ||(cfg_addr == 'h104C) ||(cfg_addr == 'h1044)
+                 ||(cfg_addr == 'h1040) ||(cfg_addr == 'h103C) ||(cfg_addr == 'h1038) ||(cfg_addr == 'h1034)||(cfg_addr == 'h1030) ||(cfg_addr == 'h102C) 
                  ||(cfg_addr == 'h1028) ||(cfg_addr == 'h100C) ||(cfg_addr == 'h1008) ||(cfg_addr == 'h1000)
                   ||(cfg_addr == 'h1090)||(cfg_addr == 'h1088) ||(cfg_addr == 'h108C) )
                     count <= count[3:0]+1;      
@@ -173,7 +175,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                 begin
                     cfg_addr <= PADDR;
                     PWRITE_q <= PWRITE;
-                    PWDATA_q <= (cfg_addr == 'h1000 && enable_cmd_to_apb)?{PWDATA[31:1],0}:PWDATA;
+                    PWDATA_q <= PWDATA;
                     PSTRB_q  <= PSTRB;
                     PSLVERR   <= 1'b0;  
                     cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
