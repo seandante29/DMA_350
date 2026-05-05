@@ -148,6 +148,7 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     output wire                  bus_error,
     output wire                 regvalerr,
     output reg                  ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA,
+    output reg                  SWTRIGOUTACK_DATA,SRCSWTRIGINREQ_DATA ,DESSWTRIGINREQ_DATA,
     output reg                  STAT_STOP_DATA, STAT_DISABLE_DATA, STAT_RESUMEWAIT_DATA, 
     output reg                  STAT_TRIGOUTACKWAIT_DATA, STAT_SRCTRIGINWAIT_DATA, 
     output reg                  STAT_DESTRIGINWAIT_DATA, STAT_PAUSED_DATA, STAT_DONE_DATA,
@@ -168,8 +169,8 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     wire [31:0] src_xaddr_inc_sign, des_xaddr_inc_sign; 
     reg [4:0] count_src_tmplt;//
     reg [4:0] count_des_tmplt;//
-    wire [15:0] src_yaddr_stride_signed;
-    wire [15:0] des_yaddr_stride_signed;
+    wire [31:0] src_yaddr_stride_signed;
+    wire [31:0] des_yaddr_stride_signed;
     // multiple reads
     reg [15:0] src_x_transfer_count_remaining,src_y_transfer_count_remaining;   
     reg [15:0] des_x_transfer_count_remaining,des_y_transfer_count_remaining, des_x_transfer_count_remaining_2d; 
@@ -395,13 +396,38 @@ end
             //x_transfer_count_UPDATED <= (case6 && x_type == 2)?(src_x_transfer_count_remaining == 0 && src_x_left <= srcx_transfer_count_reg && src_x_left!=0)?x_transfer_count_UPDATED:(src_x_transfer_count_remaining>=src_x_left)?({des_x_left,src_x_left}):{des_x_left,srcx_transfer_count_reg-((desx_transfer_count_reg -src_x_left)%srcx_transfer_count_reg)}
             //                : (case6 && x_type == 1)? {(des_x_left+(desx_transfer_count_reg - srcx_transfer_count_reg)),src_x_left}:{des_x_left,src_x_left};// src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg)
             if (y_type !=0) begin
-                x_transfer_count_UPDATED  <= (des_x_left == 0 && des_y_left !=0)?{des_x_left_initial, src_x_left}
-                                             :(src_x_left == 0 && src_y_left !=0)?{des_x_left,src_x_left_initial}
-                                             :  {des_x_left, src_x_left};
+//                x_transfer_count_UPDATED  <= (des_x_left == 0 && des_y_left !=0)?{des_x_left_initial, src_x_left}
+//                                             :(src_x_left == 0 && src_y_left !=0)?(src_x_left == 0 && src_y_left == 1)?{des_x_left, src_x_left} :{des_x_left,src_x_left_initial}
+//                                             :  {des_x_left, src_x_left};
+                       if (des_x_left == 0 && des_y_left != 0) begin
+                            x_transfer_count_UPDATED <= {des_x_left_initial, src_x_left};
+                            if (des_x_left == 0 && des_y_left == 1) begin
+                                x_transfer_count_UPDATED <= {des_x_left, src_x_left};
+                            end 
+                            else begin
+                                x_transfer_count_UPDATED <= {des_x_left_initial, src_x_left};
+                            end
+                        end 
+                        
+                        else if (src_x_left == 0 && src_y_left != 0) begin
+                        
+                            if (src_x_left == 0 && src_y_left == 1) begin
+                                x_transfer_count_UPDATED <= {des_x_left, src_x_left};
+                            end 
+                            else begin
+                                x_transfer_count_UPDATED <= {des_x_left, src_x_left_initial};
+                            end
+                        
+                        end 
+                        
+                        else begin
+                            x_transfer_count_UPDATED <= {des_x_left, src_x_left};
+                        end
             end
+            
             else if (case6 && x_type == 2 && !DONE_temp ) begin
                 if (src_x_transfer_count_remaining == 0 && src_x_left <= srcx_transfer_count_reg && src_x_left != 0) begin
-                    x_transfer_count_UPDATED <= x_transfer_count_UPDATED;
+                    x_transfer_count_UPDATED <= {x_transfer_count_UPDATED[31:16],src_x_left};
                 end
                 else if (src_x_transfer_count_remaining >= src_x_left) begin
                     x_transfer_count_UPDATED <= {des_x_left, src_x_left};
@@ -453,24 +479,40 @@ end
                 read_base_addr_UPDATED <= ARADDR;
                 //write_base_addr_UPDATED <= des_addr_reg;
             end
-            else if((rd_state ==  RD_R ) && src_x_left !=0) begin
-                if(RVALID) begin
+            
+     
+                
+                
+            else if((rd_state ==  RD_R ) && src_x_left != 0) begin
+                if(RVALID && RREADY) begin
 //                    if(src_xaddr_inc == 1)
 //                    begin
+
+                        if (src_x_left == 1 && ARLEN == 0)
+                        read_base_addr_UPDATED <= ARADDR + (( 2**transize)*(src_xaddr_inc_sign));
+                        else
                         read_base_addr_UPDATED <= (y_type != 0 )?(RLAST)? src_addr_reg + (src_yaddr_stride *( 2**transize)) 
                                                     : src_addr_reg + ((src_x_left_initial - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) 
-                                                    :(case6 && x_type == 2) ? (src_x_left>(desx_transfer_count_reg - srcx_transfer_count_reg)) ? /*(src_addr_reg + ((srcx_transfer_count_reg +1  - (src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg))) *( 2**transize)*(src_xaddr_inc_sign))) */src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
-                                                    : src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
-                                                    :(case5)? src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
-                                                    : src_addr_reg + ((srcx_transfer_count_reg - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) ;
-//                    end
+                                                    :(case6 && x_type == 2) ? (src_x_left>(desx_transfer_count_reg - srcx_transfer_count_reg)) ? 
+                                                    /*(src_addr_reg + ((srcx_transfer_count_reg +1  - (src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg))) *( 2**transize)*(src_xaddr_inc_sign))):*/ 
+                                                    src_addr_reg +(((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)*( 2**transize)*(src_xaddr_inc_sign))
+                                                    : src_addr_reg +(((desx_transfer_count_reg + 2 -src_x_left)%srcx_transfer_count_reg)*( 2**transize)*(src_xaddr_inc_sign))
+                                                    :(case5)? src_addr_reg +(((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)*( 2**transize)*(src_xaddr_inc_sign))
+                                                    : src_addr_reg + ((src_x_left_initial - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) ;
+//                   read_base_addr_UPDATED <= (y_type != 0 )?(RLAST)? src_addr_reg + (src_yaddr_stride *( 2**transize)) 
+//                                                    : src_addr_reg + ((src_x_left_initial - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) 
+//                                                   /* :(case6 && x_type == 2) ? (src_x_left>(desx_transfer_count_reg - srcx_transfer_count_reg)) ? *//*(src_addr_reg + ((srcx_transfer_count_reg +1  - (src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg))) *( 2**transize)*(src_xaddr_inc_sign))) *//*src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
+//                                                    : src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)
+//                                                    :(case5)? src_addr_reg +((desx_transfer_count_reg + 1 -src_x_left)%srcx_transfer_count_reg)*/
+//                                                    : src_addr_reg + ((srcx_transfer_count_reg - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) ;
+////                    end
 //                    else
 //                        read_base_addr_UPDATED <=  src_addr_reg;
                 end
             end 
             
             if(wr_state == W_W  && des_x_left !=0) begin 
-                if(WREADY)
+                if(WREADY && WVALID)
 //                    if(des_xaddr_inc == 1)
 //                    begin
                         write_base_addr_UPDATED <= (y_type != 0  && des_x_left==1)? des_addr_reg + (des_yaddr_stride *( 2**transize)) 
@@ -498,7 +540,7 @@ end
             else  
                 ENABLECMD_DATA <= 0;
             
-            if (disable_cmd_partsel) begin
+            if (disable_cmd_partsel  &&wr_state ==   W_DONE_ST) begin
                 DISABLECMD_DATA <= 1;
                 STAT_DISABLE_DATA <= 1;
             end else if(stat_disable_intr_reg == 0) begin
@@ -546,6 +588,9 @@ always @(posedge clk or negedge resetn) begin
 
         // Pause tracking (store last non-paused state)
         if (rd_next_st != RD_PAUSED)
+         if((wr_state == W_PAUSED)) 
+                rd_pause_state_q <= RD_IDLE;
+            else
             rd_pause_state_q <= rd_next_st;
 
         if (wr_next_st != W_PAUSED)
@@ -560,7 +605,7 @@ end
         if (stop_cmd_apb) begin
             rd_next_st = RD_IDLE;
         end
-        else if(pause_cmd_partsel || (STAT_DONE_DATA && done_pause_en))begin
+        else if(pause_cmd_partsel || ( wr_state == W_PAUSED))begin
             rd_next_st = RD_PAUSED;
         end else begin
             case (rd_state)
@@ -575,7 +620,7 @@ end
                         
                 RD_PAUSED:
                     if(resume_cmd_partsel)
-                            rd_next_st = rd_pause_state_q;
+                            rd_next_st = ((restart_cnt_reg1 !=0 || cmd_restart_en) && done_pause_en) ? RD_WAIT : rd_pause_state_q;
             
                 RD_WAIT: 
                     if (stat_error_intr_reg) 
@@ -800,7 +845,7 @@ end
             {ARVALID, RREADY, src_addr_reg, wdata_mask,r1,
             ard_error, ARADDR, desx_transfer_count_reg,desy_transfer_count_reg, ARID, ARSIZE,ARQOS, ARBURST, srcx_transfer_count_reg, srcy_transfer_count_reg,ARLEN,src_x_transfer_count_remaining,src_y_transfer_count_remaining,src_trig_req_type_reg,des_trig_req_type_reg,
              arpoison_error, bus_error_r, cmd_done_reg} <= 0;
-           {STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA} <= 'b0;
+           {STAT_SRCTRIGINWAIT_DATA, STAT_DESTRIGINWAIT_DATA,SRCSWTRIGINREQ_DATA ,DESSWTRIGINREQ_DATA} <= 'b0;
             {config_error_size, config_error_src,config_error_transize, config_error_des, config_error_trigout, config_error_inc, config_error_x_type, config_error_case3, config_error_case6} <= 'd0;
             {regvalerr_src, regvalerr_des, regvalerr_trigout} <= 'd0;
             {ycase1,ycase2,ycase3,ycase4,ycase5,case1,case2,case3,case4,case5,case6} <=0;
@@ -860,6 +905,7 @@ end
              wr_start <= 'd0;
              //ARVALID_reg <= 0;
             ARVALID      <= 0;
+            {SRCSWTRIGINREQ_DATA ,DESSWTRIGINREQ_DATA} <= 0;
             RREADY       <= 0;
             src_trigack  <= 0;
             des_trigack  <= 0;
@@ -1343,11 +1389,14 @@ end
                // src_x_left_initial_integer <= src_x_left;
                   read_base_addr_INITIAL  <= src_addr_reg;
                     write_base_addr_INITIAL  <= des_addr_reg;
-                if(use_src_trigin)
+                if(use_src_trigin)begin
                  src_trig_req_type_reg <= (src_trigin_type == 'b10) ? src_trig_req_type : (src_trigin_type == 'b00) ? src_trigin_sw_type : src_trig_req_type_reg;
-                                   
-                   if(use_des_trigin)
+                   SRCSWTRIGINREQ_DATA   <= (src_trigin_type == 'b00)?1:0;
+                 end                 
+                   if(use_des_trigin)begin
                 des_trig_req_type_reg <= (des_trigin_type == 'b10) ? des_trig_req_type : (des_trigin_type == 'b00) ? des_trigin_sw_type : des_trig_req_type_reg; 
+                   DESSWTRIGINREQ_DATA   <= (des_trigin_type == 'b00)?1:0;
+                 end
                    // src_trig_req_type_reg <= (use_src_trigin)?src_trig_req_type:src_trig_req_type_reg;
                    // des_trig_req_type_reg <= (use_des_trigin)?des_trig_req_type:des_trig_req_type_reg; 
                       if (use_src_trigin && use_des_trigin) begin  
@@ -1437,7 +1486,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                                ARADDR <= initial_tmplt_addr_src + m * (2**transize);      end                      
                    end
 
-                           else if (case6 && x_type == 'd2 && !ARVALID_reg &&  ((src_x_transfer_count_remaining == 0) || (src_x_left == srcx_transfer_count_initial_reg))) begin
+                           else if (case6 && x_type == 'd2 && !ARVALID_reg &&  ((src_x_transfer_count_remaining == 0) || (src_x_left == src_x_left_initial))) begin//srcx_transfer_count_intial_reg
                         ARADDR <=src_addr_reg /*read_base_addr_INITIAL*/;
                          
                          ARVALID_reg <= 1;
@@ -1662,6 +1711,7 @@ always @(posedge clk or negedge resetn) begin
           //  WLAST        <= 0;
           WVALID       <= 0;
             BREADY       <= 0;
+                        SWTRIGOUTACK_DATA <= 0;
            DONE         <= stop_cmd_apb? 1: 0;
            //DONE_temp <= (rd_state ==RD_CONFIG)?0:DONE_temp;
             DONE_temp <= (rd_state ==RD_CONFIG || (rd_state ==RD_IDLE  && restart_cnt_reg == 0))?0:DONE_temp;
@@ -1961,7 +2011,8 @@ end
                                AWADDR <= initial_tmplt_addr_des + l * (2**transize);   end                         
                    end
                    else begin
-                         AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/  (case6 && x_type == 1 && y_type == 0)?des_addr_reg + (srcx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign):des_addr_reg + (desx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
+                         AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/  (case6 && x_type == 1 && y_type == 0)?des_addr_reg + (srcx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign):
+                         des_addr_reg + (desx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
                          AWVALID <= 1; end
                      if(des_tmplt_size > 0)
                         AWLEN <= 'd0;
@@ -2015,8 +2066,11 @@ end
                 end                
                 W_TRIG_OUT: begin
                     if (use_trigout && trigout_type == 'b10)
-                    trig_out_req <= 1;                    
-                    if (use_trigout && !trig_out_ack_sw && trigout_type == 'b00)
+                   trig_out_req <= 1;  
+                    else if (use_trigout && trigout_type == 'b00)             
+                        SWTRIGOUTACK_DATA <= 1;   
+                    if (use_trigout && !trig_out_ack_sw && trigout_type == 'b00) 
+
                         STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
                     else if (use_trigout && !trig_out_ack && trigout_type == 'b10)
                         STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
