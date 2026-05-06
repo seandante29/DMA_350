@@ -44,7 +44,7 @@ module internal_reg #(parameter WIDTH = 32,
  input wire ENABLECMD_DATA,
  input wire DISABLECMD_DATA,
  input wire STOPCMD_DATA,
- 
+ input wire SWTRIGOUTACK_DATA,SRCSWTRIGINREQ_DATA ,DESSWTRIGINREQ_DATA,
  
  
  // to reg bank
@@ -126,7 +126,7 @@ output reg rst_posedge,
   assign stat_err_intr_reg = data_in [49] | data_in[0] ? 1'b0  : STAT_ERR;
   assign deassert_stat_done = data_in [48] | data_in[0];
    
-   reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd; 
+   reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd,swtrigoutack,srcswtriginreq,desswtriginreq; 
 // reg resetn_d;
 //wire resetn_posedge;
 //reg resetn_posedge_1;
@@ -222,7 +222,7 @@ assign src_des_x_transfer_count_updated = {intr_mem[16],intr_mem[24],intr_mem[32
             data_in_0_1<= 0;
             for(i = 0;i<DEPTH;i=i+1)
                 intr_mem [i] <= 'd0;
-            {stopcmd,disablecmd,enablecmd,pausecmd,resumecmd} <= 'd0;
+            {stopcmd,disablecmd,enablecmd,pausecmd,resumecmd,swtrigoutack,srcswtriginreq,desswtriginreq} <= 'd0;
         end
   
     
@@ -234,10 +234,14 @@ assign src_des_x_transfer_count_updated = {intr_mem[16],intr_mem[24],intr_mem[32
     data_in_0_1 <= data_in [0];
             stopcmd <= STOPCMD_DATA ? 0 :(data_in [3] && enablecmd)? 1: stopcmd; 
             disablecmd <= DISABLECMD_DATA ? 0 : (data_in [2] && enablecmd)? 1: disablecmd;
-            enablecmd <= ((data_in [0]|data_in_0_1) || (boot_en && resetn_posedge) ) ?  1 : (ENABLECMD_DATA||stat_done_intr_reg||stat_err_intr_reg)  ? 0 : enablecmd;// for autoboot pg no - 100 trm
+            enablecmd <= (((data_in [0]|data_in_0_1 )&& !enablecmd) || (boot_en && resetn_posedge) ) ?  1 : (ENABLECMD_DATA||stat_done_intr_reg||stat_err_intr_reg)  ? 0 : enablecmd;// for autoboot pg no - 100 trm
             pausecmd <=  STAT_PAUSED_DATA   ? 0 : (data_in [4] && enablecmd) ?1: pausecmd;
             resumecmd <=  !STAT_PAUSED_DATA   ? 0 :data_in [5] ?1: resumecmd;
-   intr_mem[0] <= {data_in [31:6],resumecmd,pausecmd,stopcmd,disablecmd,data_in[1],enablecmd};
+            swtrigoutack <= SWTRIGOUTACK_DATA ? 0 : (( data_in [0] || enablecmd ) && data_in[24]) ? 1 :swtrigoutack;
+            srcswtriginreq <= SRCSWTRIGINREQ_DATA ? 0 : (( data_in [0] || enablecmd ) && data_in[16]) ? 1 :srcswtriginreq;
+            desswtriginreq <= DESSWTRIGINREQ_DATA ? 0 : (( data_in [0] || enablecmd ) && data_in[20]) ? 1 :desswtriginreq;
+
+   intr_mem[0] <= {data_in [31:25],swtrigoutack,data_in [23:21],desswtriginreq,data_in [19:17],srcswtriginreq,data_in [15:6],resumecmd,pausecmd,stopcmd,disablecmd,data_in[1],enablecmd};
    intr_mem[8]  <= data_in [(WIDTH * 3) -1 : (WIDTH*2)];
    intr_mem[12] <= data_in [(WIDTH * 4) -1 : (WIDTH*3)];
    intr_mem[16] <=data_in [(WIDTH * 5) -1 : (WIDTH*4)];
