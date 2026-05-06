@@ -175,7 +175,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                 begin
                     cfg_addr <= PADDR;
                     PWRITE_q <= PWRITE;
-                    PWDATA_q <= PWDATA;
+                    PWDATA_q <= (cfg_addr == 'h1000 && enable_cmd_to_apb)?{PWDATA[31:1],1'b0}:PWDATA;
                     PSTRB_q  <= PSTRB;
                     PSLVERR   <= 1'b0;  
                     cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
