@@ -441,8 +441,11 @@ end
             else if (case6 && x_type == 1 ) begin
                 x_transfer_count_UPDATED <= {des_x_left /*+ (desx_transfer_count_reg - srcx_transfer_count_reg)*/, src_x_left};
             end
-            else if((cmd_restart_en || restart_cnt_reg != 0) && (src_x_left == 0 && DONE_temp) && (reg_reload_type != 0) && rd_state != RD_WAIT)
-                 x_transfer_count_UPDATED <= {des_x_transfer_count_reload,src_x_transfer_count_reload};
+            else if((cmd_restart_en || restart_cnt_reg1 != 0) && (src_x_left == 0 && DONE_temp) && (reg_reload_type != 0) && rd_state != RD_WAIT)
+               /* if(*//*rd_state == RD_R ||*//* *//*rd_state == RD_PAUSED*//* )
+                     x_transfer_count_UPDATED <= {des_x_left, src_x_left};
+                 else*/
+                    x_transfer_count_UPDATED <= {des_x_transfer_count_reload,src_x_transfer_count_reload};
             else begin
                 x_transfer_count_UPDATED <= {des_x_left, src_x_left};
             end 
@@ -535,7 +538,7 @@ end
             {ENABLECMD_DATA, DISABLECMD_DATA, STOPCMD_DATA, STAT_STOP_DATA, STAT_DISABLE_DATA,STAT_DONE_DATA,STAT_PAUSED_DATA,STAT_RESUMEWAIT_DATA} <= 'b0;
             
         end else begin 
-            if ((disable_cmd_partsel && wr_state == W_DONE_ST) || stop_cmd_apb)
+            if ((disable_cmd_partsel && wr_state == W_DONE_ST) || stop_cmd_apb ||(rd_state == RD_IDLE && DONE && !link_en) )
                 ENABLECMD_DATA <= 1;
             else  
                 ENABLECMD_DATA <= 0;
@@ -565,11 +568,15 @@ end
             end
             if(wr_state == W_DONE_ST)
                STAT_DONE_DATA <= (done_type == 0)? 0 : 
-                                       (done_type == 1 && !(cmd_restart_en || restart_cnt_reg>0))? 1:
-                                       (done_type == 3)? (1 & (cmd_restart_en || restart_cnt_reg>0)):0;
+                                       (done_type == 1 && !(cmd_restart_en || restart_cnt_reg1>0))? 1:
+                                       (done_type == 3)? (1 & (cmd_restart_en || restart_cnt_reg1>0)):0;
 //    STAT_DONE_DATA <= !(link_en || cmd_restart_en || restart_cnt_reg >0 ) ? 1 : 0;
+            else if (rd_state == RD_IDLE )
+                STAT_DONE_DATA <= !(link_en )?STAT_DONE_DATA :0;
+            else if( rd_state == RD_WAIT ||(rd_state == RD_PAUSED && resume_cmd_partsel))
+                STAT_DONE_DATA <= !(link_en || restart_cnt_reg1 > 0 || cmd_restart_en)?STAT_DONE_DATA :0;
             else
-                STAT_DONE_DATA <= stat_done_intr_reg ? STAT_DONE_DATA : 0;
+                STAT_DONE_DATA <= (!stat_done_intr_reg ? 0 : STAT_DONE_DATA);
         end
     end
 
@@ -591,7 +598,7 @@ always @(posedge clk or negedge resetn) begin
          if((wr_state == W_PAUSED)) 
                 rd_pause_state_q <= RD_IDLE;
             else
-            rd_pause_state_q <= rd_next_st;
+                rd_pause_state_q <= rd_next_st;
 
         if (wr_next_st != W_PAUSED)
             wr_pause_state_q <= wr_next_st;
@@ -605,7 +612,7 @@ end
         if (stop_cmd_apb) begin
             rd_next_st = RD_IDLE;
         end
-        else if(pause_cmd_partsel || ( wr_state == W_PAUSED))begin
+        else if(pause_cmd_partsel || (STAT_DONE_DATA &&done_pause_en))begin
             rd_next_st = RD_PAUSED;
         end else begin
             case (rd_state)
@@ -620,7 +627,7 @@ end
                         
                 RD_PAUSED:
                     if(resume_cmd_partsel)
-                            rd_next_st = ((restart_cnt_reg1 !=0 || cmd_restart_en) && done_pause_en) ? RD_WAIT : rd_pause_state_q;
+                            rd_next_st = (done_pause_en) ? (restart_cnt_reg1 !=0 || cmd_restart_en)? RD_WAIT : rd_pause_state_q: rd_pause_state_q;
             
                 RD_WAIT: 
                     if (stat_error_intr_reg) 
@@ -632,8 +639,10 @@ end
                   
                     if (config_error)
                         rd_next_st = RD_ERROR_ST;
+//                    else if(restart_cnt_reg1>0)
+                    
                     else if (case1 || x_type == 0 || (ycase1 && y_type != 0) )
-                        rd_next_st = RD_IDLE;
+                        rd_next_st = (restart_cnt_reg>0 ||cmd_restart_en)?RD_WAIT:RD_IDLE;
                     else if (case2)
                         rd_next_st = (x_type == 3) ? RD_WAIT_TRIG : RD_ERROR_ST; 
                      else if(ycase2)
@@ -768,7 +777,7 @@ end
         if (stop_cmd_apb) begin
             wr_next_st = W_IDLE;
         end 
-        else if(pause_cmd_partsel /*|| (STAT_DONE_DATA && done_pause_en)*/)begin
+        else if(pause_cmd_partsel || (STAT_DONE_DATA && done_pause_en))begin
             wr_next_st = W_PAUSED;
         end
         else begin
@@ -818,7 +827,7 @@ end
                 end
             
             W_DONE_ST:
-                if(done_pause_en && !resume_cmd_partsel)
+                if(STAT_DONE_DATA && done_pause_en &&  !resume_cmd_partsel)
                 wr_next_st = W_PAUSED;
                 else
                 wr_next_st = W_IDLE;
@@ -917,8 +926,8 @@ end
             // restart_cnt_en_reg <=0;
 //            STAT_RESUMEWAIT_DATA     <= 'd0;
 //            STAT_PAUSED_DATA         <= 'd0;
-//            STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
-//            STAT_DESTRIGINWAIT_DATA  <= 1'b0;
+            STAT_SRCTRIGINWAIT_DATA  <= 1'b0;
+            STAT_DESTRIGINWAIT_DATA  <= 1'b0;
              if( m == src_tmplt_size  /*&& rd_state != RD_AR*/ && !ARVALID)
                    initial_tmplt_addr_src  <= /*(src_tmplt[src_tmplt_size] == 1 )?  ARADDR + *//*((src_tmplt_size + 1) - k) **//* (2**transize) :*/ ARADDR + ((src_tmplt_size + 1) - k) *(2**transize);
               else if(rd_state == RD_CONFIG)
@@ -1015,7 +1024,7 @@ end
                    src_addr_reload <= (DONE_temp)? src_addr_reload : SRC_ADDR;
                    des_addr_reload <= (DONE_temp)? des_addr_reload : des_ADDR;
                    src_yaddr_stride_reg <= src_yaddr_stride_signed;  // initalize yaddr stride here
-                   if(cmd_restart_en || cmd_restart_cnt > 0) 
+                   if((cmd_restart_en || cmd_restart_cnt > 0) /*&& !restart_cnt_en_reg*/)
                    begin
                    restart_cnt_reg <= (DONE_temp)? (restart_cnt_reg ): cmd_restart_cnt ;
                    restart_cnt_reg1 <= (DONE_temp)? (restart_cnt_reg1 ): cmd_restart_cnt+1 ;
@@ -1034,7 +1043,11 @@ end
                 
                 RD_CONFIG: begin
                 
-                
+                if (case1 || x_type == 0 || (ycase1 && y_type != 0) ) begin
+                    restart_cnt_reg <= restart_cnt_reg - 1;
+                    restart_cnt_reg1 <= restart_cnt_reg1 - 1;
+//                    DONE_temp <= 1;
+                end
                  if ((use_src_trigin && !((src_trigin_type == 2'b00 && src_trigin_sw)|| (src_trigin_type == 2'b10 && src_trigin))) ) begin
                         STAT_SRCTRIGINWAIT_DATA <= 1'b1;
                     end
@@ -1052,7 +1065,7 @@ end
 //                   des_x_transfer_count_reload <= desx_transfer_count_reg;
 //                   src_addr_reload <= src_addr_reg;
 //                   des_addr_reload <= des_addr_reg;
-                   if((cmd_restart_en || restart_cnt_reg1 != 0) && src_x_left == 0) begin
+                   if((cmd_restart_en || (restart_cnt_reg1 != 0 && restart_cnt_reg != cmd_restart_cnt)) && src_x_left == 0) begin
                    
                         if(reg_reload_type == 0)begin
                         srcx_transfer_count_reg <= 0;
@@ -1483,7 +1496,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                             
                          if(src_tmplt[m] ) begin
                           ARVALID <= 1;
-                               ARADDR <= initial_tmplt_addr_src + m * (2**transize);      end                      
+                          ARADDR <= initial_tmplt_addr_src + m * (2**transize);      end                      
                    end
 
                            else if (case6 && x_type == 'd2 && !ARVALID_reg &&  ((src_x_transfer_count_remaining == 0) || (src_x_left == src_x_left_initial))) begin//srcx_transfer_count_intial_reg
@@ -1714,7 +1727,7 @@ always @(posedge clk or negedge resetn) begin
                         SWTRIGOUTACK_DATA <= 0;
            DONE         <= stop_cmd_apb? 1: 0;
            //DONE_temp <= (rd_state ==RD_CONFIG)?0:DONE_temp;
-            DONE_temp <= (rd_state ==RD_CONFIG || (rd_state ==RD_IDLE  && restart_cnt_reg == 0))?0:DONE_temp;
+            DONE_temp <= ((rd_state ==RD_CONFIG &&!(case1 || x_type == 0 || (ycase1 && y_type != 0) )) || (rd_state ==RD_IDLE  && restart_cnt_reg == 0))?0:DONE_temp;
            trig_out_req <= 0;
            // STAT_RESUMEWAIT_DATA <= 'd0;
            // STAT_PAUSED_DATA <= 'd0;
@@ -1738,7 +1751,7 @@ W_IDLE: begin
                                
 //                                des_addr_reg <= des_ADDR;
 //                                end 
-                        if((cmd_restart_en || restart_cnt_reg1 != 0) && src_x_left == 0) begin
+                        if((cmd_restart_en || (restart_cnt_reg1 != 0 && restart_cnt_reg != cmd_restart_cnt)) && src_x_left == 0) begin
                             if(reg_reload_type == 0)begin
                             
                             des_addr_reg <= 0;
@@ -2114,3 +2127,4 @@ end
     
 endmodule
  
+
