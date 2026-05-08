@@ -6,6 +6,7 @@ module cmd_fsm
     input clk, 
     input resetn,
     input wire rst_posedge,
+    input wire [3:0] ch_prio,
     input [31:0]next_cmd_addr,// fro intern reg
     input link_enable,// fro intern reg
     input data_done,// fro intern reg
@@ -296,7 +297,8 @@ end
                     count_flag <= 0;
                     ARSIZE <= ($clog2(DATA_W/8)) ;//
                     //CMD_DONE <= 0;
-                    ARVALID <= 1;          
+                    ARVALID <= 1; 
+                    ARQOS <= ch_prio;         
                     if (count == 0) begin
                         ARADDR <= next_cmd_addr;
                         ARLEN <= 0;
