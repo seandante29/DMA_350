@@ -77,57 +77,6 @@ assign trigout_sel1[2] = trigout_sel[17:12];
 assign des_type[0] = des_trigin_type[1:0];
 assign des_type[1] = des_trigin_type[3:2];
 assign des_type[2] = des_trigin_type[5:4];
-//function [2:0] onehot8_to_bin;
-//    input [7:0] val;
-//    begin
-//        case (val)
-//            8'b00000001: onehot8_to_bin = 3'd0;
-//            8'b00000010: onehot8_to_bin = 3'd1;
-//            8'b00000100: onehot8_to_bin = 3'd2;
-//            8'b00001000: onehot8_to_bin = 3'd3;
-//            8'b00010000: onehot8_to_bin = 3'd4;
-//            8'b00100000: onehot8_to_bin = 3'd5;
-//            8'b01000000: onehot8_to_bin = 3'd6;
-//            8'b10000000: onehot8_to_bin = 3'd7;
-//            default:     onehot8_to_bin = 3'd0;
-//        endcase
-//    end
-//endfunction
-
-//function [2:0] onehot6_to_bin;
-//    input [5:0] val;
-//    begin
-//        case (val)
-//            6'b000001: onehot6_to_bin = 3'd0;
-//            6'b000010: onehot6_to_bin = 3'd1;
-//            6'b000100: onehot6_to_bin = 3'd2;
-//            6'b001000: onehot6_to_bin = 3'd3;
-//            6'b010000: onehot6_to_bin = 3'd4;
-//            6'b100000: onehot6_to_bin = 3'd5;
-//            default:   onehot6_to_bin = 3'd0;
-//        endcase
-//    end
-//endfunction
-
-//assign src_sel[0] = onehot8_to_bin(src_trigin_sel[7:0]);
-//assign src_sel[1] = onehot8_to_bin(src_trigin_sel[15:8]);
-//assign src_sel[2] = onehot8_to_bin(src_trigin_sel[23:16]);
-
-//assign des_sel[0] = onehot8_to_bin(des_trigin_sel[7:0]);
-//assign des_sel[1] = onehot8_to_bin(des_trigin_sel[15:8]);
-//assign des_sel[2] = onehot8_to_bin(des_trigin_sel[23:16]);
-
-//assign trigout_sel1[0] = onehot6_to_bin(trigout_sel[5:0]);
-//assign trigout_sel1[1] = onehot6_to_bin(trigout_sel[11:6]);
-//assign trigout_sel1[2] = onehot6_to_bin(trigout_sel[17:12]);
-
-//assign src_type[0] = src_trigin_type[1:0];
-//assign src_type[1] = src_trigin_type[3:2];
-//assign src_type[2] = src_trigin_type[5:4];
-
-//assign des_type[0] = des_trigin_type[1:0];
-//assign des_type[1] = des_trigin_type[3:2];
-//assign des_type[2] = des_trigin_type[5:4];
 
 always @(*) begin
 	SRCTRIGINSELERR = 0;
@@ -182,7 +131,8 @@ always @(*) begin
 		trig_ack_type1[p] = 0;
 	end
 	for(i=0; i<3; i=i+1) begin
-		case(src_sel[i] & !SRCTRIGINSELERR[i])
+		if ( !SRCTRIGINSELERR[i]) begin
+		case(src_sel[i] )
 
 			0: begin
 				src_trig_req[i]      = trig_req[0];
@@ -205,7 +155,9 @@ always @(*) begin
 				trig_ack_type1[src_sel[i]] = ch_src_ack_type [5:4];
 			end
 		endcase
-		case(des_sel[i] & !DESTRIGINSELERR[i])
+		end
+		if(!DESTRIGINSELERR[i]) begin
+		case(des_sel[i] )
 
 			0: begin
 				des_trig_req[i]      = trig_req[0];
@@ -229,6 +181,7 @@ always @(*) begin
 			
 			end
 		endcase
+		end
 	end
 end
 	
@@ -260,7 +213,8 @@ always @(*) begin
     trig_out_req      = 0;
     ch_trigout_ack = 0;
 	for(m=0; m<3; m=m+1) begin
-		case(trigout_sel1[m] & !TRIGOUTSELERR[m])
+		if( !TRIGOUTSELERR[m]) begin
+		case(trigout_sel1[m] )
 
 			0: begin
 				trig_out_req[m]      = ch_trigout_req[0];
@@ -277,6 +231,7 @@ always @(*) begin
 				ch_trigout_ack[m] = trig_out_ack[5:4];
 			end
 		endcase
+		end
 	end
 end
 
