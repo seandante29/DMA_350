@@ -20,7 +20,7 @@ module data_fsm #(
     input  wire                 stat_disable_intr_reg,
     input  wire                 stat_stop_intr_reg,
     input  wire                 cmd_done,deassert_stat_done,
-
+    input wire [3:0]            ch_prio,
     // Triggers
     
     input  wire                 use_src_trigin,
@@ -207,7 +207,9 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     reg case1,case2,case3,case4,case5,case6;  // chnaged from wire to reg
      reg ycase1, ycase2, ycase3, ycase4, ycase5;
      reg [31:0] area_src, area_des; 
-     
+     wire[7:0] AWLEN_wire1 = ((des_x_left - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_left - 1;
+     wire[7:0] AWLEN_wire2 = ((des_x_transfer_count_remaining - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_transfer_count_remaining - 1;//(case6 && x_type == 1)? srcx_transfer_count - 1: desx_transfer_count - 1;
+                    
      wire [5:0] fifo_rptr_t = fifo_rptr[4:0] + 1;
     localparam RD_IDLE       = 5'd0,
                RD_WAIT       = 5'd1,
@@ -234,6 +236,7 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
     localparam STRB_W = DATA_W / 8;
     wire [DATA_W-1:0] strobe_mask;
    wire [31:0]wire_11;
+   wire [5:0] fifo_ptr_diff = (fifo_rptr > fifo_wptr)? (6'b111111 - fifo_rptr) + fifo_wptr : fifo_wptr - fifo_rptr;
  assign wire_11 = write_base_addr_UPDATED_wire + 2** transize; 
 // assign WLAST = (des_x_left == 1)?1:0;
 genvar a;
@@ -294,7 +297,7 @@ endgenerate
     assign des_yaddr_stride_signed = $signed(des_yaddr_stride);
     
  //   assign WLAST = (wr_state == W_W) ? ((des_x_left == 1)? 1 : 0) : 0;
-  assign WLAST = (wr_state == W_W && WVALID) ? ((des_x_transfer_count_remaining_2d - AWLEN) == des_x_left ? 1 : 0) : 0;
+  assign WLAST = (wr_state == W_W && WVALID) ? ((des_x_transfer_count_remaining_2d - AWLEN ) == des_x_left ? 1 : 0) : 0;
   wire  WVALID_wire = ((empty) ||(WREADY && WLAST)||(stop_cmd_apb)||(wr_state != W_W)) ? 0 : 1;
     assign WSTRB = (wr_state == W_W) ? ((1 << (1 << transize)) - 1)<< write_base_addr_UPDATED_wire[$clog2(DATA_W/8)-1:0] : 0;
     assign WSTRB_wire = (wr_next_st == W_W) ? ((1 << (1 << transize)) - 1)<< wire_11[$clog2(DATA_W/8)-1:0] : 0;
@@ -1172,7 +1175,7 @@ end
                     else if (case3 || (ycase3)) //read only
                               src_x_left <= srcx_transfer_count;
                        // config_error_case3 <= 1;
-                         else if(ycase5)
+                         else if(ycase5 && y_type !=0)
                             begin 
                                 if(srcx_transfer_count == desx_transfer_count)
                                     begin
@@ -1496,6 +1499,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                             
                          if(src_tmplt[m] ) begin
                           ARVALID <= 1;
+                          ARQOS <= ch_prio;
                           ARADDR <= initial_tmplt_addr_src + m * (2**transize);      end                      
                    end
 
@@ -1511,13 +1515,14 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
 //                    end
                     else if (case6 && x_type == 'd2 ) begin
                          ARVALID <= 1;
-                         
+                         ARQOS <= ch_prio;
                         ARADDR <= (ARVALID_reg)?ARADDR : src_addr_reg + 
                                   ((srcx_transfer_count_initial_reg_2d_wrap - src_x_transfer_count_remaining) * 
                                   ((2**transize) * src_xaddr_inc_sign));
                     end
                     else begin
                      ARVALID <= 1;
+                     ARQOS <= ch_prio;
                         ARADDR <= (ARVALID)?ARADDR : src_addr_reg + 
                                   (src_x_left_initial - src_x_transfer_count_remaining) * 
                                   ((2**transize) * src_xaddr_inc_sign);
@@ -1714,6 +1719,7 @@ always @(posedge clk or negedge resetn) begin
            WDATA <= 0;
            AWID <= 0;
            AWSIZE <= 0;
+           AWQOS <= 0;
            DONE_temp <= 0;
            AWBURST <= 0;
            bus_error_w <= 'd0;
@@ -1725,6 +1731,7 @@ always @(posedge clk or negedge resetn) begin
           WVALID       <= 0;
             BREADY       <= 0;
                         SWTRIGOUTACK_DATA <= 0;
+           AWQOS <= 0;
            DONE         <= stop_cmd_apb? 1: 0;
            //DONE_temp <= (rd_state ==RD_CONFIG)?0:DONE_temp;
             DONE_temp <= ((rd_state ==RD_CONFIG &&!(case1 || x_type == 0 || (ycase1 && y_type != 0) )) || (rd_state ==RD_IDLE  && restart_cnt_reg == 0))?0:DONE_temp;
@@ -1805,7 +1812,7 @@ if(rd_state == RD_CONFIG) begin
     //------------------------------------------
     // YCASE5 BLOCK (CLEANED)
     //------------------------------------------
-    else if (ycase5) begin
+    else if (ycase5 && y_type !=0 ) begin
 
         if (srcx_transfer_count == desx_transfer_count) begin
             des_x_left <= desx_transfer_count;
@@ -2020,22 +2027,34 @@ end
                             end
                          if(des_tmplt[l] )
                            begin
-                            AWVALID <= 1;
+//                            AWVALID <=(fifo_ptr_diff > 1)? 1 :0;
+                            AWQOS <= ch_prio;
                                AWADDR <= initial_tmplt_addr_des + l * (2**transize);   end                         
                    end
                    else begin
                          AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/  (case6 && x_type == 1 && y_type == 0)?des_addr_reg + (srcx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign):
                          des_addr_reg + (desx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
-                         AWVALID <= 1; end
-                     if(des_tmplt_size > 0)
+//                         AWVALID <= 1; 
+                         AWQOS <= ch_prio;
+                    end
+                     if(des_tmplt_size > 0) begin
+                        AWVALID <=(fifo_ptr_diff > 1)? 1 :0;
                         AWLEN <= 'd0;
-                     else if(des_trig_req_type_reg == 'd0 && use_des_trigin  || (des_xaddr_inc > 1) || (des_xaddr_inc < 0)) 
+                     end
+                     else if(des_trig_req_type_reg == 'd0 && use_des_trigin  || (des_xaddr_inc > 1) || (des_xaddr_inc < 0)) begin   
+                        AWVALID <=(fifo_ptr_diff > 1)? 1 :0;
                         AWLEN <= 'd0;
+                    end
                     else if(des_trig_req_type_reg == 'd2) begin 
-                        if((ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (des_y_left == 1) &&(area_src < area_des))/* || y_type == 0*/)
+                        if((ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (des_y_left == 1) &&(area_src < area_des))/* || y_type == 0*/) begin
+                            AWVALID <=(fifo_ptr_diff > AWLEN_wire1 )? 1 :0;
                             AWLEN <= ((des_x_left - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_left - 1;
-                        else
+                        end
+                        else 
+                        begin
                            AWLEN <= ((des_x_transfer_count_remaining - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_transfer_count_remaining - 1;//(case6 && x_type == 1)? srcx_transfer_count - 1: desx_transfer_count - 1;
+                        AWVALID <=(fifo_ptr_diff > AWLEN_wire2 )? 1 :0;
+                        end
                     end
 //                    AWLEN <= ((des_x_transfer_count_remaining - 1) > des_max_burst_len) ? des_max_burst_len : des_x_transfer_count_remaining - 1;//(case6 && x_type == 1)? srcx_transfer_count - 1: desx_transfer_count - 1;
                     AWBURST <= (des_xaddr_inc == 1) ? 2'b01 : 2'b00;
