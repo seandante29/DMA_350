@@ -166,7 +166,8 @@ module dma_channel
     wire [15:0] des_yaddr_stride;
     wire [15:0] src_y_transfer_count;
     wire[15:0] des_y_transfer_count;
-
+    wire [3:0] ch_prio;
+    
 	wire [31:0] read_base_addr_INITIAL,read_base_addr_LINEINITIAL;
 	wire [31:0] write_base_addr_INITIAL,write_base_addr_LINEINITIAL;
 	wire [31:0] SRCx_transfer_count_INITIAL,DESy_transfer_count_INITIAL;
@@ -420,6 +421,7 @@ module dma_channel
 	.use_src_trigin(use_src_trigin),
 	.x_type(x_type),
 	.y_type(y_type),
+	.ch_prio(ch_prio),
 	.transize(transize),
 	.srcx_transfer_count(srcx_transfer_count),
 	.done_pause_en(done_pause_en),
@@ -479,6 +481,7 @@ module dma_channel
 	.link_enable(next_cmd_addren),
 	.wr_en(wr_en),
 	.stat_disable_intr_reg(stat_disable_intr_reg),
+	.ch_prio(ch_prio),
 	.data_done(DONE),
 	.ARREADY(ARREADY),
 	.ARID(ARID_CMD),
@@ -663,6 +666,7 @@ module dma_channel
 	.desx_transfer_count(desx_transfer_count),
 	.x_type(x_type),
 	.y_type(y_type),
+	.ch_prio(ch_prio),
 	.fillval(fillval),
 	.src_xaddr_inc(src_xaddr_inc),
 	.des_xaddr_inc(des_xaddr_inc),
