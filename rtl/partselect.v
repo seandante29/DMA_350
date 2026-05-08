@@ -27,6 +27,7 @@ module partselect (
     output wire        use_des_trigin,
     output wire        use_src_trigin,
     output wire [2:0]  x_type,y_type,
+    output wire [3:0]  ch_prio,
     output wire [2:0]  transize,
     output wire [15:0] srcx_transfer_count,
     output wire [15:0] desx_transfer_count,
@@ -101,6 +102,7 @@ assign use_des_trigin  = control_config[26];
 assign use_src_trigin  = control_config[25];
 assign x_type          = control_config[11:9];
 assign y_type          = control_config[14:12]; 
+assign ch_prio     = control_config[7:4];
 assign transize        = control_config[2:0];
 // x_transfer_count
 assign desx_transfer_count = x_transfer_count[31:16];
