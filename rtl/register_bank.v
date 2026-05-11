@@ -140,24 +140,24 @@ always @(posedge clk or negedge resetn) begin
                     reg_mem[addr_idx] <= cfg_data_in;
         end
         else begin
-            reg_mem[ch_idx*DEPTH + 8'h00] <= chn_reg_in[17*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h04] <= chn_reg_in[16*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h0C] <= chn_reg_in[15*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h28] <= chn_reg_in[14*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h2C] <= chn_reg_in[13*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h30] <= chn_reg_in[12*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h38] <= chn_reg_in[11*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h40] <= chn_reg_in[10*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h44] <= chn_reg_in[9*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h48] <= chn_reg_in[8*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h4C] <= chn_reg_in[7*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h50] <= chn_reg_in[6*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h54] <= chn_reg_in[5*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h74] <= chn_reg_in[4*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h78] <= chn_reg_in[3*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h90] <= chn_reg_in[2*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h34] <= chn_reg_in[1*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h3C] <= chn_reg_in[0*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h00] <= chn_reg_in[((18*ch_idx)+17)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h04] <= chn_reg_in[((18*ch_idx)+16)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h0C] <= chn_reg_in[((18*ch_idx)+15)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h28] <= chn_reg_in[((18*ch_idx)+14)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h2C] <= chn_reg_in[((18*ch_idx)+13)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h30] <= chn_reg_in[((18*ch_idx)+12)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h38] <= chn_reg_in[((18*ch_idx)+11)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h40] <= chn_reg_in[((18*ch_idx)+10)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h44] <= chn_reg_in[((18*ch_idx)+9)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h48] <= chn_reg_in[((18*ch_idx)+8)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h4C] <= chn_reg_in[((18*ch_idx)+7)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h50] <= chn_reg_in[((18*ch_idx)+6)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h54] <= chn_reg_in[((18*ch_idx)+5)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h74] <= chn_reg_in[((18*ch_idx)+4)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h78] <= chn_reg_in[((18*ch_idx)+3)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h90] <= chn_reg_in[((18*ch_idx)+2)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h34] <= chn_reg_in[((18*ch_idx)+1)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h3C] <= chn_reg_in[(18*ch_idx)*WIDTH +: WIDTH];
 
             {reg_mem[ch_idx*DEPTH + 8'h10],
              reg_mem[ch_idx*DEPTH + 8'h18],
