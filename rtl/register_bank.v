@@ -92,28 +92,37 @@ assign cfg_auto_restart_config = {reg_mem[2*DEPTH + 8'h74], reg_mem[1*DEPTH + 8'
 assign cfg_next_cmd_addr   = {reg_mem[2*DEPTH + 8'h78], reg_mem[1*DEPTH + 8'h78], reg_mem[0*DEPTH + 8'h78]};
 assign cfg_work_reg_pointer  = {reg_mem[2*DEPTH + 8'h8C], reg_mem[1*DEPTH + 8'h8C], reg_mem[0*DEPTH + 8'h8C]};
 
-assign chn_cmd_wr_en_o       = cfg_wr_en && (addr_w == 8'h00);
-assign chn_stat_wr_en_o      = cfg_wr_en && (addr_w == 8'h04);
-assign chn_intren_wr_en_o    = cfg_wr_en && (addr_w == 8'h08);
-assign chn_ctrl_wr_en_o      = cfg_wr_en && (addr_w == 8'h0C);
-assign chn_read_base_addr_wr_en_o   = cfg_wr_en && (addr_w == 8'h10);
-assign chn_write_base_addr_wr_en_o   = cfg_wr_en && (addr_w == 8'h18);
-assign chn_x_transfer_count_wr_en_o     = cfg_wr_en && (addr_w == 8'h20);
-assign chn_srctrans_wr_en_o  = cfg_wr_en && (addr_w == 8'h28);
-assign chn_destrans_wr_en_o  = cfg_wr_en && (addr_w == 8'h2C);
-assign chn_xaddrinc_wr_en_o  = cfg_wr_en && (addr_w == 8'h30);
-assign chn_fillval_wr_en_o   = cfg_wr_en && (addr_w == 8'h38);
-assign chn_srctrigin_wr_en_o = cfg_wr_en && (addr_w == 8'h4C);
-assign chn_destrigin_wr_en_o = cfg_wr_en && (addr_w == 8'h50);
-assign chn_trigout_wr_en_o   = cfg_wr_en && (addr_w == 8'h54);
-assign chn_autocfg_wr_en_o   = cfg_wr_en && (addr_w == 8'h74);
-assign chn_next_cmd_addr_wr_en_o  = cfg_wr_en && (addr_w == 8'h78);
-assign chn_work_reg_pointer_wr_en_o = cfg_wr_en && (addr_w == 8'h8C);
-assign chn_srctmplt_wr_en_o  = cfg_wr_en && (addr_w == 8'h44);
-assign chn_destmplt_wr_en_o  = cfg_wr_en && (addr_w == 8'h48);
-assign chn_tmpltcfg_wr_en_o  = cfg_wr_en && (addr_w == 8'h40);
-assign chn_yaddrestride_wr_en_o = cfg_wr_en && (addr_w == 8'h34);
-assign chn_y_transfer_count_wr_en_o     = cfg_wr_en && (addr_w == 8'h3C);
+assign chn_cmd_wr_en_o       = (cfg_wr_en && (addr_w == 8'h00)) << ch_idx;
+assign chn_stat_wr_en_o      = (cfg_wr_en && (addr_w == 8'h04)) << ch_idx;
+assign chn_intren_wr_en_o    = (cfg_wr_en && (addr_w == 8'h08)) << ch_idx;
+assign chn_ctrl_wr_en_o      = (cfg_wr_en && (addr_w == 8'h0C)) << ch_idx;
+
+assign chn_read_base_addr_wr_en_o    = (cfg_wr_en && (addr_w == 8'h10)) << ch_idx;
+assign chn_write_base_addr_wr_en_o   = (cfg_wr_en && (addr_w == 8'h18)) << ch_idx;
+
+assign chn_x_transfer_count_wr_en_o  = (cfg_wr_en && (addr_w == 8'h20)) << ch_idx;
+
+assign chn_srctrans_wr_en_o          = (cfg_wr_en && (addr_w == 8'h28)) << ch_idx;
+assign chn_destrans_wr_en_o          = (cfg_wr_en && (addr_w == 8'h2C)) << ch_idx;
+
+assign chn_xaddrinc_wr_en_o          = (cfg_wr_en && (addr_w == 8'h30)) << ch_idx;
+assign chn_yaddrestride_wr_en_o      = (cfg_wr_en && (addr_w == 8'h34)) << ch_idx;
+
+assign chn_fillval_wr_en_o           = (cfg_wr_en && (addr_w == 8'h38)) << ch_idx;
+assign chn_y_transfer_count_wr_en_o  = (cfg_wr_en && (addr_w == 8'h3C)) << ch_idx;
+
+assign chn_tmpltcfg_wr_en_o          = (cfg_wr_en && (addr_w == 8'h40)) << ch_idx;
+assign chn_srctmplt_wr_en_o          = (cfg_wr_en && (addr_w == 8'h44)) << ch_idx;
+assign chn_destmplt_wr_en_o          = (cfg_wr_en && (addr_w == 8'h48)) << ch_idx;
+
+assign chn_srctrigin_wr_en_o         = (cfg_wr_en && (addr_w == 8'h4C)) << ch_idx;
+assign chn_destrigin_wr_en_o         = (cfg_wr_en && (addr_w == 8'h50)) << ch_idx;
+assign chn_trigout_wr_en_o           = (cfg_wr_en && (addr_w == 8'h54)) << ch_idx;
+
+assign chn_autocfg_wr_en_o           = (cfg_wr_en && (addr_w == 8'h74)) << ch_idx;
+assign chn_next_cmd_addr_wr_en_o     = (cfg_wr_en && (addr_w == 8'h78)) << ch_idx;
+
+assign chn_work_reg_pointer_wr_en_o  = (cfg_wr_en && (addr_w == 8'h8C)) << ch_idx;
 
 assign cfg_data_out = (cfg_rd_en) ? reg_mem[addr_idx] : {WIDTH{1'b0}};
 
@@ -131,24 +140,24 @@ always @(posedge clk or negedge resetn) begin
                     reg_mem[addr_idx] <= cfg_data_in;
         end
         else begin
-            reg_mem[ch_idx*DEPTH + 8'h00] <= chn_reg_in[0*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h04] <= chn_reg_in[1*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h0C] <= chn_reg_in[2*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h28] <= chn_reg_in[3*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h2C] <= chn_reg_in[4*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h30] <= chn_reg_in[5*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h38] <= chn_reg_in[6*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h40] <= chn_reg_in[7*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h44] <= chn_reg_in[8*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h48] <= chn_reg_in[9*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h4C] <= chn_reg_in[10*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h50] <= chn_reg_in[11*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h54] <= chn_reg_in[12*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h74] <= chn_reg_in[13*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h78] <= chn_reg_in[14*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h90] <= chn_reg_in[15*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h34] <= chn_reg_in[16*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h3C] <= chn_reg_in[17*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h00] <= chn_reg_in[17*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h04] <= chn_reg_in[16*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h0C] <= chn_reg_in[15*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h28] <= chn_reg_in[14*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h2C] <= chn_reg_in[13*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h30] <= chn_reg_in[12*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h38] <= chn_reg_in[11*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h40] <= chn_reg_in[10*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h44] <= chn_reg_in[9*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h48] <= chn_reg_in[8*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h4C] <= chn_reg_in[7*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h50] <= chn_reg_in[6*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h54] <= chn_reg_in[5*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h74] <= chn_reg_in[4*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h78] <= chn_reg_in[3*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h90] <= chn_reg_in[2*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h34] <= chn_reg_in[1*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h3C] <= chn_reg_in[0*WIDTH +: WIDTH];
 
             {reg_mem[ch_idx*DEPTH + 8'h10],
              reg_mem[ch_idx*DEPTH + 8'h18],
