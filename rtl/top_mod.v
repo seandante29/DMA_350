@@ -27,6 +27,14 @@ parameter WIDTH = 32,
       output wire PREADY,
       output wire PSLVERR,
       
+   input  wire [5:0]      trig_req,
+    input  wire [11:0]  trig_req_type,
+    output wire  [5:0]   trig_ack,
+    output wire  [11:0]  trig_ack_type,
+    // External Trigger OUTPUTS (to peripherals)
+    output wire   [5:0]  trig_out_req,
+    input  wire  [5:0]  trig_out_ack,
+    
       //AXI SIGNALS TO BIU
       input wire ARREADY,
       input wire [ID_W -1 : 0]RID,
@@ -292,7 +300,7 @@ apb_reg #(
     .PENABLE(PENABLE),
     .PSEL(PSEL),
     .enable_cmd_to_apb(enable_cmd_to_apb),
-    .chn_reg_in(chn_reg_in),
+    .chn_reg_in({chn_reg_out_ch2,chn_reg_out_ch1,chn_reg_out_ch0}),
     .PWDATA(PWDATA),
     .PSTRB(PSTRB),
 
