@@ -299,7 +299,7 @@ apb_reg #(
     .PWRITE(PWRITE),
     .PENABLE(PENABLE),
     .PSEL(PSEL),
-    .enable_cmd_to_apb(enable_cmd_to_apb),
+    .enable_cmd_to_apb({enable_cmd_to_apb_ch2,enable_cmd_to_apb_ch1,enable_cmd_to_apb_ch0}),
     .chn_reg_in({chn_reg_out_ch2,chn_reg_out_ch1,chn_reg_out_ch0}),
     .PWDATA(PWDATA),
     .PSTRB(PSTRB),
