@@ -1790,7 +1790,7 @@ W_IDLE: begin
         bus_error_w <= 0;
     end
 
-    fifo_rptr <= 0;
+    //fifo_rptr <= 0;
 if(rd_state == RD_CONFIG) begin
     //------------------------------------------
     // MAIN CASE HANDLING
@@ -2113,6 +2113,7 @@ end
                 W_DONE_ST: begin
                     DONE <= (restart_cnt_reg !=0 || cmd_restart_en)? 0 : 1;
                     DONE_temp <= 1;
+                    fifo_rptr <= 0;
                      stat_done_data_fsm <= !(link_en || (restart_cnt_reg > 0||cmd_restart_en)) ? 1 : 0;
                     //STAT_DONE_DATA <= !link_en ? 1 : 0;
                 end
