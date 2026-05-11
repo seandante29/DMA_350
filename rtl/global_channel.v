@@ -635,7 +635,7 @@ wire                BREADY_ch2;
     .y_transfer_count_UPDATED(y_transfer_count_UPDATED_ch1),
     .enable_cmd_to_apb(_ch1enable_cmd_to_apb_ch1),
     // AXI Read Address/Data (General/Desc_ch1riptor)
-    .ARID               (ARID_ch1_ch1),
+    .ARID               (ARID_ch1),
     .ARADDR             (ARADDR_ch1),
     .ARLEN              (ARLEN_ch1),
     .ARSIZE             (ARSIZE_ch1),
