@@ -810,7 +810,7 @@ end
                           
             W_B:
                 if (BVALID && BREADY)begin
-                    if(BRESP < 1) begin
+                    if(BRESP <= 1) begin
                         if(des_x_left > 'd0)
                             wr_next_st = W_AW;     
                         else if(des_y_left > 0 &&(src_tmplt_size == 0))
@@ -2113,8 +2113,8 @@ end
                 W_DONE_ST: begin
                     DONE <= (restart_cnt_reg !=0 || cmd_restart_en)? 0 : 1;
                     DONE_temp <= 1;
-                    fifo_rptr <= 0;
                      stat_done_data_fsm <= !(link_en || (restart_cnt_reg > 0||cmd_restart_en)) ? 1 : 0;
+                     fifo_rptr <= 0;
                     //STAT_DONE_DATA <= !link_en ? 1 : 0;
                 end
                 W_ROWS: begin
@@ -2147,4 +2147,3 @@ end
     
 endmodule
  
-
