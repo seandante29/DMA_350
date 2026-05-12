@@ -848,9 +848,14 @@ wire                BREADY_ch2;
  .x_transfer_count_UPDATED(x_transfer_count_UPDATED_ch2) );
    
  
-biu dut (
+biu  #(
+    .DATA_W(DATA_W),
+    .ID_W(ID_W),
+    .ADDR_W(ADDR_W)
+)
+   dut_interconnect (
     .clk(clk),
-    .rst_n(rst_n),
+    .rst_n(resetn),
 //AR PH
     .ARVALID(ARVALID),
     .ARADDR(ARADDR),
@@ -863,28 +868,30 @@ biu dut (
     //R PH
     .RID(RID),
     .RVALID(RVALID),
-    .RDATA(RDATA),
+    .RDATA(RDATA_I),
     .RLAST(RLAST),
     .RREADY(RREADY),
+    .RRESP(RRESP),
     // AW PH
     .AWREADY(AWREADY),
-    .AWVALID (AWVALID),
-    .AWADDR  (AWADDR),
-    .AWLEN   (AWLEN),
-    .AWSIZE  (AWSIZE),
-    .AWBURST (AWBURST),
-    .AWID    (AWID),
+    .AWVALID (AWVALID_D),
+    .AWADDR  (AWADDR_D),
+    .AWLEN   (AWLEN_D),
+    .AWSIZE  (AWSIZE_D),
+    .AWBURST (AWBURST_D),
+    .AWID    (AWID_D),
     .AWQOS   (AWQOS),
 //W PH
     .WREADY(WREADY),
-    .WVALID (WVALID),
-    .WDATA  (WDATA),
-    .WLAST  (WLAST),
+    .WVALID (WVALID_D),
+    .WDATA  (WDATA_D),
+    .WLAST  (WLAST_D),
     .WSTRB  (WSTRB),
 //B PH
     .BID    (BID),
-    .BREADY (BREADY),
+    .BREADY (BREADY_D),
     .BVALID(BVALID),
+    .BRESP(BRESP),
 
 
     .rd_grant(rd_grant),
@@ -922,13 +929,22 @@ biu dut (
     .ch1_RVALID(RVALID_ch1),
     .ch2_RVALID(RVALID_ch2),
     
-    .ch0_RDATA(RDATA_ch0),
-    .ch1_RDATA(RDATA_ch1),
-    .ch2_RDATA(RDATA_ch2),
+    .ch0_RDATA(RDATA_I_ch0),
+    .ch1_RDATA(RDATA_I_ch1),
+    .ch2_RDATA(RDATA_I_ch2),
+    
+    .ch0_RLAST(RLAST_ch0),
+    .ch1_RLAST(RLAST_ch1),
+    .ch2_RLAST(RLAST_ch2),
     
     .ch0_RREADY(RREADY_ch0),
     .ch1_RREADY(RREADY_ch1),
     .ch2_RREADY(RREADY_ch2),
+    
+    .ch0_RRESP(RRESP_ch0),
+    .ch1_RRESP(RRESP_ch1),
+    .ch2_RRESP(RRESP_ch2),
+  
 //AW
     .ch0_AWVALID(AWVALID_ch0),
     .ch1_AWVALID(AWVALID_ch1),
@@ -985,6 +1001,10 @@ biu dut (
     .ch0_BVALID(BVALID_ch0),
     .ch1_BVALID(BVALID_ch1),
     .ch2_BVALID(BVALID_ch2),
+    
+    .ch0_BRESP(BRESP_ch0),
+    .ch1_BRESP(BRESP_ch1),
+    .ch2_BRESP(BRESP_ch2),
     
     .stop_cmd({stop_cmd_apb_ch2,stop_cmd_apb_ch1,stop_cmd_apb_ch0})
 ); 
