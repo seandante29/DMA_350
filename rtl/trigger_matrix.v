@@ -293,31 +293,31 @@ else begin
 
 			0: begin
 				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[(2*m)+:2];
+				ch_trigout_ack[m] <= trig_out_ack[1:0];
 			end
 
 			1: begin
 				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[(2*m)+:2];
+				ch_trigout_ack[m] <= trig_out_ack[3:2];
 			end
 
 			2: begin
 				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[(2*m)+:2];
+				ch_trigout_ack[m] <= trig_out_ack[5:4];
 			end
 			3: begin
 				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[(2*m)+:2];
+				ch_trigout_ack[m] <= trig_out_ack[7:6];
 			end
 
 			4: begin
 				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[(2*m)+:2];
+				ch_trigout_ack[m] <= trig_out_ack[9:8];
 			end
 
 			5: begin
 				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[(2*m)+:2];
+				ch_trigout_ack[m] <= trig_out_ack[11:10];
 			end
 			default: begin
 				trig_out_req[trigout_sel1[m][2:0]]      <= 0;
