@@ -7,7 +7,7 @@ parameter WIDTH = 32,
     parameter ID_W       =4,
     parameter DEPTH =145,
     parameter ADDR_W =32,
-    parameter NUM_CH = 3  
+    parameter NUM_CH = 3 
 )
     (// apb_reg interface
       input wire clk,
