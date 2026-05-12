@@ -12,10 +12,11 @@ module biu#(parameter ADDR_W = 32,
     input  wire        ARREADY,
     input  wire        RVALID,
     input  wire        RLAST,
+    input wire [1:0] RRESP,
     input  wire        AWREADY,
     input  wire        WREADY,
     input  wire        BVALID,
-    
+    input wire [1:0] BRESP,
     
     input  wire [2:0]  ch_awvalid,
 
@@ -38,7 +39,11 @@ module biu#(parameter ADDR_W = 32,
 
     output ch0_RVALID,
     output [DATA_W-1:0] ch0_RDATA,
+    output ch0_RLAST,
+    output [1:0] ch0_RRESP,
+
     input  ch0_RREADY,
+    
 
     input  ch0_AWVALID,
     input  [ADDR_W-1:0] ch0_AWADDR,
@@ -53,10 +58,11 @@ module biu#(parameter ADDR_W = 32,
     input  ch0_WLAST,
     input  [(DATA_W/8)-1:0] ch0_WSTRB,
     output ch0_WREADY,
+    
 
     output ch0_BVALID,
     input  ch0_BREADY,
-
+    output wire [1:0] ch0_BRESP,
     // =========================
     // CHANNEL 1
     // =========================
@@ -70,7 +76,9 @@ module biu#(parameter ADDR_W = 32,
 
     output ch1_RVALID,
     output [DATA_W-1:0] ch1_RDATA,
+    output ch1_RLAST,
     input  ch1_RREADY,
+     output [1:0] ch1_RRESP,
 
     input  ch1_AWVALID,
     input  [ADDR_W-1:0] ch1_AWADDR,
@@ -88,7 +96,7 @@ module biu#(parameter ADDR_W = 32,
 
     output ch1_BVALID,
     input  ch1_BREADY,
-
+     output [1:0] ch1_BRESP,
     // =========================
     // CHANNEL 2
     // =========================
@@ -102,8 +110,10 @@ module biu#(parameter ADDR_W = 32,
 
     output ch2_RVALID,
     output [DATA_W-1:0] ch2_RDATA,
+    output ch2_RLAST,
     input  ch2_RREADY,
-
+     output [1:0] ch2_RRESP,
+    
     input  ch2_AWVALID,
     input  [ADDR_W-1:0] ch2_AWADDR,
     input  [7:0] ch2_AWLEN,
@@ -120,6 +130,7 @@ module biu#(parameter ADDR_W = 32,
 
     output ch2_BVALID,
     input  ch2_BREADY,
+     output [1:0] ch2_BRESP,
 //////////////////////////////////////////////////////
 
 
@@ -166,6 +177,8 @@ module biu#(parameter ADDR_W = 32,
 localparam RD_IDLE = 2'd0;
 localparam RD_AR   = 2'd1;
 localparam RD_R    = 2'd2;
+localparam RD_WAIT    = 2'd3;
+
 
 localparam WR_IDLE = 2'd0;
 localparam WR_AW   = 2'd1;
@@ -187,6 +200,8 @@ reg [1:0] wr_last_grant;
 reg [3:0] wr_max_qos;
 reg [2:0] wr_mask;
 
+reg RLAST_reg;
+
 /////////////////////////////////////////////////////
 assign ch0_ARREADY = (rd_grant == 0) ? ARREADY : 0;
 assign ch1_ARREADY = (rd_grant == 1) ? ARREADY : 0;
@@ -199,6 +214,15 @@ assign ch2_RVALID = (RID == 2) ? RVALID : 0;
 assign ch0_RDATA  = RDATA;
 assign ch1_RDATA  = RDATA;
 assign ch2_RDATA  = RDATA;
+
+assign ch0_RLAST  = RLAST;
+assign ch1_RLAST  = RLAST;
+assign ch2_RLAST  = RLAST;
+
+assign ch0_RRESP  = RRESP;
+assign ch1_RRESP  = RRESP;
+assign ch2_RRESP  = RRESP;
+
 //////////////////////////////////////////////////////////
 
 
@@ -438,6 +462,10 @@ assign ch0_BVALID = (BID == 0) ? BVALID : 0;
 assign ch1_BVALID = (BID == 1) ? BVALID : 0;
 assign ch2_BVALID = (BID == 2) ? BVALID : 0;
 
+assign ch0_BRESP = (BID == 0) ? BRESP : 0;
+assign ch1_BRESP = (BID == 1) ? BRESP : 0;
+assign ch2_BRESP = (BID == 2) ? BRESP : 0;
+
 always @(*) begin
     rd_max_qos = 0;
 
@@ -454,13 +482,21 @@ always @(*) begin
     rd_mask[1] = ch1_ARVALID && (ch1_ARQOS == rd_max_qos);
     rd_mask[2] = ch2_ARVALID && (ch2_ARQOS == rd_max_qos);
 end
+always@(posedge clk or negedge rst_n) begin
+if(!rst_n)
+RLAST_reg <= 0;
+else
+RLAST_reg <= RLAST;
+end
 
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         rd_state      <= RD_IDLE;
         rd_grant      <= 0;
         rd_last_grant <= 0;
+        
     end else begin
+    
 if((stop_cmd[0]&& rd_grant==0) || (stop_cmd[1] && rd_grant==1) || (stop_cmd[2] && rd_grant==2))
   rd_state <= RD_IDLE;
         case (rd_state)
@@ -494,12 +530,13 @@ if((stop_cmd[0]&& rd_grant==0) || (stop_cmd[1] && rd_grant==1) || (stop_cmd[2] &
         end
 
         RD_R: begin
-            if (RVALID && RLAST) begin
+            if (/*RVALID &&*/ RLAST_reg) begin
                 rd_last_grant <= rd_grant;
-                rd_state      <= RD_IDLE;
+                rd_state      <= RD_WAIT;
             end
         end
-
+        
+        RD_WAIT : rd_state <=RD_IDLE;
         endcase
     end
 end
