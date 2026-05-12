@@ -268,7 +268,7 @@ always@(posedge clk or negedge resetn) begin
 			if(trigout_sel1[cn ] >= 6)
 				TRIGOUTSELERR[cn] <= 1'b1;
 
-			else if(trig_out_use[trigout_sel1[cn]] && trig_allocated_to[trigout_sel1[cn]] != cn)
+			else if(trig_out_use[trigout_sel1[cn]] && trigout_allocated_to[trigout_sel1[cn]] != cn)
 				TRIGOUTSELERR[cn] <= 1'b1;
 
 			else begin
