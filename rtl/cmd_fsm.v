@@ -116,10 +116,12 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
                 next_state = COUNT;
                 else  if(RVALID && RREADY && RLAST) 
                 begin
-                    if((((count - 1 + (byte_offset/4))/(DATA_W/32)) > 'd15) && max_transfer_count == 0 )
-                    next_state = AR;
+//                    if((((count - 1 + (byte_offset/4))/(DATA_W/32)) > 'd15) && max_transfer_count )
+//                    next_state = AR;
+                     if(RVALID && RREADY && RLAST  && ((count <=16) || DATA_W != 'd32) ) 
+                         next_state = IDLE;
                     else
-                    next_state = IDLE;
+                    next_state = AR;
                 end
                 else 
                 next_state = R;
@@ -148,12 +150,24 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
         end 
     end
     
-    always @(posedge clk or negedge resetn)
+//    always @(posedge clk or negedge resetn)
+//    begin
+//        if(!resetn)
+//            count<='d0;
+//        else
+//            count <= count1;
+//    end
+
+always @(posedge clk or negedge resetn)
     begin
         if(!resetn)
             count<='d0;
         else
+            if (current_state == IDLE ) count <= 0;
+            else if (current_state == COUNT )
             count <= count1;
+            else if (current_state == AR && max_transfer_count)
+                count <= (count <=16)? count:count - (16);
     end
     
     always@(posedge clk or negedge resetn)
@@ -308,7 +322,7 @@ end
                         ARADDR <= (max_transfer_count) ? next_cmd_addr + 20 : next_cmd_addr + 4;
                       
                         if (max_transfer_count) begin
-                            ARLEN <= ((count - 1 + (byte_offset/4)) / (DATA_W/32)) - 'd15;
+                            ARLEN <= count2-1;
                         end 
                         else begin
                             if (((count - 1 + (byte_offset/4)) / (DATA_W/32)) > 'd15) begin
