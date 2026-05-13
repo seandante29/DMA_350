@@ -10,7 +10,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
      input wire [ ADDR_WIDTH-1 : 0 ] PADDR,
      input wire PWRITE,
      input wire PSEL,
-     input wire enable_cmd_to_apb,
+     input wire [NUM_CH-1 :0]enable_cmd_to_apb,
      input wire PENABLE,
      input wire [ DATA_WIDTH-1 : 0 ]PWDATA,
      input wire [ STRB_WIDTH-1 : 0 ] PSTRB,
@@ -42,7 +42,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
-     assign stop_cmd_apb = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && PADDR == 'h1000 && PWDATA[3] && enable_cmd_to_apb)?1:0;
+     assign stop_cmd_apb = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && PADDR == 'h1000 && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
     wire RO_error = (( cfg_addr%'h1000 == 'h80 | cfg_addr%'h1000 == 'h8C | cfg_addr%'h1000 == 'h90 ) & PWRITE_q);
     wire address_error = (! (cfg_addr >='h1000 && cfg_addr <='h12ff));
  //   assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
@@ -50,13 +50,13 @@ module apb_slave #( parameter DATA_WIDTH = 32,
       if(current_state == ACCESS_ST && PREADY && PWRITE == 0 && PENABLE )
          begin
          if((cfg_addr%'h1000 == 'h10))
-                      PRDATA = (enable_cmd_to_apb) ?  read_base_addr_UPDATED >> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/ : cfg_read_base_addr >> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
+                      PRDATA = (enable_cmd_to_apb[ch_no]) ?  read_base_addr_UPDATED >> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/ : cfg_read_base_addr >> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
          else if((cfg_addr%'h1000 == 'h18))
-                      PRDATA = (enable_cmd_to_apb) ? write_base_addr_UPDATED >> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/: cfg_write_base_addr>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
+                      PRDATA = (enable_cmd_to_apb[ch_no]) ? write_base_addr_UPDATED >> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/: cfg_write_base_addr>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
          else if((cfg_addr%'h1000 == 'h20))
-                     PRDATA = (enable_cmd_to_apb) ? x_transfer_count_UPDATED>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/ : cfg_x_transfer_count>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
+                     PRDATA = (enable_cmd_to_apb[ch_no]) ? x_transfer_count_UPDATED>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/ : cfg_x_transfer_count>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
         else if((cfg_addr%'h1000 == 'h3C))
-                     PRDATA = (enable_cmd_to_apb) ? y_transfer_count_UPDATED>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/ : cfg_y_transfer_count>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
+                     PRDATA = (enable_cmd_to_apb[ch_no]) ? y_transfer_count_UPDATED>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/ : cfg_y_transfer_count>> 32*ch_no/*[(ch_no*32)+31:ch_no*32]*/;
           else
                       PRDATA = cfg_rdata;
     end
@@ -74,7 +74,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                 PREADY =1;
             else 
             begin
-                if( ((((cfg_addr%'h1000 == 'h10)||(cfg_addr%'h1000 == 'h18)||(cfg_addr%'h1000 == 'h20))  && enable_cmd_to_apb) || cfg_addr%'h1000 == 'h04)) begin
+                if( ((((cfg_addr%'h1000 == 'h10)||(cfg_addr%'h1000 == 'h18)||(cfg_addr%'h1000 == 'h20))  && enable_cmd_to_apb[ch_no]) || cfg_addr%'h1000 == 'h04)) begin
 					if(((cfg_addr%'h1000 == 'h04)&&count == 6)||((cfg_addr%'h1000 == 'h10)&&count == 1) ||((cfg_addr%'h1000 == 'h18)&&count == 1)||((cfg_addr%'h1000 == 'h20)&&count == 1))
 						PREADY =1;
 					else 
@@ -151,11 +151,11 @@ module apb_slave #( parameter DATA_WIDTH = 32,
             if (current_state == ACCESS_ST) begin
 				if ((cfg_addr%'h1000 == 'h04))
 					count <= count + 1;
-				else if ((cfg_addr%'h1000 == 'h20) && enable_cmd_to_apb)
+				else if ((cfg_addr%'h1000 == 'h20) && enable_cmd_to_apb[ch_no])
 					count <= count + 1;
 				else if ((cfg_addr%'h1000 == 'h10) || (cfg_addr%'h1000 == 'h18))
 					count <= count + 1;
-				else if (((cfg_addr%'h1000 == 'h10) || (cfg_addr%'h1000 == 'h18) || (cfg_addr%'h1000 == 'h20)) && (count == 1) && enable_cmd_to_apb)
+				else if (((cfg_addr%'h1000 == 'h10) || (cfg_addr%'h1000 == 'h18) || (cfg_addr%'h1000 == 'h20)) && (count == 1) && enable_cmd_to_apb[ch_no])
 					count <= 0;
 				else if ((cfg_addr%'h1000 == 'h38) || (cfg_addr%'h1000 == 'h20) || (cfg_addr%'h1000 == 'h78) || (cfg_addr%'h1000 == 'h54) ||
 						 (cfg_addr%'h1000 == 'h50) || (cfg_addr%'h1000 == 'h4C) || (cfg_addr%'h1000 == 'h30) || (cfg_addr%'h1000 == 'h2C) ||
@@ -174,7 +174,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
                 begin
                     cfg_addr <= PADDR;
                     PWRITE_q <= PWRITE;
-                    PWDATA_q <= (cfg_addr == 'h1000 && enable_cmd_to_apb)?{PWDATA[31:1],1'b0}:PWDATA;                    
+                    PWDATA_q <= (cfg_addr == 'h1000 && enable_cmd_to_apb[ch_no])?{PWDATA[31:1],1'b0}:PWDATA;                    
 					PSTRB_q  <= PSTRB;
                     PSLVERR   <= 1'b0;  
                     cfg_rd_en <= (!PWRITE)? 1'b1 : 1'b0;
