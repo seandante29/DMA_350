@@ -212,14 +212,14 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
      reg [7:0] ARLEN_wire1 ;
      always@(*) begin
             if(src_tmplt_size > 0)
-                ARLEN_wire1 <= 'd0;
+                ARLEN_wire1 = 'd0;
             else if(ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 2 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (src_y_left == 1) &&(area_src < area_des))begin
-                ARLEN_wire1 <= ((src_x_left - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len}  : src_x_left - 1;
+                ARLEN_wire1 = ((src_x_left - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len}  : src_x_left - 1;
             end
             else if((src_trig_req_type_reg == 'd0 && use_src_trigin) || (src_xaddr_inc > 1) || (src_xaddr_inc < 0)) 
-                ARLEN_wire1 <= 'd0;
+                ARLEN_wire1 = 'd0;
             else if(src_trig_req_type_reg == 'd2)
-                ARLEN_wire1 <= ((src_x_transfer_count_remaining - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len} : src_x_transfer_count_remaining - 1;
+                ARLEN_wire1 = ((src_x_transfer_count_remaining - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len} : src_x_transfer_count_remaining - 1;
      end                             
      wire [5:0] fifo_rptr_t = fifo_rptr[4:0] + 1;
     localparam RD_IDLE       = 5'd0,
