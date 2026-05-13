@@ -397,7 +397,11 @@ wire [1:0]          BRESP_ch2;
 wire                BVALID_ch2;
 wire                BREADY_ch2;
     
-    
+ //IRQ
+ wire IRQ_ch0,IRQ_ch1,IRQ_ch2;
+ 
+ 
+ assign IRQ ={IRQ_ch2,IRQ_ch1,IRQ_ch0};
 //     wire [2:0]SRCTRIGINSELERR, DESTRIGINSELERR, TRIGOUTSELERR;
 //     wire [2:0]src_trig_req;
 //    wire [5:0]  src_trig_req_type;
