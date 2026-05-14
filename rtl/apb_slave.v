@@ -38,7 +38,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     reg PWRITE_q;
     reg [ DATA_WIDTH-1 : 0 ]PWDATA_q;
     reg [ STRB_WIDTH-1 : 0 ]PSTRB_q;
-    wire [1:0]ch_no = (cfg_addr/1000) - 1;
+    wire [1:0]ch_no = (cfg_addr/100) - 10;
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
