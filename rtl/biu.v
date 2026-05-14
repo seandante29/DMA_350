@@ -186,7 +186,7 @@ localparam WR_W    = 2'd2;
 localparam WR_B    = 2'd3;
 
 
-
+reg ARVALID_reg,ARREADY_reg;
 reg [1:0] rd_state,rd_state_next;
 
 reg [1:0] rd_last_grant;
@@ -204,9 +204,9 @@ reg [2:0] wr_mask;
 reg RLAST_reg;
 
 /////////////////////////////////////////////////////
-assign ch0_ARREADY = (rd_grant == 0 /*&& rd_state == RD_AR*/) ? ARREADY : 0;
-assign ch1_ARREADY = (rd_grant == 1 /*&& rd_state == RD_AR*/) ? ARREADY : 0;
-assign ch2_ARREADY = (rd_grant == 2 /*&& rd_state == RD_AR*/) ? ARREADY : 0;
+assign ch0_ARREADY = (rd_grant == 0 && rd_state == RD_AR) ? ARREADY : 0;
+assign ch1_ARREADY = (rd_grant == 1 && rd_state == RD_AR) ? ARREADY : 0;
+assign ch2_ARREADY = (rd_grant == 2 && rd_state == RD_AR) ? ARREADY : 0;
 
 assign ch0_RVALID = (RID == 0 && rd_state == RD_R) ? RVALID : 0;
 assign ch1_RVALID = (RID == 1 && rd_state == RD_R) ? RVALID : 0;
@@ -486,9 +486,15 @@ end
 
 always@(posedge clk or negedge rst_n) begin
 if(!rst_n)
+ begin
  rd_grant <= 0;
+ ARVALID_reg <= 0;
+ ARREADY_reg <= 0;
+ end
  else
  begin
+ ARVALID_reg <= ARVALID;
+ ARREADY_reg <= ARREADY;
 if(rd_state == RD_IDLE ) begin
                 if (ch0_ARVALID || ch1_ARVALID || ch2_ARVALID) begin
 
@@ -536,7 +542,8 @@ always @(posedge clk or negedge rst_n) begin
       if(!rst_n)         
         rd_last_grant <= 0;
         else
-        rd_last_grant <= (rd_state == RD_R && RLAST_reg && RREADY) ? rd_grant :  rd_last_grant;
+       // rd_last_grant <= (rd_state == RD_R && RLAST_reg && RREADY) ? rd_grant :  rd_last_grant;
+        rd_last_grant <= (rd_state == RD_WAIT ) ? rd_grant :  rd_last_grant;
         
 end
 
@@ -554,7 +561,7 @@ if((stop_cmd[0]&& rd_grant==0) || (stop_cmd[1] && rd_grant==1) || (stop_cmd[2] &
         end
 
         RD_AR: begin
-            if (ARREADY && ARVALID)
+            if (ARREADY_reg && ARVALID)
                 rd_state_next = RD_R;
         end
 
