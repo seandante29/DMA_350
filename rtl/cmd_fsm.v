@@ -11,7 +11,7 @@ module cmd_fsm
     input link_enable,// fro intern reg
     input data_done,// fro intern reg
     input wire wr_en,//or of every write enable 
-    input wire stat_disable_intr_reg,
+    input wire stat_disable_intr_reg,stat_stopped_intr_reg,
     // AR signals
     input ARREADY,
     output reg [3:0] ARID,
@@ -96,7 +96,7 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
     begin
         case(current_state)
             IDLE:
-                if(link_enable_reg && (data_done /*|| rst_posedge_reg*/) && !cmd_error && !stat_disable_intr_reg)
+                if(link_enable_reg && (data_done /*|| rst_posedge_reg*/) && !cmd_error && !stat_disable_intr_reg && !stat_stopped_intr_reg)
                 next_state = AR;
                 else
                 next_state = IDLE;
