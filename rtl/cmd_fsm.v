@@ -6,6 +6,7 @@ module cmd_fsm
     input clk, 
     input resetn,
     input wire rst_posedge,
+    input pause_cmd,resume_cmd,
     input wire [3:0] ch_prio,
     input [31:0]next_cmd_addr,// fro intern reg
     input link_enable,// fro intern reg
@@ -45,7 +46,7 @@ module cmd_fsm
     reg [4:0] temp_wptr,temp_rptr;
     reg [DATA_W - 1 : 0] fifo_temp [0:31]; 
     reg wr_en_reg;
-    reg [3:0] current_state, next_state;
+    reg [4:0] current_state, next_state,pause_nxt_st;
     reg [7:0] count;   
     reg [7:0] count1;
     reg [7:0] count2;
@@ -61,10 +62,11 @@ reg [DATA_W-1:0] aligned_data;
 wire [$clog2(DATA_W/8)-1:0] byte_offset;
 
     wire cmd_error = (LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
-    localparam IDLE   = 4'b0001;
-    localparam AR     = 4'b0010;
-    localparam R      = 4'b0100;  
-    localparam COUNT  = 4'b1000;
+    localparam IDLE   = 5'b0001;
+    localparam AR     = 5'b0010;
+    localparam R      = 5'b0100;  
+    localparam COUNT  = 5'b1000;
+    localparam PAUSE  = 5'b10000;
     
     assign RREADY = (current_state == R)? 1:0;
     always @(posedge clk or negedge resetn)
@@ -91,16 +93,37 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
             current_state <= next_state;
     end
     
+    
+    // pause_next_state logic
+    always @(posedge clk or negedge resetn) begin
+    if(!resetn) begin
+        pause_nxt_st <= IDLE;
+    end 
+    else begin
+        if (next_state != PAUSE)
+                pause_nxt_st <= next_state;
+    end
+    end
+    
     //combo always
-    always@(*)
+    always@(*) begin
+    if(pause_cmd) 
+        next_state = PAUSE;
+    else
     begin
         case(current_state)
+          
             IDLE:
                 if(link_enable_reg && (data_done /*|| rst_posedge_reg*/) && !cmd_error && !stat_disable_intr_reg && !stat_stopped_intr_reg)
                 next_state = AR;
                 else
                 next_state = IDLE;
             
+            PAUSE :
+                if(resume_cmd)
+                    next_state = pause_nxt_st;
+                 else 
+                    next_state = PAUSE;
             AR:
                 if(cmd_error)
                 next_state = IDLE;
@@ -135,6 +158,7 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
             
             default : next_state = IDLE;
         endcase
+        end
     end
     
     always@(*) begin
