@@ -83,7 +83,7 @@ module dma_channel
      input wire [ID_W-1:0] BID,
      input wire BVALID,
      input wire [1:0] BRESP,
-     input wire stop_cmd_apb,
+     input wire stop_cmd_apb,pause_cmd_apb,
      //trig matrix o/p's as i/p's to channel
      input wire SRCTRIGINSELERR, DESTRIGINSELERR, TRIGOUTSELERR,
      input wire src_trig_req,
@@ -303,13 +303,22 @@ module dma_channel
 	wire [31:0]ARADDR_CMD;
 	wire RREADY_CMD ;
 	wire [3:0] ARQOS_CMD;
-
-	wire [54 : 0] AR_D   = {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D,ARQOS_D};
-	wire [54 : 0] AR_CMD = {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD,ARQOS_CMD};
+    reg pause_cmd_apb_reg;
+    always @(posedge clk or negedge resetn)
+    begin
+    if(!resetn)
+    pause_cmd_apb_reg <= 0;
+    else
+    pause_cmd_apb_reg <= pause_cmd_apb;
+    end
+  
+    
+	wire [54 : 0] AR_D   = (pause_cmd_apb|pause_cmd_apb_reg) ? {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,1'b0,ARQOS_D} : {ARVALID_D, ARADDR_D, ARSIZE_D, ARBURST_D, ARID_D, ARLEN_D,RREADY_D,ARQOS_D};
+	wire [54 : 0] AR_CMD = (pause_cmd_apb|pause_cmd_apb_reg) ? {ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,1'b0,ARQOS_CMD}:{ARVALID_CMD, ARADDR_CMD, ARSIZE_CMD, ARBURST_CMD, ARID_CMD, ARLEN_CMD,RREADY_CMD,ARQOS_CMD};
 	assign {ARVALID, ARADDR, ARSIZE, ARBURST, ARID, ARLEN,RREADY,ARQOS} = CMD_DONE?AR_D:AR_CMD;
 	assign enable_cmd_to_apb = enable_cmd;
 
-
+    
 
 
 	internal_reg  #(.WIDTH (WIDTH),.DEPTH ( DEPTH)) dut0
@@ -480,7 +489,10 @@ module dma_channel
 	.next_cmd_addr(next_cmd_addr),
 	.link_enable(next_cmd_addren),
 	.wr_en(wr_en),
+	.resume_cmd(resume_cmd),
+	.pause_cmd(pause_cmd_apb),
 	.stat_disable_intr_reg(stat_disable_intr_reg),
+	.stat_stopped_intr_reg(stat_stopped_intr_reg),
 	.ch_prio(ch_prio),
 	.data_done(DONE),
 	.ARREADY(ARREADY),
@@ -622,7 +634,7 @@ module dma_channel
 	.des_tmplt(des_tmplt),
 	.src_tmplt(src_tmplt),
 	.enable_cmd_partsel(enable_cmd),
-	.pause_cmd_partsel(pause_cmd),
+	.pause_cmd_partsel(pause_cmd_apb),//pause_cmd
 	.disable_cmd_partsel(disable_cmd),
 	.stop_cmd_partsel(stop_cmd),
 	. resume_cmd_partsel(resume_cmd),
@@ -736,6 +748,7 @@ module dma_channel
 	.src_max_burst_len(src_max_burst_len),
 	.WSTRB(WSTRB),
 	.stop_cmd_apb(stop_cmd_apb),
+	//.pause_cmd_apb(pause_cmd_apb),
 	.src_yaddr_stride(src_yaddr_stride),
     .des_yaddr_stride(des_yaddr_stride),
     .src_y_transfer_count(src_y_transfer_count),
