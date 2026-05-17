@@ -62,11 +62,11 @@ reg [DATA_W-1:0] aligned_data;
 wire [$clog2(DATA_W/8)-1:0] byte_offset;
 
     wire cmd_error = (LINKHDRERR | AXIRDRESPERR | AXIRDPOISERR | BUSERR);
-    localparam IDLE   = 5'b0001;
-    localparam AR     = 5'b0010;
-    localparam R      = 5'b0100;  
-    localparam COUNT  = 5'b1000;
-    localparam PAUSE  = 5'b10000;
+    localparam IDLE   = 5'd0;
+    localparam AR     = 5'd1;
+    localparam R      = 5'd2;  
+    localparam COUNT  = 5'd3;
+    localparam PAUSE  = 5'd4;
     
     assign RREADY = (current_state == R)? 1:0;
     always @(posedge clk or negedge resetn)
@@ -366,7 +366,7 @@ end
                 begin
                     //CMD_DONE <= 0;
                     ARVALID <= 0;  
-                    if(RREADY && RVALID) begin
+                    if(RREADY && RVALID && !pause_cmd) begin
                         if(count!=0)begin
                             fifo_temp[temp_wptr] <= RDATA_I ;
                             //wptr <= wptr + 1; 
@@ -405,6 +405,8 @@ end
                     count_flag <= 1;
                     //CMD_DONE <= 0;               
                 end
+                
+                PAUSE : CMD_DONE <= 0;
                 
                 default:
                 begin
