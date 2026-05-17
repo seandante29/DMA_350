@@ -170,7 +170,9 @@ module biu#(parameter ADDR_W = 32,
     input  [ID_W-1:0] BID,
 //    input  BVALID,
     output reg BREADY,
-    input wire [2:0] stop_cmd
+    input wire [2:0] stop_cmd,
+    input wire [2:0] pause_cmd
+    
 
 );
 
@@ -178,6 +180,8 @@ localparam RD_IDLE = 2'd0;
 localparam RD_AR   = 2'd1;
 localparam RD_R    = 2'd2;
 localparam RD_WAIT    = 2'd3;
+localparam RD_WAIT1    = 3'd4;
+
 
 
 localparam WR_IDLE = 2'd0;
@@ -187,7 +191,7 @@ localparam WR_B    = 2'd3;
 
 
 reg ARVALID_reg,ARREADY_reg;
-reg [1:0] rd_state,rd_state_next;
+reg [2:0] rd_state,rd_state_next;
 
 reg [1:0] rd_last_grant;
 
@@ -202,6 +206,7 @@ reg [3:0] wr_max_qos;
 reg [2:0] wr_mask;
 
 reg RLAST_reg;
+reg [2:0]pause_cmd_reg;
 
 /////////////////////////////////////////////////////
 assign ch0_ARREADY = (rd_grant == 0 && rd_state == RD_AR) ? ARREADY : 0;
@@ -490,11 +495,13 @@ if(!rst_n)
  rd_grant <= 0;
  ARVALID_reg <= 0;
  ARREADY_reg <= 0;
+ pause_cmd_reg <= 0;
  end
  else
  begin
  ARVALID_reg <= ARVALID;
  ARREADY_reg <= ARREADY;
+ pause_cmd_reg <= pause_cmd;
 if(rd_state == RD_IDLE ) begin
                 if (ch0_ARVALID || ch1_ARVALID || ch2_ARVALID) begin
 
@@ -571,7 +578,8 @@ if((stop_cmd[0]&& rd_grant==0) || (stop_cmd[1] && rd_grant==1) || (stop_cmd[2] &
             end
         end
         
-        RD_WAIT : rd_state_next =RD_IDLE;
+        RD_WAIT : rd_state_next =RD_WAIT1;
+        RD_WAIT1 : rd_state_next =RD_IDLE;
         endcase
     end
 end
