@@ -110,7 +110,7 @@ module global_channel#(parameter WIDTH = 32,
     output wire stat_err_ch0,
     output wire [31:0] y_transfer_count_UPDATED_ch0,
     output wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated_ch0,
-    output wire stop_cmd_apb_ch0,
+    input wire stop_cmd_apb_ch0,pause_cmd_apb_ch0,
     output wire [31:0] read_base_addr_UPDATED_ch0,
     output wire [31:0] write_base_addr_UPDATED_ch0,
     output wire [31:0] x_transfer_count_UPDATED_ch0,
@@ -170,7 +170,7 @@ module global_channel#(parameter WIDTH = 32,
     output wire stat_err_ch1,
     output wire [31:0] y_transfer_count_UPDATED_ch1,
     output wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated_ch1,
-    output wire stop_cmd_apb_ch1,
+    input wire stop_cmd_apb_ch1,pause_cmd_apb_ch1,
     output wire [31:0] read_base_addr_UPDATED_ch1,
     output wire [31:0] write_base_addr_UPDATED_ch1,
     output wire [31:0] x_transfer_count_UPDATED_ch1,
@@ -229,7 +229,7 @@ module global_channel#(parameter WIDTH = 32,
     output wire stat_err_ch2,
     output wire [31:0] y_transfer_count_UPDATED_ch2,
     output wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated_ch2,
-    output wire stop_cmd_apb_ch2,
+    input wire stop_cmd_apb_ch2,pause_cmd_apb_ch2,
     output wire [31:0] read_base_addr_UPDATED_ch2,
     output wire [31:0] write_base_addr_UPDATED_ch2,
     output wire [31:0] x_transfer_count_UPDATED_ch2,
@@ -567,6 +567,7 @@ wire                BREADY_ch2;
     .wrkregval_rd(wrkregval_rd_ch0),
     .cfg_work_reg_pointer(cfg_work_reg_pointer_ch0),
     .stop_cmd_apb(stop_cmd_apb_ch0),
+    .pause_cmd_apb(pause_cmd_apb_ch0),
  .read_base_addr_UPDATED(read_base_addr_UPDATED_ch0),
  .write_base_addr_UPDATED(write_base_addr_UPDATED_ch0),
  .x_transfer_count_UPDATED(x_transfer_count_UPDATED_ch0) );
@@ -637,7 +638,7 @@ wire                BREADY_ch2;
     .chn_y_transfer_count_wr_en_o(chn_y_transfer_count_wr_en_o_ch1),
     .chn_yaddrestride_wr_en_o(chn_yaddrestride_wr_en_o_ch1),
     .y_transfer_count_UPDATED(y_transfer_count_UPDATED_ch1),
-    .enable_cmd_to_apb(_ch1enable_cmd_to_apb_ch1),
+    .enable_cmd_to_apb(enable_cmd_to_apb_ch1),
     // AXI Read Address/Data (General/Desc_ch1riptor)
     .ARID               (ARID_ch1),
     .ARADDR             (ARADDR_ch1),
@@ -707,6 +708,7 @@ wire                BREADY_ch2;
     .wrkregval_rd(wrkregval_rd_ch1),
     .cfg_work_reg_pointer(cfg_work_reg_pointer_ch1),
     .stop_cmd_apb(stop_cmd_apb_ch1),
+    .pause_cmd_apb(pause_cmd_apb_ch1),
  .read_base_addr_UPDATED(read_base_addr_UPDATED_ch1),
  .write_base_addr_UPDATED(write_base_addr_UPDATED_ch1),
  .x_transfer_count_UPDATED(x_transfer_count_UPDATED_ch1) );  
@@ -847,6 +849,7 @@ wire                BREADY_ch2;
     .wrkregval_rd(wrkregval_rd_ch2),
     .cfg_work_reg_pointer(cfg_work_reg_pointer_ch2),
     .stop_cmd_apb(stop_cmd_apb_ch2),
+    .pause_cmd_apb(pause_cmd_apb_ch2),
  .read_base_addr_UPDATED(read_base_addr_UPDATED_ch2),
  .write_base_addr_UPDATED(write_base_addr_UPDATED_ch2),
  .x_transfer_count_UPDATED(x_transfer_count_UPDATED_ch2) );
@@ -1010,7 +1013,8 @@ biu  #(
     .ch1_BRESP(BRESP_ch1),
     .ch2_BRESP(BRESP_ch2),
     
-    .stop_cmd({stop_cmd_apb_ch2,stop_cmd_apb_ch1,stop_cmd_apb_ch0})
+    .stop_cmd({stop_cmd_apb_ch2,stop_cmd_apb_ch1,stop_cmd_apb_ch0}),
+    .pause_cmd({pause_cmd_apb_ch2,pause_cmd_apb_ch1,pause_cmd_apb_ch0})
 ); 
    
    
