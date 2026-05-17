@@ -7,7 +7,7 @@ parameter WIDTH = 32,
     parameter ID_W       =4,
     parameter DEPTH =145,
     parameter ADDR_W =32,
-    parameter NUM_CH = 3 
+    parameter NUM_CH = 3  
 )
     (// apb_reg interface
       input wire clk,
@@ -130,7 +130,7 @@ wire reg_wr_en_ch0;
 wire stat_err_ch0;
 wire [31:0] y_transfer_count_UPDATED_ch0;
 wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated_ch0;
-wire stop_cmd_apb_ch0;
+wire stop_cmd_apb_ch0,pause_cmd_apb_ch0;
 wire [31:0] read_base_addr_UPDATED_ch0;
 wire [31:0] write_base_addr_UPDATED_ch0;
 wire [31:0] x_transfer_count_UPDATED_ch0;
@@ -192,7 +192,7 @@ wire reg_wr_en_ch1;
 wire stat_err_ch1;
 wire [31:0] y_transfer_count_UPDATED_ch1;
 wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated_ch1;
-wire stop_cmd_apb_ch1;
+wire stop_cmd_apb_ch1,pause_cmd_apb_ch1;
 wire [31:0] read_base_addr_UPDATED_ch1;
 wire [31:0] write_base_addr_UPDATED_ch1;
 wire [31:0] x_transfer_count_UPDATED_ch1;
@@ -254,7 +254,7 @@ wire reg_wr_en_ch2;
 wire stat_err_ch2;
 wire [31:0] y_transfer_count_UPDATED_ch2;
 wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated_ch2;
-wire stop_cmd_apb_ch2;
+wire stop_cmd_apb_ch2,pause_cmd_apb_ch2;
 wire [31:0] read_base_addr_UPDATED_ch2;
 wire [31:0] write_base_addr_UPDATED_ch2;
 wire [31:0] x_transfer_count_UPDATED_ch2;
@@ -369,6 +369,7 @@ apb_reg #(
     // OTHER OUTPUTS
     // ==========================
     .stop_cmd_apb ({stop_cmd_apb_ch2, stop_cmd_apb_ch1, stop_cmd_apb_ch0}),
+    .pause_cmd_apb ({pause_cmd_apb_ch2,pause_cmd_apb_ch1,pause_cmd_apb_ch0}),
     
     // ==========================
     // INPUT BUS PACKING
@@ -521,6 +522,7 @@ global_channel #(
     .y_transfer_count_UPDATED_ch0(y_transfer_count_UPDATED_ch0),
     .src_des_x_transfer_count_updated_ch0(src_des_x_transfer_count_updated_ch0),
     .stop_cmd_apb_ch0(stop_cmd_apb_ch0),
+    .pause_cmd_apb_ch0(pause_cmd_apb_ch0),
     .read_base_addr_UPDATED_ch0(read_base_addr_UPDATED_ch0),
     .write_base_addr_UPDATED_ch0(write_base_addr_UPDATED_ch0),
     .x_transfer_count_UPDATED_ch0(x_transfer_count_UPDATED_ch0),
@@ -580,6 +582,7 @@ global_channel #(
     .y_transfer_count_UPDATED_ch1(y_transfer_count_UPDATED_ch1),
     .src_des_x_transfer_count_updated_ch1(src_des_x_transfer_count_updated_ch1),
     .stop_cmd_apb_ch1(stop_cmd_apb_ch1),
+    .pause_cmd_apb_ch1(pause_cmd_apb_ch1),
     .read_base_addr_UPDATED_ch1(read_base_addr_UPDATED_ch1),
     .write_base_addr_UPDATED_ch1(write_base_addr_UPDATED_ch1),
     .x_transfer_count_UPDATED_ch1(x_transfer_count_UPDATED_ch1),
@@ -639,6 +642,7 @@ global_channel #(
     .y_transfer_count_UPDATED_ch2(y_transfer_count_UPDATED_ch2),
     .src_des_x_transfer_count_updated_ch2(src_des_x_transfer_count_updated_ch2),
     .stop_cmd_apb_ch2(stop_cmd_apb_ch2),
+    .pause_cmd_apb_ch2(pause_cmd_apb_ch2),
     .read_base_addr_UPDATED_ch2(read_base_addr_UPDATED_ch2),
     .write_base_addr_UPDATED_ch2(write_base_addr_UPDATED_ch2),
     .x_transfer_count_UPDATED_ch2(x_transfer_count_UPDATED_ch2),
@@ -679,10 +683,11 @@ global_channel #(
     .trigout_sel         (trigout_sel)
 );
    //////////////////////////////////////////////////////////////////////// 
-    trigger_matrix_multi dut_trig_mtx (
-
+    trigger_matrix dut_trig_mtx (
+    .clk(clk),
+    .resetn(resetn),
     // -------- STATUS --------
-    .STAT_ERR ({stat_err_ch0,stat_err_ch1,stat_err_ch2}),
+    .STAT_ERR ({stat_err_ch2,stat_err_ch1,stat_err_ch0}),
 
     // -------- PERIPHERALS --------
     .trig_req        (trig_req),
