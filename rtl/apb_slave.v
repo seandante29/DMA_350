@@ -27,7 +27,7 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     input wire [NUM_CH*32-1:0] read_base_addr_UPDATED,cfg_read_base_addr,
     input wire [NUM_CH*32-1:0]  write_base_addr_UPDATED,cfg_write_base_addr,
     input wire [NUM_CH*32-1:0]  x_transfer_count_UPDATED,cfg_x_transfer_count,y_transfer_count_UPDATED,cfg_y_transfer_count,
-    output wire [NUM_CH-1:0]stop_cmd_apb
+    output wire [NUM_CH-1:0]stop_cmd_apb,pause_cmd_apb
      );
     localparam IDLE_ST   = 3'b001;
     localparam SETUP_ST  = 3'b010;
@@ -42,7 +42,13 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
-     assign stop_cmd_apb = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && PADDR == 'h1000 && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
+     assign stop_cmd_apb[2] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1000 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
+     assign stop_cmd_apb[1] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1100 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
+     assign stop_cmd_apb[0] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1200 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
+     
+     assign pause_cmd_apb[2] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1200 )  && PWDATA[4] && enable_cmd_to_apb[ch_no])?1:0;
+     assign pause_cmd_apb[1] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1100 )  && PWDATA[4] && enable_cmd_to_apb[ch_no])?1:0;
+     assign pause_cmd_apb[0] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1000 )  && PWDATA[4] && enable_cmd_to_apb[ch_no])?1:0;
     wire RO_error = (( cfg_addr%'h1000 == 'h80 | cfg_addr%'h1000 == 'h8C | cfg_addr%'h1000 == 'h90 ) & PWRITE_q);
     wire address_error = (! (cfg_addr >='h1000 && cfg_addr <='h12ff));
  //   assign PREADY = (current_state == ACCESS_ST)? 1 : 0;
