@@ -12,7 +12,7 @@ module register_bank #(parameter WIDTH = 32,
 	input  wire [NUM_CH*WIDTH-1:0]      wrkregval_rd,
 
 	output wire [WIDTH-1:0] cfg_data_out,
-	output wire [NUM_CH-1:0]       chn_wr_en,
+	//output wire [NUM_CH-1:0]       chn_wr_en,
 
 	output wire [NUM_CH*WIDTH-1:0] cfg_channel_start,
 	output wire [NUM_CH*WIDTH-1:0] cfg_channel_status,
