@@ -220,6 +220,8 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
                 ARLEN_wire1 = 'd0;
             else if(src_trig_req_type_reg == 'd2)
                 ARLEN_wire1 = ((src_x_transfer_count_remaining - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len} : src_x_transfer_count_remaining - 1;
+           else 
+                ARLEN_wire1 = 0;
      end                             
      wire [5:0] fifo_rptr_t = fifo_rptr[4:0] + 1;
     localparam RD_IDLE       = 5'd0,
@@ -491,15 +493,12 @@ end
                 read_base_addr_UPDATED <= src_addr_reg;
                 //write_base_addr_UPDATED <= des_addr_reg;
             end
-             if(rd_state == RD_AR  && ARVALID)
+            else if(rd_state == RD_AR  && ARVALID)
             begin
                 read_base_addr_UPDATED <= ARADDR;
                 //write_base_addr_UPDATED <= des_addr_reg;
             end
-            
-     
-                
-                
+         
             else if((rd_state ==  RD_R ) && src_x_left != 0) begin
                 if(RVALID && RREADY) begin
 //                    if(src_xaddr_inc == 1)
@@ -1566,10 +1565,10 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                                 if(m >= src_tmplt_size)
                                        m <= 0;end
                     end                
-                    if ( RVALID && RREADY && src_x_left > 0 && !full) begin
+                    if ( RVALID && RREADY && src_x_left > 0 && !full && !pause_cmd_partsel) begin
                    
                         fifo_mem[fifo_wptr[4:0]] <= RDATA;
-                        fifo_wptr           <= fifo_wptr + 1;
+                        fifo_wptr           <= /*(pause_cmd_partsel)? fifo_wptr : */fifo_wptr + 1;
                         src_x_left            <= src_x_left - 1;
                      
                         if((case3 && y_type == 0) && src_x_left ==1 )
@@ -1660,7 +1659,14 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                    if(src_x_left == 0)
                             begin
                             src_y_transfer_count_remaining <= src_y_transfer_count_remaining - 1;
-                            src_y_left <= src_y_left - 1; 
+                            src_y_left <= src_y_left - 1;
+                            if(src_y_left > 1 ) 
+                                if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
+                                    src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
+                                    src_addr_reg  <= read_base_addr_INITIAL;
+                                end
+                                else 
+                                src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
                             end
                         else if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
                             src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
@@ -1682,12 +1688,12 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                             src_x_left <= area_des % srcx_transfer_count_reg;//srcx_transfer_count
 //                        src_x_transfer_count_remaining <= area_des % srcx_transfer_count;
                     end
-                        if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
-                            src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
-                            src_addr_reg  <= read_base_addr_INITIAL;
-                        end
-                        else 
-                        src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
+//                        if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
+//                            src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
+//                            src_addr_reg  <= read_base_addr_INITIAL;
+//                        end
+//                        else 
+//                        src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
                     end
                     else
                         src_x_left <= src_x_left;
@@ -1733,6 +1739,7 @@ always @(posedge clk or negedge resetn) begin
            AWQOS <= 0;
            DONE_temp <= 0;
            AWBURST <= 0;
+           SWTRIGOUTACK_DATA <= 0;
            bus_error_w <= 'd0;
            des_yaddr_stride_reg <= 'd0;
     end 
@@ -2058,13 +2065,13 @@ end
                     end
                     else if(des_trig_req_type_reg == 'd2) begin 
                         if((ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (des_y_left == 1) &&(area_src < area_des))/* || y_type == 0*/) begin
-                            AWVALID <=(fifo_ptr_diff > AWLEN_wire1 )? 1 :0;
+                            AWVALID <=({2'b00,fifo_ptr_diff} > AWLEN_wire1 )? 1 :0;
                             AWLEN <= ((des_x_left - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_left - 1;
                         end
                         else 
                         begin
                            AWLEN <= ((des_x_transfer_count_remaining - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_transfer_count_remaining - 1;//(case6 && x_type == 1)? srcx_transfer_count - 1: desx_transfer_count - 1;
-                        AWVALID <=(fifo_ptr_diff > AWLEN_wire2 )? 1 :0;
+                        AWVALID <=({2'b00,fifo_ptr_diff} > AWLEN_wire2 )? 1 :0;
                         end
                     end
 //                    AWLEN <= ((des_x_transfer_count_remaining - 1) > des_max_burst_len) ? des_max_burst_len : des_x_transfer_count_remaining - 1;//(case6 && x_type == 1)? srcx_transfer_count - 1: desx_transfer_count - 1;
