@@ -18,13 +18,13 @@ module biu#(parameter ADDR_W = 32,
     input  wire        BVALID,
     input wire [1:0] BRESP,
     
-    input  wire [2:0]  ch_awvalid,
+    //input  wire [2:0]  ch_awvalid,
 
-    input  wire [2:0]  ch_wlast,
+    //input  wire [2:0]  ch_wlast,
    
 
-    output reg [1:0]   rd_grant,
-    output reg [1:0]   wr_grant,
+//    output reg [1:0]   rd_grant,
+//    output reg [1:0]   wr_grant,
  ////////////////////////////////
  // =========================
     // CHANNEL 0
@@ -176,10 +176,10 @@ module biu#(parameter ADDR_W = 32,
 
 );
 
-localparam RD_IDLE = 2'd0;
-localparam RD_AR   = 2'd1;
-localparam RD_R    = 2'd2;
-localparam RD_WAIT    = 2'd3;
+localparam RD_IDLE = 3'd0;
+localparam RD_AR   = 3'd1;
+localparam RD_R    = 3'd2;
+localparam RD_WAIT    = 3'd3;
 localparam RD_WAIT1    = 3'd4;
 
 
@@ -190,6 +190,9 @@ localparam WR_W    = 2'd2;
 localparam WR_B    = 2'd3;
 
 
+reg [1:0]   rd_grant;
+reg [1:0]   wr_grant;
+
 reg ARVALID_reg,ARREADY_reg;
 reg [2:0] rd_state,rd_state_next;
 
@@ -199,7 +202,7 @@ reg [3:0] rd_max_qos;
 reg [2:0] rd_mask;
 
 
-reg [1:0] wr_state;
+reg [1:0] wr_state,wr_state_next;
 reg [1:0] wr_last_grant;
 
 reg [3:0] wr_max_qos;
@@ -241,7 +244,7 @@ always @(*) begin
     ARBURST = 0;
     ARLEN   = 0;
     ARQOS   = 0;
-    ARID    = rd_grant;
+    ARID    = {2'b00,rd_grant};
     if (rd_state == RD_R) begin
     case (RID)
         0: RREADY = ch0_RREADY;
@@ -328,7 +331,7 @@ always @(*) begin
     AWBURST = 0;
     AWLEN   = 0;
     AWQOS   = 0;
-    AWID    = wr_grant;
+    AWID    = {2'b00,wr_grant};
 
     case (wr_grant)
         0: begin
@@ -557,30 +560,32 @@ end
 always @( * ) begin
 
      begin
-    
-if((stop_cmd[0]&& rd_grant==0) || (stop_cmd[1] && rd_grant==1) || (stop_cmd[2] && rd_grant==2))
-  rd_state_next = RD_IDLE;
+    if((stop_cmd[0]&& rd_grant==0) || (stop_cmd[1] && rd_grant==1) || (stop_cmd[2] && rd_grant==2))
+        rd_state_next = RD_IDLE;
+    else
         case (rd_state)
-       RD_IDLE:begin
-
-                rd_state_next = RD_AR;
-
-        end
-
-        RD_AR: begin
-            if (ARREADY_reg && ARVALID)
-                rd_state_next = RD_R;
-        end
-
-        RD_R: begin
-            if (/*RVALID &&*/ RLAST_reg && RREADY) begin   
-                rd_state_next      = RD_WAIT;
+           RD_IDLE:begin
+    
+                    rd_state_next = RD_AR;
+    
             end
-        end
-        
-        RD_WAIT : rd_state_next =RD_WAIT1;
-        RD_WAIT1 : rd_state_next =RD_IDLE;
-        endcase
+    
+            RD_AR: begin
+                if (ARREADY_reg && ARVALID)
+                    rd_state_next = RD_R;
+            end
+    
+            RD_R: begin
+                if (/*RVALID &&*/ RLAST_reg && RREADY) begin   
+                    rd_state_next      = RD_WAIT;
+                end
+            end
+            
+            RD_WAIT : rd_state_next =RD_WAIT1;
+            RD_WAIT1 : rd_state_next =RD_IDLE;
+            
+            default : rd_state_next = RD_IDLE;
+            endcase
     end
 end
 
@@ -606,14 +611,50 @@ always @(*) begin
     wr_mask[2] = ch2_AWVALID && (ch2_AWQOS == wr_max_qos);
 end
 
+
+always @(*)
+begin
+if((stop_cmd[0]&& wr_grant==0) || (stop_cmd[1] && wr_grant==1) || (stop_cmd[2] && wr_grant==2))
+  wr_state_next = WR_IDLE;
+else 
+        case (wr_state)
+        WR_IDLE: begin
+                wr_state_next = WR_AW;
+           
+        end
+
+        WR_AW: begin
+            if (AWREADY)
+                wr_state_next = WR_W;
+        end
+
+        WR_W: begin
+            if (((ch0_WLAST ==1)||(ch1_WLAST)||(ch2_WLAST)) && WREADY)
+                wr_state_next = WR_B;
+        end
+
+        WR_B: begin
+            if (BVALID) begin
+                wr_state_next = WR_IDLE;
+            end
+        end
+        
+        default : wr_state_next = WR_IDLE;
+
+        endcase
+    end
+
+
+
+
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         wr_state      <= WR_IDLE;
         wr_grant      <= 0;
         wr_last_grant <= 0;
-    end else begin
- if((stop_cmd[0]&& wr_grant==0) || (stop_cmd[1] && wr_grant==1) || (stop_cmd[2] && wr_grant==2))
-  wr_state <= WR_IDLE;
+    end 
+    else begin
+        wr_state      <= wr_state_next;  
         case (wr_state)
 
         WR_IDLE: begin
@@ -633,30 +674,21 @@ always @(posedge clk or negedge rst_n) begin
                                        wr_mask[0] ? 0 : 1;
                         2: wr_grant <= wr_mask[0] ? 0 :
                                        wr_mask[1] ? 1 : 2;
+                        default : wr_grant <= wr_grant;
                     endcase
                 end
-
-                wr_state <= WR_AW;
             end
         end
 
-        WR_AW: begin
-            if (AWREADY)
-                wr_state <= WR_W;
-        end
-
-        WR_W: begin
-            if (((ch0_WLAST ==1)||(ch1_WLAST)||(ch2_WLAST)) && WREADY)
-                wr_state <= WR_B;
-        end
 
         WR_B: begin
             if (BVALID) begin
                 wr_last_grant <= wr_grant;
-                wr_state      <= WR_IDLE;
             end
         end
-
+        default :begin wr_last_grant <= wr_last_grant;
+                wr_grant <= wr_grant;
+                end
         endcase
     end
 end
