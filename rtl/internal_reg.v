@@ -78,7 +78,7 @@ output wire stat_disable_intr_reg ,
 output wire stat_stopped_intr_reg ,
 output wire  stat_err_intr_reg,
 output wire [(WIDTH*3)-1 : 0] src_des_x_transfer_count_updated,
-output reg rst_posedge,
+//output reg rst_posedge,
  
  output  wire reg_wr_en,
  output wire [31:0] wrkregval_rd,
@@ -151,12 +151,12 @@ always @(posedge clk or negedge resetn) begin
     if(!resetn) begin
         resetn_d       <= 1'b0;
         resetn_posedge <= 1'b0;
-        rst_posedge <= 0;
+       // rst_posedge <= 0;
     end
     else begin
         resetn_posedge <= resetn & ~resetn_d;
         resetn_d       <= resetn;
-        rst_posedge <= resetn_posedge;
+        //rst_posedge <= resetn_posedge;
     end
 end
 
