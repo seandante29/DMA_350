@@ -244,7 +244,7 @@ module global_channel#(parameter WIDTH = 32,
    output wire [2:0]       ch_des_ack,
    output wire [5:0]  ch_des_ack_type,
    output wire [2:0]       ch_trigout_req,
-   output wire [2:0]ch_trigout_ack,
+   input wire [2:0]ch_trigout_ack,
     
     
     
@@ -901,8 +901,8 @@ biu  #(
     .BRESP(BRESP),
 
 
-    .rd_grant(rd_grant),
-    .wr_grant(wr_grant),
+//    .rd_grant(rd_grant),
+//    .wr_grant(wr_grant),
 //AR
     .ch0_ARVALID(ARVALID_ch0),
     .ch1_ARVALID(ARVALID_ch1),
