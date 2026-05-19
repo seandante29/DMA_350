@@ -1056,7 +1056,7 @@ end
                 
                 RD_CONFIG: begin
                 
-                if (case1 || x_type == 0 || (ycase1 && y_type != 0) ) begin
+                if ((restart_cnt_reg1 >1) &&(case1 || x_type == 0 || (ycase1 && y_type != 0) )) begin
                     restart_cnt_reg <= restart_cnt_reg - 1;
                     restart_cnt_reg1 <= restart_cnt_reg1 - 1;
 //                    DONE_temp <= 1;
