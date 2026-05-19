@@ -444,6 +444,7 @@ wire                BREADY_ch2;
     // Clock and Reset
     .clk                (clk),
     .resetn             (resetn),
+    .is_ch0(1'b1),
       .boot_addr(boot_addr),
   .boot_en(boot_en),
     // Configuration Interface
@@ -587,6 +588,7 @@ wire                BREADY_ch2;
     .resetn             (resetn),
       .boot_addr(boot_addr),
   .boot_en(boot_en),
+  .is_ch0(1'b0),
     // Configuration Interface
     .chn_reg_out        (chn_reg_out_ch1),
     .reg_wr_en (reg_wr_en_ch1),
@@ -728,6 +730,7 @@ wire                BREADY_ch2;
     .resetn             (resetn),
       .boot_addr(boot_addr),
   .boot_en(boot_en),
+  .is_ch0(1'b0),
     // Configuration Interface
     .chn_reg_out        (chn_reg_out_ch2),
     .reg_wr_en (reg_wr_en_ch2),
