@@ -2,6 +2,7 @@ module mux_logic #(parameter WIDTH = 32)
  (
  input wire [31:0] cmd_data,
  input wire clk,resetn,
+ input rst_posedge,
  input wire link_en,data_done,
  input wire [4:0] wptr,//input from cmd fsm
  input wire [31:0] header_in,// from cmd fsm
@@ -360,7 +361,7 @@ module mux_logic #(parameter WIDTH = 32)
             // WORD 14 : next_cmd_addr
             if (chn_next_cmd_addr_wr_en_reg)
             mux_out_reg[(WIDTH*19)-1:(WIDTH*18)] <= cfg_next_cmd_addr;
-            else if (/*(link_en && data_done) ||*/ cmd_done)
+            else if (/*(link_en && data_done) ||*/ cmd_done ||rst_posedge )
             mux_out_reg[(WIDTH*19)-1:(WIDTH*18)] <= concat_cmd[(WIDTH*17)-1:(WIDTH*16)];
         end
     end
