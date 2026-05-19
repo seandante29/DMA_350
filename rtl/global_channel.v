@@ -2,7 +2,7 @@ module global_channel#(parameter WIDTH = 32,
   parameter ADDR_W = 32,
     parameter DATA_W = 128,
      parameter ID_W   = 4,
-     parameter DEPTH = 145
+     parameter DEPTH = 512
       )
    (//clk reset
     input wire clk,
@@ -444,7 +444,7 @@ wire                BREADY_ch2;
     // Clock and Reset
     .clk                (clk),
     .resetn             (resetn),
-    .is_ch0(1'b1),
+        .is_ch0(1'b1),
       .boot_addr(boot_addr),
   .boot_en(boot_en),
     // Configuration Interface
@@ -588,7 +588,7 @@ wire                BREADY_ch2;
     .resetn             (resetn),
       .boot_addr(boot_addr),
   .boot_en(boot_en),
-    .is_ch0(1'b0),
+      .is_ch0(1'b0),
     // Configuration Interface
     .chn_reg_out        (chn_reg_out_ch1),
     .reg_wr_en (reg_wr_en_ch1),
@@ -728,8 +728,8 @@ wire                BREADY_ch2;
     // Clock and Reset
     .clk                (clk),
     .resetn             (resetn),
-      .is_ch0(1'b0),
       .boot_addr(boot_addr),
+            .is_ch0(1'b0),
   .boot_en(boot_en),
     // Configuration Interface
     .chn_reg_out        (chn_reg_out_ch2),
@@ -954,7 +954,10 @@ biu  #(
     .ch0_RRESP(RRESP_ch0),
     .ch1_RRESP(RRESP_ch1),
     .ch2_RRESP(RRESP_ch2),
-  
+    
+    .RID_ch2(RID_ch2),
+    .RID_ch1(RID_ch1),
+    .RID_ch0(RID_ch0),
 //AW
     .ch0_AWVALID(AWVALID_ch0),
     .ch1_AWVALID(AWVALID_ch1),
@@ -1015,6 +1018,11 @@ biu  #(
     .ch0_BRESP(BRESP_ch0),
     .ch1_BRESP(BRESP_ch1),
     .ch2_BRESP(BRESP_ch2),
+    
+    .BID_ch2(BID_ch2),
+    .BID_ch1(BID_ch1),
+    .BID_ch0(BID_ch0),
+    
     
     .stop_cmd({stop_cmd_apb_ch2,stop_cmd_apb_ch1,stop_cmd_apb_ch0}),
     .pause_cmd({pause_cmd_apb_ch2,pause_cmd_apb_ch1,pause_cmd_apb_ch0})
