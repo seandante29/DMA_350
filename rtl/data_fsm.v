@@ -303,11 +303,11 @@ endgenerate
     assign DESx_transfer_count_INITIAL = {16'd0, desx_transfer_count_reg};
     assign SRCy_transfer_count_INITIAL = {16'd0, srcy_transfer_count_reg};
     assign DESy_transfer_count_INITIAL = {16'd0, desy_transfer_count_reg};     
-    assign src_xaddr_inc_sign = $signed(src_xaddr_inc);
+    assign src_xaddr_inc_sign = {{16{src_xaddr_inc[15]}},$signed(src_xaddr_inc)};
   //src_xaddr_inc[15] ? (src_xaddr_inc * -1): src_xaddr_inc;
-    assign des_xaddr_inc_sign = $signed(des_xaddr_inc);
-    assign src_yaddr_stride_signed = $signed(src_yaddr_stride);
-    assign des_yaddr_stride_signed = $signed(des_yaddr_stride);
+    assign des_xaddr_inc_sign = {{16{des_xaddr_inc[15]}},$signed(des_xaddr_inc)};
+    assign src_yaddr_stride_signed = {{16{src_yaddr_stride_signed[15]}},$signed(src_yaddr_stride)};
+    assign des_yaddr_stride_signed = {{16{des_yaddr_stride_signed[15]}},$signed(des_yaddr_stride)};
     
  //   assign WLAST = (wr_state == W_W) ? ((des_x_left == 1)? 1 : 0) : 0;
   assign WLAST = (wr_state == W_W && WVALID) ? ((des_x_transfer_count_remaining_2d - AWLEN ) == des_x_left ? 1 : 0) : 0;
@@ -416,7 +416,7 @@ end
 //                                             :(src_x_left == 0 && src_y_left !=0)?(src_x_left == 0 && src_y_left == 1)?{des_x_left, src_x_left} :{des_x_left,src_x_left_initial}
 //                                             :  {des_x_left, src_x_left};
                        if (des_x_left == 0 && des_y_left != 0) begin
-                            x_transfer_count_UPDATED <= {des_x_left_initial, src_x_left};
+                            //x_transfer_count_UPDATED <= {des_x_left_initial, src_x_left};
                             if (des_x_left == 0 && des_y_left == 1) begin
                                 x_transfer_count_UPDATED <= {des_x_left, src_x_left};
                             end 
@@ -607,11 +607,11 @@ always @(posedge clk or negedge resetn) begin
         wr_state <= wr_next_st;
 
         // Pause tracking (store last non-paused state)
-        if (rd_next_st != RD_PAUSED)
-         if((wr_state == W_PAUSED)) 
+        //if (rd_next_st != RD_PAUSED)
+         if((rd_next_st != RD_PAUSED)&&(wr_state == W_PAUSED)) 
                 rd_pause_state_q <= RD_IDLE;
-            else
-                rd_pause_state_q <= rd_next_st;
+         else
+              rd_pause_state_q <= rd_next_st;
 
         if (wr_next_st != W_PAUSED)
             wr_pause_state_q <= wr_next_st;
@@ -1056,7 +1056,7 @@ end
                 
                 RD_CONFIG: begin
                 
-                if ((restart_cnt_reg1 >1) &&(case1 || x_type == 0 || (ycase1 && y_type != 0) )) begin
+               if ((restart_cnt_reg1 >1) &&(case1 || x_type == 0 || (ycase1 && y_type != 0) )) begin
                     restart_cnt_reg <= restart_cnt_reg - 1;
                     restart_cnt_reg1 <= restart_cnt_reg1 - 1;
 //                    DONE_temp <= 1;
@@ -1660,7 +1660,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                             begin
                             src_y_transfer_count_remaining <= src_y_transfer_count_remaining - 1;
                             src_y_left <= src_y_left - 1;
-                            if(src_y_left > 1 ) 
+                            if(src_y_left > 1 ) begin
                                 if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
                                     src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
                                     src_addr_reg  <= read_base_addr_INITIAL;
@@ -1668,7 +1668,8 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                                 else 
                                 src_addr_reg <= src_addr_reg + ( src_yaddr_stride_signed *(2** transize));
                             end
-                        else if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
+                            end
+                         else if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
                             src_y_transfer_count_remaining <= (src_y_left > srcy_transfer_count_reg)?srcy_transfer_count_reg:src_y_left;
                             src_addr_reg  <= read_base_addr_INITIAL;
                         end
