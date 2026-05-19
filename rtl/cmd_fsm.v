@@ -50,11 +50,12 @@ module cmd_fsm
     reg [7:0] count;   
     reg [7:0] count1;
     reg [7:0] count2;
+    reg [7:0] count_reg;
+    
     reg rst_posedge_reg;
     reg  max_transfer_count;
     reg data_done_reg;
     reg link_enable_reg;
-//    reg [31:0] boot_linkaddr;
     reg STAT_ERROR_reg;
     integer i,j;
     reg count_flag;
@@ -228,8 +229,10 @@ always @(posedge clk or negedge resetn) begin
         CMD_DONE <= 1;
         
         
-        if(temp_wptr == 0)
-            temp_rptr <= 0;
+        
+        
+//        if(temp_wptr == 0)
+//            temp_rptr <= 0;
         if(current_state == IDLE)
         CMD_DONE <= ( (data_done || count2 > 0) ? 0 : 1) ;
         else if (current_state == AR || current_state == COUNT || current_state == PAUSE )
@@ -239,15 +242,18 @@ always @(posedge clk or negedge resetn) begin
 
 //        if(count1 > 0 && current_state == AR)
 //            count2 <= count1  ;
+        
         if(current_state == AR ) begin
+        temp_rptr <= (temp_wptr == 0)? 0 : temp_rptr;
             wptr <= ((count1 == 0) && !max_transfer_count)? 0 :wptr;
             chunk_cnt <= byte_offset/4;
             if(!max_transfer_count)
-             count2 <= (count1 > 0)?count1:count2  ;
+             count2 <= (count1 > 0)?count1:count2;
             else
              count2<=count2;
         end 
         // FIFO not empty
+        
         else if (temp_rptr != temp_wptr && count2 !='h0) begin
             
             // align data for narrow / unaligned transfer
@@ -264,7 +270,12 @@ always @(posedge clk or negedge resetn) begin
             else begin
                 chunk_cnt <= chunk_cnt + 1;
             end
+            
+        
         end
+         else if(temp_wptr == 0)
+                temp_rptr <= 0;
+        
     end
 end
     // ERROR HANDLING ISSUE 
@@ -281,6 +292,7 @@ end
             BUSERR <= 0;//any axi error assterts this
             ARADDR <= 0;
             ARID   <= 0;
+            count_reg <= 0;
             ARLEN  <= 0;
             ARSIZE <= 'd2;
             ARBURST <=0;
@@ -349,7 +361,7 @@ end
                         ARADDR <= (max_transfer_count) ? next_cmd_addr + 20 : next_cmd_addr + 4;
                       
                         if (max_transfer_count) begin
-                            ARLEN <= count2-1;
+                            ARLEN <= count_reg - 'd17;
                         end 
                         else begin
                             if (((count - 1 + (byte_offset/4)) / (DATA_W/32)) > 'd15) begin
@@ -406,7 +418,8 @@ end
                 
                 COUNT : begin
                     count_flag <= 1;
-                    //CMD_DONE <= 0;               
+                    //CMD_DONE <= 0; 
+                    count_reg <= count1;              
                 end
                 
                // PAUSE : CMD_DONE <= 0;
