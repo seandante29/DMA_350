@@ -1,6 +1,6 @@
 module register_bank #(parameter WIDTH = 32,
     parameter ADDR_WIDTH = 32,
-	parameter DEPTH = 256 ,
+	parameter DEPTH = 512 ,
 	parameter NUM_CH = 3)
 	(input wire clk,
 	input wire resetn,
