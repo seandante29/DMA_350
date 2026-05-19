@@ -54,6 +54,7 @@ module cmd_fsm
     reg  max_transfer_count;
     reg data_done_reg;
     reg link_enable_reg;
+//    reg [31:0] boot_linkaddr;
     reg STAT_ERROR_reg;
     integer i,j;
     reg count_flag;
@@ -114,7 +115,7 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
         case(current_state)
           
             IDLE:
-                if(link_enable_reg && (data_done /*|| rst_posedge_reg*/) && !cmd_error && !stat_disable_intr_reg && !stat_stopped_intr_reg)
+                if(link_enable_reg && (data_done || rst_posedge_reg) && !cmd_error && !stat_disable_intr_reg && !stat_stopped_intr_reg)
                 next_state = AR;
                 else
                 next_state = IDLE;
