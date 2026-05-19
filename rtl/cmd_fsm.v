@@ -5,7 +5,7 @@ module cmd_fsm
  (
     input clk, 
     input resetn,
-    //input wire rst_posedge,
+    input wire rst_posedge,
     input pause_cmd,resume_cmd,
     input wire [3:0] ch_prio,
     input [31:0]next_cmd_addr,// fro intern reg
@@ -50,10 +50,11 @@ module cmd_fsm
     reg [7:0] count;   
     reg [7:0] count1;
     reg [7:0] count2;
-    //reg rst_posedge_reg;
+    reg rst_posedge_reg;
     reg  max_transfer_count;
     reg data_done_reg;
     reg link_enable_reg;
+//    reg [31:0] boot_linkaddr;
     reg STAT_ERROR_reg;
     integer i,j;
     reg count_flag;
@@ -75,11 +76,11 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
             data_done_reg <= 'd0;
             link_enable_reg <= 'd0;
             STAT_ERROR_reg <= 'd0;
-           // rst_posedge_reg <= 0;
+            rst_posedge_reg <= 0;
         end
         else begin
             data_done_reg <= data_done;
-            //rst_posedge_reg <= rst_posedge;
+            rst_posedge_reg <= rst_posedge;
             link_enable_reg <= link_enable;
             STAT_ERROR_reg <= STAT_ERROR_PARTSEL;
         end
@@ -114,7 +115,7 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
         case(current_state)
           
             IDLE:
-                if(link_enable_reg && (data_done /*|| rst_posedge_reg*/) && !cmd_error && !stat_disable_intr_reg && !stat_stopped_intr_reg)
+                if(link_enable_reg && (data_done || rst_posedge_reg) && !cmd_error && !stat_disable_intr_reg && !stat_stopped_intr_reg)
                 next_state = AR;
                 else
                 next_state = IDLE;
