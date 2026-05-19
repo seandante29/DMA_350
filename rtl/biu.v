@@ -168,6 +168,9 @@ module biu#(parameter ADDR_W = 32,
     output [(DATA_W/8)-1:0] WSTRB,
 
     input  [ID_W-1:0] BID,
+    output [ID_W-1:0] BID_ch2,BID_ch1,BID_ch0,
+    output [ID_W-1:0] RID_ch2,RID_ch1,RID_ch0,
+    
 //    input  BVALID,
     output reg BREADY,
     input wire [2:0] stop_cmd,
@@ -475,6 +478,16 @@ assign ch0_BRESP = (BID == 0) ? BRESP : 0;
 assign ch1_BRESP = (BID == 1) ? BRESP : 0;
 assign ch2_BRESP = (BID == 2) ? BRESP : 0;
 
+assign BID_ch0 = (BID == 0) ? BID : 0;
+assign BID_ch1 = (BID == 1) ? BID : 0;
+assign BID_ch2 = (BID == 2) ? BID : 0;
+
+assign RID_ch0 = (RID == 0) ? RID : 0;
+assign RID_ch1 = (RID == 1) ? RID : 0;
+assign RID_ch2 = (RID == 2) ? RID : 0;
+
+
+
 always @(*) begin
     rd_max_qos = 0;
 
@@ -536,7 +549,7 @@ always@(posedge clk or negedge rst_n) begin
 if(!rst_n)
 RLAST_reg <= 0;
 else
-RLAST_reg <= RLAST;
+RLAST_reg <= RLAST && RREADY;
 end
 
 
@@ -573,12 +586,16 @@ always @( * ) begin
             RD_AR: begin
                 if (ARREADY_reg && ARVALID)
                     rd_state_next = RD_R;
+                else
+                    rd_state_next = RD_AR;
             end
     
             RD_R: begin
-                if (/*RVALID &&*/ RLAST_reg && RREADY) begin   
+                if (/*RVALID &&*/ RLAST_reg /*&& RREADY*/) begin   
                     rd_state_next      = RD_WAIT;
                 end
+                else
+                    rd_state_next      = RD_R;
             end
             
             RD_WAIT : rd_state_next =RD_WAIT1;
@@ -619,24 +636,33 @@ if((stop_cmd[0]&& wr_grant==0) || (stop_cmd[1] && wr_grant==1) || (stop_cmd[2] &
 else 
         case (wr_state)
         WR_IDLE: begin
-                wr_state_next = WR_AW;
+                 if (ch0_AWVALID || ch1_AWVALID || ch2_AWVALID)
+                    wr_state_next = WR_AW;
+                 else
+                    wr_state_next = WR_IDLE;
            
         end
 
         WR_AW: begin
-            if (AWREADY)
+            if ((ch0_AWVALID || ch1_AWVALID || ch2_AWVALID) && AWREADY)
                 wr_state_next = WR_W;
+            else
+                wr_state_next = WR_AW;
         end
 
         WR_W: begin
             if (((ch0_WLAST ==1)||(ch1_WLAST)||(ch2_WLAST)) && WREADY)
                 wr_state_next = WR_B;
+            else
+                wr_state_next = WR_W;
         end
 
         WR_B: begin
             if (BVALID) begin
                 wr_state_next = WR_IDLE;
             end
+            else
+                wr_state_next = WR_B;
         end
         
         default : wr_state_next = WR_IDLE;
