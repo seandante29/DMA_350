@@ -38,7 +38,7 @@ module dma_channel
 //    output wire [1:0] des_trigack_type,
     input wire boot_en,
       input wire [29:0] boot_addr,
-      
+      input is_ch0,
     input wire chn_cmd_wr_en_o,
     input wire chn_stat_wr_en_o,
     input wire chn_intren_wr_en_o,
@@ -319,13 +319,15 @@ module dma_channel
 	assign enable_cmd_to_apb = enable_cmd;
 
     
-
+    wire rst_posedge;
 
 	internal_reg  #(.WIDTH (WIDTH),.DEPTH ( DEPTH)) dut0
 	(
 	.clk(clk),
 	.resetn(resetn),
+	.rst_posedge(rst_posedge),
 	.boot_addr(boot_addr),
+	.is_ch0(is_ch0),
 	.boot_en(boot_en),
 	.deassert_stat_done(deassert_stat_done),
 	.data_in(mux_logic_in),
@@ -489,6 +491,7 @@ module dma_channel
 	.next_cmd_addr(next_cmd_addr),
 	.link_enable(next_cmd_addren),
 	.wr_en(wr_en),
+		.rst_posedge(rst_posedge),
 	.resume_cmd(resume_cmd),
 	.pause_cmd(pause_cmd_apb),
 	.stat_disable_intr_reg(stat_disable_intr_reg),
@@ -525,6 +528,7 @@ module dma_channel
 	dut3  (.cmd_data(RDATA_O),
 	.clk(clk),
 	.resetn(resetn),
+    .rst_posedge(rst_posedge),
 	.read_base_addr_UPDATED(read_base_addr_UPDATED),
 	.write_base_addr_UPDATED(write_base_addr_UPDATED),
 	.x_transfer_count_UPDATED(x_transfer_count_UPDATED),
@@ -611,6 +615,7 @@ module dma_channel
 	data_fsm #(.ADDR_W(ADDR_W),.DATA_W(DATA_W), .ID_W(ID_W)) dut4(
 	.clk(clk),
 	.resetn(resetn),
+//    .rst_posedge(rst_posedge),
 	.read_base_addr_UPDATED(read_base_addr_UPDATED),
 	.write_base_addr_UPDATED(write_base_addr_UPDATED),
 	.x_transfer_count_UPDATED(x_transfer_count_UPDATED),
