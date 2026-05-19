@@ -227,13 +227,11 @@ always @(posedge clk or negedge resetn) begin
         CMD_DONE <= 1;
         
         
-        if(current_state == PAUSE)
-            CMD_DONE <= 0;
-        else if(temp_wptr == 0)
+        if(temp_wptr == 0)
             temp_rptr <= 0;
-        else if(current_state == IDLE)
+        if(current_state == IDLE)
         CMD_DONE <= ( (data_done || count2 > 0) ? 0 : 1) ;
-        else if (current_state == AR || current_state == COUNT )
+        else if (current_state == AR || current_state == COUNT || current_state == PAUSE )
          CMD_DONE <= 0;
         else if (current_state == R)
         CMD_DONE <= ( (count2==0 && count_flag ) ? 1 : CMD_DONE) ;
