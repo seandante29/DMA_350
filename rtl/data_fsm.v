@@ -726,11 +726,12 @@ end
                              
                          else if((cmd_restart_en || restart_cnt_reg != 0)) begin
                           rd_next_st = RD_R; 
-                          if((src_x_left == 0 && DONE_temp))
+                          if((src_x_left == 0 && DONE_temp))begin
                                 if(disable_cmd_partsel) 
                                     rd_next_st = RD_IDLE;
                                 else
                                     rd_next_st = RD_WAIT;
+                                    end
                           end
                         
                          else
@@ -738,12 +739,13 @@ end
                         end   
                     else if((cmd_restart_en || restart_cnt_reg != 0))begin
                             rd_next_st = RD_R;
-                            if((src_x_left == 0 && DONE_temp))
+                            if((src_x_left == 0 && DONE_temp))begin
                                 if(disable_cmd_partsel) 
                                     rd_next_st = RD_IDLE;
                                 else
                                     rd_next_st = RD_WAIT; 
                             end   
+                            end
                     else
                         rd_next_st = RD_R;
                         
