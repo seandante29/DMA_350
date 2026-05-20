@@ -727,7 +727,10 @@ end
                          else if((cmd_restart_en || restart_cnt_reg != 0)) begin
                           rd_next_st = RD_R; 
                           if((src_x_left == 0 && DONE_temp))
-                                rd_next_st = RD_WAIT; 
+                                if(disable_cmd_partsel) 
+                                    rd_next_st = RD_IDLE;
+                                else
+                                    rd_next_st = RD_WAIT;
                           end
                         
                          else
@@ -1751,7 +1754,7 @@ always @(posedge clk or negedge resetn) begin
             BREADY       <= 0;
                         SWTRIGOUTACK_DATA <= 0;
            AWQOS <= 0;
-           DONE         <= stop_cmd_apb? 1: 0;
+           DONE         <= 0;
            //DONE_temp <= (rd_state ==RD_CONFIG)?0:DONE_temp;
             DONE_temp <= ((rd_state ==RD_CONFIG &&!(case1 || x_type == 0 || (ycase1 && y_type != 0) )) || (rd_state ==RD_IDLE  && restart_cnt_reg == 0))?0:DONE_temp;
            trig_out_req <= 0;
