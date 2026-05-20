@@ -42,9 +42,9 @@ module apb_slave #( parameter DATA_WIDTH = 32,
     
     wire strobe_error_q;
     assign strobe_error_q = PWRITE_q && (PSTRB_q != {STRB_WIDTH{1'b1}});
-     assign stop_cmd_apb[2] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1000 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
+     assign stop_cmd_apb[2] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1200 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
      assign stop_cmd_apb[1] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1100 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
-     assign stop_cmd_apb[0] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1200 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
+     assign stop_cmd_apb[0] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1000 )  && PWDATA[3] && enable_cmd_to_apb[ch_no])?1:0;
      
      assign pause_cmd_apb[2] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1200 )  && PWDATA[4] && enable_cmd_to_apb[ch_no])?1:0;
      assign pause_cmd_apb[1] = (current_state == ACCESS_ST && PREADY && PWRITE == 1 && PENABLE && (PADDR == 'h1100 )  && PWDATA[4] && enable_cmd_to_apb[ch_no])?1:0;
