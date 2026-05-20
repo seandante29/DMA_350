@@ -7,6 +7,7 @@ module cmd_fsm
     input resetn,
     input wire rst_posedge,
     input pause_cmd,resume_cmd,
+    input wire stop_cmd,
     input wire [3:0] ch_prio,
     input [31:0]next_cmd_addr,// fro intern reg
     input link_enable,// fro intern reg
@@ -33,6 +34,7 @@ module cmd_fsm
     output reg [31:0]RDATA_O,//32
     output reg [31:0] LINK_HEADER,
     output reg [4:0] wptr,
+    output reg stat_stop_cmd, 
     // ERROR and STATUS signals
     output  reg cmd_done_1,// to mux_logic as select ( 1cycle pulse)
     output reg LINKHDRERR,
@@ -107,9 +109,23 @@ wire [$clog2(DATA_W/8)-1:0] byte_offset;
     end
     end
     
+     always @(posedge clk or negedge resetn) begin
+    if(!resetn) begin
+        stat_stop_cmd <= 0;
+    end 
+    else if(stop_cmd) begin
+        stat_stop_cmd <= 1;
+    end 
+    else if(!stat_stopped_intr_reg)
+        stat_stop_cmd <= 0;
+    end
+    
+    
     //combo always
     always@(*) begin
-    if(pause_cmd) 
+    if(stop_cmd)
+        next_state = IDLE;
+    else if(pause_cmd) 
         next_state = PAUSE;
     else
     begin
@@ -234,7 +250,7 @@ always @(posedge clk or negedge resetn) begin
 //        if(temp_wptr == 0)
 //            temp_rptr <= 0;
         if(current_state == IDLE)
-        CMD_DONE <= ( (data_done || count2 > 0) ? 0 : 1) ;
+        CMD_DONE <= ( ((data_done || count2 > 0) || stop_cmd) ? 0 : 1) ;
         else if (current_state == AR || current_state == COUNT || current_state == PAUSE )
          CMD_DONE <= 0;
         else if (current_state == R)
@@ -327,7 +343,7 @@ end
                     ARSIZE <= 'd2;
                     ARBURST <=0;
                     ARVALID <=0;
-                    if(count2 ==0) begin
+                    if(count2 ==0 || stat_stop_cmd) begin
                         temp_wptr <= 0;
                         //temp_rptr <= 0;
                     end
