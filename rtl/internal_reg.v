@@ -154,7 +154,7 @@ always @(posedge clk or negedge resetn) begin
        rst_posedge <= 0;
     end
     else begin
-        resetn_posedge <= resetn & ~resetn_d;
+        resetn_posedge <= (resetn & ~resetn_d) & is_ch0;
         resetn_d       <= resetn;
        rst_posedge <= resetn_posedge;
     end
