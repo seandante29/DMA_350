@@ -655,7 +655,7 @@ end
 //                    else if(restart_cnt_reg1>0)
                     
                     else if (case1 || x_type == 0 || (ycase1 && y_type != 0) )
-                        rd_next_st = (restart_cnt_reg>0 ||cmd_restart_en)?RD_WAIT:RD_IDLE;
+                        rd_next_st = ((restart_cnt_reg>0 ||cmd_restart_en ) && ! disable_cmd_partsel)?RD_WAIT:RD_IDLE;
                     else if (case2)
                         rd_next_st = (x_type == 3) ? RD_WAIT_TRIG : RD_ERROR_ST; 
                      else if(ycase2)
@@ -739,7 +739,10 @@ end
                     else if((cmd_restart_en || restart_cnt_reg != 0))begin
                             rd_next_st = RD_R;
                             if((src_x_left == 0 && DONE_temp))
-                                rd_next_st = RD_WAIT; 
+                                if(disable_cmd_partsel) 
+                                    rd_next_st = RD_IDLE;
+                                else
+                                    rd_next_st = RD_WAIT; 
                             end   
                     else
                         rd_next_st = RD_R;
@@ -1040,10 +1043,10 @@ end
                    src_addr_reload <= (DONE_temp)? src_addr_reload : SRC_ADDR;
                    des_addr_reload <= (DONE_temp)? des_addr_reload : des_ADDR;
                    src_yaddr_stride_reg <= src_yaddr_stride_signed;  // initalize yaddr stride here
-                   if((cmd_restart_en || cmd_restart_cnt > 0) /*&& !restart_cnt_en_reg*/)
+                   if(( cmd_restart_cnt > 0) /*&& !restart_cnt_en_reg*/)
                    begin
                    restart_cnt_reg <= (DONE_temp)? (restart_cnt_reg ): cmd_restart_cnt ;
-                   restart_cnt_reg1 <= (DONE_temp)? (restart_cnt_reg1 ): cmd_restart_cnt+1 ;
+                   restart_cnt_reg1 <= (DONE_temp )? (restart_cnt_reg1 ): cmd_restart_cnt+1 ;
                    end
                    
                    restart_cnt_en_reg <= (cmd_restart_en || cmd_restart_cnt != 0); 
@@ -1059,7 +1062,7 @@ end
                 
                 RD_CONFIG: begin
                 
-               if ((restart_cnt_reg1 >1) &&(case1 || x_type == 0 || (ycase1 && y_type != 0) )) begin
+               if (!cmd_restart_en && (restart_cnt_reg1 >1) &&(case1 || x_type == 0 || (ycase1 && y_type != 0) )) begin
                     restart_cnt_reg <= restart_cnt_reg - 1;
                     restart_cnt_reg1 <= restart_cnt_reg1 - 1;
 //                    DONE_temp <= 1;
@@ -1549,7 +1552,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
 
                 RD_R: begin
                 ARVALID_reg <= 0;
-                if(src_x_left == 0 && DONE_temp)begin
+                if(!cmd_restart_en && src_x_left == 0 && DONE_temp)begin
                                 restart_cnt_reg <= restart_cnt_reg - 1;
                                 restart_cnt_reg1 <= restart_cnt_reg1 - 1;end
                                 
@@ -1589,7 +1592,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                     end
                     
                 RD_WRAP_FILL: begin
-                     if(src_x_left == 0 && fill_count == 0 && DONE_temp)begin
+                     if(!cmd_restart_en && src_x_left == 0 && fill_count == 0 && DONE_temp)begin
                                 restart_cnt_reg <= restart_cnt_reg - 1;
                                 restart_cnt_reg1 <= restart_cnt_reg1 - 1;
                                 end
