@@ -34,7 +34,6 @@ module cmd_fsm
     output reg [31:0]RDATA_O,//32
     output reg [31:0] LINK_HEADER,
     output reg [4:0] wptr,
-    output reg stat_stop_cmd, 
     // ERROR and STATUS signals
     output  reg cmd_done_1,// to mux_logic as select ( 1cycle pulse)
     output reg LINKHDRERR,
@@ -53,7 +52,7 @@ module cmd_fsm
     reg [7:0] count1;
     reg [7:0] count2;
     reg [7:0] count_reg;
-    
+    reg stat_stop_cmd; 
     reg rst_posedge_reg;
     reg  max_transfer_count;
     reg data_done_reg;
