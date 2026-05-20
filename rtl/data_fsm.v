@@ -282,7 +282,9 @@ endgenerate
    
    wire test_ycase =!(ycase1_wire || ycase2_wire || ycase3_wire || ycase4_wire);
    
-   
+    reg src_tmplt_flag;
+    reg des_tmplt_flag;
+    
     reg [4:0] wr_pause_state_q;
     reg [4:0] rd_pause_state_q;
    
@@ -898,6 +900,7 @@ end
             src_x_addr_inital <= 0;
             des_x_addr_initial <= 0;
             fill_count      <= 0;
+            src_tmplt_flag <= 0;
             wrap_rd_ptr     <= 0;
             src_trigack     <= 0;
             des_trigack     <= 0;
@@ -931,6 +934,7 @@ end
                 fifo_mem[j] <= 'd0;
             end
         end else begin
+            src_tmplt_flag <= 0;
             ARQOS <= 0;
              wr_start <= 'd0;
              //ARVALID_reg <= 0;
@@ -1514,11 +1518,12 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                                 m <= m + 1;
                             end
                             
-                            
+                          
                          if(src_tmplt[m] ) begin
+                         src_tmplt_flag <= 1;
                           ARVALID <= ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1))? 1 :0;
                           ARQOS <= ch_prio;
-                          ARADDR <= initial_tmplt_addr_src + m * (2**transize);      end                      
+                          ARADDR <= (!src_tmplt_flag)?initial_tmplt_addr_src + m * (2**transize):ARADDR;      end                      
                    end
 
                            else if (case6 && x_type == 'd2 && !ARVALID_reg &&  ((src_x_transfer_count_remaining == 0) || (src_x_left == src_x_left_initial))) begin//srcx_transfer_count_intial_reg
@@ -1747,6 +1752,7 @@ always @(posedge clk or negedge resetn) begin
            AWSIZE <= 0;
            AWQOS <= 0;
            DONE_temp <= 0;
+           des_tmplt_flag <= 0;
            AWBURST <= 0;
            SWTRIGOUTACK_DATA <= 0;
            bus_error_w <= 'd0;
@@ -1755,6 +1761,7 @@ always @(posedge clk or negedge resetn) begin
     else begin
             AWVALID      <= 0;
           //  WLAST        <= 0;
+          des_tmplt_flag <= 0;
           WVALID       <= 0;
             BREADY       <= 0;
                         SWTRIGOUTACK_DATA <= 0;
@@ -1770,7 +1777,7 @@ always @(posedge clk or negedge resetn) begin
                 stat_done_data_fsm <= !deassert_stat_done ? stat_done_data_fsm: 0;
             //STAT_SRCTRIGINWAIT_DATA <= 1'b0;
            // STAT_DESTRIGINWAIT_DATA <= 1'b0;
-        if( l == des_tmplt_size /*&& wr_state != W_AW*/ && !AWVALID)
+        if( l == des_tmplt_size /*&& wr_state != W_AW*/  && !AWVALID)
                    initial_tmplt_addr_des  <= AWADDR + ((des_tmplt_size + 1) - p) *(2**transize);
                    
            else if(wr_state == W_IDLE)
@@ -2054,9 +2061,10 @@ end
                             end
                          if(des_tmplt[l] )
                            begin
+                            des_tmplt_flag <= 1;
 //                            AWVALID <=(fifo_ptr_diff > 1)? 1 :0;
                             AWQOS <= ch_prio;
-                               AWADDR <= initial_tmplt_addr_des + l * (2**transize);   end                         
+                               AWADDR <= ( !des_tmplt_flag )?(initial_tmplt_addr_des + l * (2**transize)) : AWADDR;   end                         
                    end
                    else begin
                          AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/  (case6 && x_type == 1 && y_type == 0)?des_addr_reg + (srcx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign):
@@ -2065,11 +2073,12 @@ end
                          AWQOS <= ch_prio;
                     end
                      if(des_tmplt_size > 0) begin
-                        AWVALID <=(fifo_ptr_diff > 1)? 1 :0;
+                    
+                        AWVALID <=(fifo_ptr_diff >= 1)? 1 :0;
                         AWLEN <= 'd0;
                      end
                      else if(des_trig_req_type_reg == 'd0 && use_des_trigin  || (des_xaddr_inc > 1) || (des_xaddr_inc < 0)) begin   
-                        AWVALID <=(fifo_ptr_diff > 1)? 1 :0;
+                        AWVALID <=(fifo_ptr_diff >= 1)? 1 :0;
                         AWLEN <= 'd0;
                     end
                     else if(des_trig_req_type_reg == 'd2) begin 
@@ -2099,11 +2108,7 @@ end
                         des_x_transfer_count_remaining <= des_x_transfer_count_remaining - (AWLEN + 1);
                         des_x_transfer_count_remaining_2d <= des_x_transfer_count_remaining_2d - (AWLEN + 1);
                         
-                        if(des_tmplt_size != 0) begin
-                                 l <= l + 1;
-                            
-                                if(l >= des_tmplt_size)
-                                       l <= 0;end
+                        
                      end
                     
                     if (WREADY && des_x_left > 0 && WVALID) begin                       
@@ -2117,6 +2122,11 @@ end
                          
                 W_B: begin
                     //BREADY <= (!stop_cmd_apb)?1:0;
+                    if(des_tmplt_size != 0 && BVALID && BREADY ) begin
+                                 l <= l + 1;
+                            
+                                if(l >= des_tmplt_size)
+                                       l <= 0;end
                     BREADY <= 1;
                     if (BRESP >= 2) begin
                         awr_error<= 1;
