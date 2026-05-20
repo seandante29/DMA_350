@@ -493,6 +493,7 @@ module dma_channel
 	.next_cmd_addr(next_cmd_addr),
 	.link_enable(next_cmd_addren),
 	.wr_en(wr_en),
+	.stop_cmd(stop_cmd_apb),
 	.resume_cmd(resume_cmd),
 	.pause_cmd(pause_cmd_apb),
 	.stat_disable_intr_reg(stat_disable_intr_reg),
