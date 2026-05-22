@@ -1,6 +1,6 @@
 module register_bank #(parameter WIDTH = 32,
     parameter ADDR_WIDTH = 32,
-	parameter DEPTH = 512 ,
+	parameter DEPTH = 256 ,
 	parameter NUM_CH = 3)
 	(input wire clk,
 	input wire resetn,
@@ -65,7 +65,7 @@ wire [$clog2(NUM_CH)-1:0] ch_idx;
 wire [7:0] addr_w;
 wire [$clog2(NUM_CH*DEPTH)-1:0] addr_idx;
 
-assign ch_idx   = (addr_in - 32'h1000) >> 8;
+assign ch_idx   = (addr_in - 32'h0100) >> 8;
 assign addr_w   = (addr_in & 32'hFF);
 assign addr_idx = ch_idx*DEPTH + addr_w;
 
