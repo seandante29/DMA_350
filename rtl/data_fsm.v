@@ -216,12 +216,12 @@ input wire [1:0] src_trigin_sw_type,des_trigin_sw_type,
             else if(ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 2 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (src_y_left == 1) &&(area_src < area_des))begin
                 ARLEN_wire1 = ((src_x_left - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len}  : src_x_left - 1;
             end
-            else if((src_trig_req_type_reg == 'd0 && use_src_trigin) || (src_xaddr_inc > 1) || (src_xaddr_inc < 0)) 
+            else if((/*src_trig_req_type_reg == 'd0 &&*/ use_src_trigin) || (src_xaddr_inc > 1) || (src_xaddr_inc < 0)) 
                 ARLEN_wire1 = 'd0;
-            else if(src_trig_req_type_reg == 'd2)
+            else /*if(src_trig_req_type_reg == 'd2)*/
                 ARLEN_wire1 = ((src_x_transfer_count_remaining - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len} : src_x_transfer_count_remaining - 1;
-           else 
-                ARLEN_wire1 = 0;
+//           else 
+//                ARLEN_wire1 = 0;
      end                             
      wire [5:0] fifo_rptr_t = fifo_rptr[4:0] + 1;
     localparam RD_IDLE       = 5'd0,
@@ -994,7 +994,7 @@ end
                     reg1 <= 1;
                     fifo_wptr       <= 0;
                     reg2 <= reg1;
-                    if(reg2 && (!DONE_temp || reg_reload_type == 0) ) begin
+                    if(reg2 && (!DONE_temp || reg_reload_type == 0)) begin
                      // no trnasfer
                         ycase1 <= ((srcx_transfer_count == 0 || src_y_transfer_count == 0) &&
                                        (!(desx_transfer_count > 0 && des_y_transfer_count > 0)));
@@ -1461,9 +1461,9 @@ des_trigack_type <=(des_trigin_type == 2'b10 && (des_trig_req_type == 0||des_tri
                 else if(!use_des_trigin && use_src_trigin) begin
                      if ((src_trigin_type == 2'b00 && src_trigin_sw)||(src_trigin_type == 2'b10 && src_trigin)) 
                         src_trigack <= (src_trigin_type == 2'b00)?0:1;    
-src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_trig_req_type == 1
-) )?0:
-(src_trigin_type == 2'b10 && (src_trig_req_type == 1||src_trig_req_type == 3) )?1:0;
+src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_trig_req_type == 1
+)*/ )?0:
+(src_trigin_type == 2'b10 /*&& (src_trig_req_type == 1||src_trig_req_type == 3)*/ )?1:0;
                 end
                 
                 
@@ -1498,9 +1498,9 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                     else if(ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 2 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (src_y_left == 1) &&(area_src < area_des))begin
                         ARLEN <= ((src_x_left - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len}  : src_x_left - 1;
                     end
-                    else if((src_trig_req_type_reg == 'd0 && use_src_trigin) || (src_xaddr_inc > 1) || (src_xaddr_inc < 0)) 
+                    else if(/*src_trig_req_type_reg == 'd0 &&*/ (src_xaddr_inc > 1) || (src_xaddr_inc < 0)) 
                         ARLEN <= 'd0;
-                    else if(src_trig_req_type_reg == 'd2)
+                    else /*if(src_trig_req_type_reg == 'd2)*/
                         ARLEN <= ((src_x_transfer_count_remaining - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len} : src_x_transfer_count_remaining - 1;
                     
                     ARBURST <= ((src_xaddr_inc == 1)) ? 2'b01 : 2'b00;
@@ -1522,7 +1522,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
                           
                          if(src_tmplt[m] ) begin
                          src_tmplt_flag <= 1;
-                          ARVALID <= ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1))? 1 :0;
+                          ARVALID <= (((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
                           ARQOS <= ch_prio;
                           ARADDR <= (!src_tmplt_flag)?initial_tmplt_addr_src + m * (2**transize):ARADDR;      end                      
                    end
@@ -1538,14 +1538,16 @@ src_trigack_type <= (src_trigin_type == 2'b10 && (src_trig_req_type == 0||src_tr
 //                         ARVALID <= 1;
 //                    end
                     else if (case6 && x_type == 'd2 ) begin
-                          ARVALID <= ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1))? 1 :0;
+                          ARVALID <= ( ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
                          ARQOS <= ch_prio;
                         ARADDR <= (ARVALID_reg)?ARADDR : src_addr_reg + 
                                   ((srcx_transfer_count_initial_reg_2d_wrap - src_x_transfer_count_remaining) * 
                                   ((2**transize) * src_xaddr_inc_sign));
                     end
                     else begin
-                          ARVALID <= ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1))? 1 :0;
+                    
+                    
+                          ARVALID <= ( ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
                      ARQOS <= ch_prio;
                         ARADDR <= (ARVALID)?ARADDR : src_addr_reg + 
                                   (src_x_left_initial - src_x_transfer_count_remaining) * 
@@ -2078,11 +2080,11 @@ end
                         AWVALID <=(fifo_ptr_diff >= 1)? 1 :0;
                         AWLEN <= 'd0;
                      end
-                     else if(des_trig_req_type_reg == 'd0 && use_des_trigin  || (des_xaddr_inc > 1) || (des_xaddr_inc < 0)) begin   
+                     else if(/*des_trig_req_type_reg == 'd0 &&*/ (des_xaddr_inc > 1) || (des_xaddr_inc < 0)) begin   
                         AWVALID <=(fifo_ptr_diff >= 1)? 1 :0;
                         AWLEN <= 'd0;
                     end
-                    else if(des_trig_req_type_reg == 'd2) begin 
+                    else /*if(des_trig_req_type_reg == 'd2)*/ begin 
                         if((ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (des_y_left == 1) &&(area_src < area_des))/* || y_type == 0*/) begin
                             AWVALID <=({2'b00,fifo_ptr_diff} > AWLEN_wire1 )? 1 :0;
                             AWLEN <= ((des_x_left - 1) > des_max_burst_len) ? {4'd0,des_max_burst_len} : des_x_left - 1;
