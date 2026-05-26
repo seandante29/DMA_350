@@ -129,24 +129,32 @@ module mux_logic #(parameter WIDTH = 32)
     wire [31:0] auto_restart_config_CMD = cmd_data_in [(WIDTH*30)-1 : (WIDTH*29)];
     wire [31:0] CH_next_cmd_addr_CMD = cmd_data_in [(WIDTH*31)-1:(WIDTH*30)];
     wire [31:0] DEFAULT_VALUE = 32'd0;
+    wire [31:0] DEFAULT_VALUE_CTRL = 'h00200200 ;
+    wire [31:0] DEFAULT_VALUE_SRCTRANSCFG ='h000f0000 ;
+    wire [31:0] DEFAULT_VALUE_DESTRANSCFG = 'h000f0000;
+    wire [31:0] DEFAULT_VALUE_SRCTMPLT = 'h00000001;
+    wire [31:0] DEFAULT_VALUE_DESTMPLT = 'h00000001;
+    
+    
+    
     wire REGCLEAR = HEADER_CMD[0];
     wire [(WIDTH * 19) -1:0] concat_cmd;
     integer i,j;
     
-    mux m0 (control_config,DEFAULT_VALUE,control_config_CMD,REGCLEAR,HEADER_CMD[3],concat_cmd[(WIDTH*2)-1:(WIDTH*1)]);
+    mux m0 (control_config,DEFAULT_VALUE_CTRL,control_config_CMD,REGCLEAR,HEADER_CMD[3],concat_cmd[(WIDTH*2)-1:(WIDTH*1)]);
     mux m1 (interrupt_enable,DEFAULT_VALUE,interrupt_enable_CMD,REGCLEAR,HEADER_CMD[2],concat_cmd[(WIDTH*1)-1:0]);
     mux m2 (read_base_addr_INITIAL,DEFAULT_VALUE,read_base_addr_CMD,REGCLEAR,HEADER_CMD[4],concat_cmd[(WIDTH*3)-1:(WIDTH*2)]);
     mux m3 (write_base_addr_INITIAL,DEFAULT_VALUE,write_base_addr_CMD,REGCLEAR,HEADER_CMD[6],concat_cmd[(WIDTH*4)-1:(WIDTH*3)]);
     mux m4 ({DESx_transfer_count_INITIAL[15:0],SRCx_transfer_count_INITIAL[15:0]},DEFAULT_VALUE,x_transfer_count_CMD,REGCLEAR,HEADER_CMD[8],concat_cmd[(WIDTH*5)-1:(WIDTH*4)]);
-    mux m5 (read_transfer_cfg,DEFAULT_VALUE,read_transfer_cfg_CMD,REGCLEAR,HEADER_CMD[10],concat_cmd[(WIDTH*6)-1:(WIDTH*5)]);
-    mux m6 (write_transfer_cfg,DEFAULT_VALUE,write_transfer_cfg_CMD,REGCLEAR,HEADER_CMD[11],concat_cmd[(WIDTH*7)-1:(WIDTH*6)]);
+    mux m5 (read_transfer_cfg,DEFAULT_VALUE_SRCTRANSCFG,read_transfer_cfg_CMD,REGCLEAR,HEADER_CMD[10],concat_cmd[(WIDTH*6)-1:(WIDTH*5)]);
+    mux m6 (write_transfer_cfg,DEFAULT_VALUE_DESTRANSCFG,write_transfer_cfg_CMD,REGCLEAR,HEADER_CMD[11],concat_cmd[(WIDTH*7)-1:(WIDTH*6)]);
     mux m7 (addr_increment_cfg,DEFAULT_VALUE,addr_increment_cfg_CMD,REGCLEAR,HEADER_CMD[12],concat_cmd[(WIDTH*8)-1:(WIDTH*7)]);
     mux m8 (line_stride,DEFAULT_VALUE,line_stride_CMD,REGCLEAR,HEADER_CMD[13],concat_cmd[(WIDTH*18)-1:(WIDTH*17)]);
     mux m9 (fill_data,DEFAULT_VALUE,fill_data_CMD,REGCLEAR,HEADER_CMD[14],concat_cmd[(WIDTH*9)-1:(WIDTH*8)]);
     mux m10 ({DESy_transfer_count_INITIAL[15:0],SRCy_transfer_count_INITIAL[15:0]},DEFAULT_VALUE,y_transfer_count_CMD,REGCLEAR,HEADER_CMD[15],concat_cmd[(WIDTH*19)-1:(WIDTH*18)]);
     mux m11 (template_config,DEFAULT_VALUE,template_config_CMD,REGCLEAR,HEADER_CMD[16],concat_cmd[(WIDTH*10)-1:(WIDTH*9)]);
-    mux m12 (read_template_data,DEFAULT_VALUE,read_template_data_CMD,REGCLEAR,HEADER_CMD[17],concat_cmd[(WIDTH*11)-1:(WIDTH*10)]);
-    mux m13 (write_template_data,DEFAULT_VALUE,write_template_data_CMD,REGCLEAR,HEADER_CMD[18],concat_cmd[(WIDTH*12)-1:(WIDTH*11)]);
+    mux m12 (read_template_data,DEFAULT_VALUE_SRCTMPLT,read_template_data_CMD,REGCLEAR,HEADER_CMD[17],concat_cmd[(WIDTH*11)-1:(WIDTH*10)]);
+    mux m13 (write_template_data,DEFAULT_VALUE_DESTMPLT,write_template_data_CMD,REGCLEAR,HEADER_CMD[18],concat_cmd[(WIDTH*12)-1:(WIDTH*11)]);
     mux m14 (read_trigger_cfg,DEFAULT_VALUE,read_trigger_cfg_CMD,REGCLEAR,HEADER_CMD[19],concat_cmd[(WIDTH*13)-1:(WIDTH*12)]);
     mux m15 (write_trigger_cfg,DEFAULT_VALUE,write_trigger_cfg_CMD,REGCLEAR,HEADER_CMD[20],concat_cmd[(WIDTH*14)-1:(WIDTH*13)]);
     mux m16 (trigger_out_cfg,DEFAULT_VALUE,trigger_out_cfg_CMD,REGCLEAR,HEADER_CMD[21],concat_cmd[(WIDTH*15)-1:(WIDTH*14)]);
@@ -232,7 +240,17 @@ module mux_logic #(parameter WIDTH = 32)
     
     always @(posedge clk or negedge resetn) begin
         if (!resetn) begin
-            mux_out_reg [(WIDTH*21)-1 :0]  <= 'd0;
+            mux_out_reg[(WIDTH*1)-1:0] <= 0;
+            mux_out_reg[(WIDTH*2)-1:(WIDTH*1)] <=0;
+           mux_out_reg[(WIDTH*3)-1:(WIDTH*2)] <= 0;
+           mux_out_reg[(WIDTH*7)-1:(WIDTH*4)] <= 0;
+           mux_out_reg[(WIDTH*12)-1:(WIDTH*9)] <= 0;
+           mux_out_reg[(WIDTH*21)-1:(WIDTH*14)] <= 0;
+             mux_out_reg[(WIDTH*4)-1:(WIDTH*3)] <= 'h00200200;// ch_ctrl
+                mux_out_reg[(WIDTH*8)-1:(WIDTH*7)] <= 'h000f0000;//ch_srctranscfg
+                mux_out_reg[(WIDTH*9)-1:(WIDTH*8)] <= 'h000f0000;//ch_destranscfg
+                mux_out_reg[(WIDTH*13)-1:(WIDTH*12)] <= 'h00000001;//ch_srctmplt
+                mux_out_reg[(WIDTH*14)-1:(WIDTH*13)] <= 'h00000001;//ch_destmplt
         end
         else begin
             // WORD 0 : CMD
