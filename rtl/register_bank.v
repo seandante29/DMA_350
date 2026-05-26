@@ -131,9 +131,49 @@ integer i;
 always @(posedge clk or negedge resetn) begin
     if (!resetn) begin
         for (i = 0; i < NUM_CH*DEPTH; i = i + 1)
-            reg_mem[i] <= {WIDTH{1'b0}};
+//        if(!((i == 'd12) || (i == 'd40) || (i == 'd44)|| (i == 'd68)|| (i == 'd72) || (i == 256+12) || (i == 256+40) || (i == 256+44)|| (i == 256+68)|| (i == 256+72) ||
+//        (i == 512+12) || (i == 512+40) || (i == 512+44)|| (i == 512+68)|| (i == 512+72)))
+             reg_mem[i] <= {WIDTH{1'b0}};
+//         else
+//            begin
+//            reg_mem[12] <= 'h00200200;// ch_ctrl
+//                reg_mem[40] <= 'h000f0000;//ch_srctranscfg
+//                reg_mem[44] <= 'h000f0000;//ch_destranscfg
+//                reg_mem[68] <= 'h00000001;//ch_srctmplt
+//                reg_mem[72] <= 'h00000001;//ch_destmplt
+                
+//                reg_mem[256+12] <= 'h00200200;// ch_ctrl
+//                reg_mem[256+40] <= 'h000f0000;//ch_srctranscfg
+//                reg_mem[256+44] <= 'h000f0000;//ch_destranscfg
+//                reg_mem[256+68] <= 'h00000001;//ch_srctmplt
+//                reg_mem[256+72] <= 'h00000001;//ch_destmplt
+                
+//                reg_mem[512+12] <= 'h00200200;// ch_ctrl
+//                reg_mem[512+40] <= 'h000f0000;//ch_srctranscfg
+//                reg_mem[512+44] <= 'h000f0000;//ch_destranscfg
+//                reg_mem[512+68] <= 'h00000001;//ch_srctmplt
+//                reg_mem[512+72] <= 'h00000001;//ch_destmplt    
+//            end
+           
     end
     else begin
+//         reg_mem[12] <= 'h00200200;// ch_ctrl
+//            reg_mem[40] <= 'h000f0000;//ch_srctranscfg
+//            reg_mem[44] <= 'h000f0000;//ch_destranscfg
+//            reg_mem[68] <= 'h00000001;//ch_srctmplt
+//            reg_mem[72] <= 'h00000001;//ch_destmplt
+            
+//            reg_mem[256+12] <= 'h00200200;// ch_ctrl
+//            reg_mem[256+40] <= 'h000f0000;//ch_srctranscfg
+//            reg_mem[256+44] <= 'h000f0000;//ch_destranscfg
+//            reg_mem[256+68] <= 'h00000001;//ch_srctmplt
+//            reg_mem[256+72] <= 'h00000001;//ch_destmplt
+            
+//            reg_mem[512+12] <= 'h00200200;// ch_ctrl
+//            reg_mem[512+40] <= 'h000f0000;//ch_srctranscfg
+//            reg_mem[512+44] <= 'h000f0000;//ch_destranscfg
+//            reg_mem[512+68] <= 'h00000001;//ch_srctmplt
+//            reg_mem[512+72] <= 'h00000001;//ch_destmplt    
         if (cfg_wr_en) begin
             if (!(addr_w == 8'h80 || addr_w == 8'h8C || addr_w == 8'h90))
                 if ((!reg_mem[ch_idx*DEPTH][0]) || addr_w == 8'h00 || addr_w == 8'h04 || addr_w == 8'h88)
@@ -148,8 +188,8 @@ always @(posedge clk or negedge resetn) begin
             reg_mem[ch_idx*DEPTH + 8'h30] <= chn_reg_in[((18*ch_idx)+12)*WIDTH +: WIDTH];
             reg_mem[ch_idx*DEPTH + 8'h38] <= chn_reg_in[((18*ch_idx)+11)*WIDTH +: WIDTH];
             reg_mem[ch_idx*DEPTH + 8'h40] <= chn_reg_in[((18*ch_idx)+10)*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h44] <= chn_reg_in[((18*ch_idx)+9)*WIDTH +: WIDTH];
-            reg_mem[ch_idx*DEPTH + 8'h48] <= chn_reg_in[((18*ch_idx)+8)*WIDTH +: WIDTH];
+            reg_mem[ch_idx*DEPTH + 8'h44] <= {chn_reg_in[(((18*ch_idx)+9)*WIDTH)+1 +: WIDTH-1],1'b1};
+            reg_mem[ch_idx*DEPTH + 8'h48] <= {chn_reg_in[(((18*ch_idx)+8)*WIDTH)+1 +: WIDTH-1],1'b1};
             reg_mem[ch_idx*DEPTH + 8'h4C] <= chn_reg_in[((18*ch_idx)+7)*WIDTH +: WIDTH];
             reg_mem[ch_idx*DEPTH + 8'h50] <= chn_reg_in[((18*ch_idx)+6)*WIDTH +: WIDTH];
             reg_mem[ch_idx*DEPTH + 8'h54] <= chn_reg_in[((18*ch_idx)+5)*WIDTH +: WIDTH];
