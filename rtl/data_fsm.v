@@ -994,7 +994,7 @@ end
                     reg1 <= 1;
                     fifo_wptr       <= 0;
                     reg2 <= reg1;
-                    if(reg2) begin
+                    if(reg2 && (!DONE_temp || reg_reload_type == 0) ) begin
                      // no trnasfer
                         ycase1 <= ((srcx_transfer_count == 0 || src_y_transfer_count == 0) &&
                                        (!(desx_transfer_count > 0 && des_y_transfer_count > 0)));
@@ -1036,14 +1036,15 @@ end
                    // des_addr_reg <= des_ADDR;
                    if((restart_cnt_reg > 0 || cmd_restart_en)&& !DONE_temp)begin
                     src_addr_reg <= SRC_ADDR;
+                    src_x_transfer_count_reload <= srcx_transfer_count;//(src_trigin_blk_size > srcx_transfer_count)?srcx_transfer_count:src_trigin_blk_size;
+                   des_x_transfer_count_reload <= desx_transfer_count;//(des_trigin_blk_size > desx_transfer_count)?desx_transfer_count:des_trigin_blk_size;
+                   src_y_transfer_count_reload <= src_y_transfer_count;
+                   des_y_transfer_count_reload <= des_y_transfer_count;
 //                     src_addr_reload <= read_base_addr_INITIAL;
 //                   des_addr_reload <= write_base_addr_INITIAL;
                    // des_addr_reg <= des_ADDR;
                     end
-                   src_x_transfer_count_reload <= srcx_transfer_count;//(src_trigin_blk_size > srcx_transfer_count)?srcx_transfer_count:src_trigin_blk_size;
-                   des_x_transfer_count_reload <= desx_transfer_count;//(des_trigin_blk_size > desx_transfer_count)?desx_transfer_count:des_trigin_blk_size;
-                   src_y_transfer_count_reload <= src_y_transfer_count;
-                   des_y_transfer_count_reload <= des_y_transfer_count;
+                   
                  //  src_addr_reload <= (restart_cnt_reg == 0)?SRC_ADDR:src_addr_reload;
                  
                    src_addr_reload <= (DONE_temp)? src_addr_reload : SRC_ADDR;
@@ -1204,7 +1205,7 @@ end
                                         src_x_left <= desx_transfer_count;
                                      case(y_type)
                                           0:src_y_left <= 0;
-                                            1:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:des_y_transfer_count;
+                                            1:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
                                             2:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?src_y_transfer_count:des_y_transfer_count;
                                             3:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
                                             default : src_y_left <= src_y_transfer_count;
