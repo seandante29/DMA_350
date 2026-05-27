@@ -1196,13 +1196,13 @@ end
                             config_error_x_type <= 1;
                         end 
                     else if (case3 || (ycase3)) //read only
-                              src_x_left <= srcx_transfer_count;
+                              src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                        // config_error_case3 <= 1;
                          else if(ycase5 && y_type !=0)
                             begin 
                                 if(srcx_transfer_count == desx_transfer_count)
                                     begin
-                                        src_x_left <= desx_transfer_count;
+                                        src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;
                                      case(y_type)
                                           0:src_y_left <= 0;
                                             1:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
@@ -1217,7 +1217,7 @@ end
                                     if(src_y_transfer_count >= des_y_transfer_count)
                                     begin
                                         src_y_left <= des_y_transfer_count;
-                                         src_x_left <= (x_type == 1)? srcx_transfer_count : desx_transfer_count;
+                                         src_x_left <= (x_type == 1)?((cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count) : desx_transfer_count;
                                     end
 //                                    else if(src_y_transfer_count < des_y_transfer_count)begin
 //                                    case(y_type)
@@ -1233,7 +1233,7 @@ end
                                    begin
                                        if(x_type == 2 || x_type == 3)  //xtype ==1 yet to add
                                        begin
-                                       src_x_left <= desx_transfer_count;
+                                       src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1244,7 +1244,7 @@ end
                                        end
                                   else if((((srcx_transfer_count * src_y_transfer_count) == (desx_transfer_count * des_y_transfer_count))) && x_type == 1)
                                         begin
-                                       src_x_left <= srcx_transfer_count;
+                                       src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1256,7 +1256,7 @@ end
                                   
                                    else if((((srcx_transfer_count * src_y_transfer_count)% desx_transfer_count ) == 0) && x_type == 1)
                                         begin
-                                       src_x_left <= srcx_transfer_count;
+                                       src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1267,7 +1267,7 @@ end
                                        end      
                                    else if((((srcx_transfer_count * src_y_transfer_count)% desx_transfer_count ) != 0) && x_type == 1)
                                         begin
-                                       src_x_left <= srcx_transfer_count;
+                                       src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1285,10 +1285,10 @@ end
                                     begin
                                        case (x_type)
                                             0: begin src_x_left <= 0; end
-                                            1: begin src_x_left <= srcx_transfer_count;end
-                                            2: begin src_x_left <= desx_transfer_count;end
-                                            3: begin src_x_left <= srcx_transfer_count;end
-                                            default: begin src_x_left <= srcx_transfer_count;  end
+                                            1: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;end
+                                            2: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;end
+                                            3: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;end
+                                            default: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;  end
                                         endcase 
                                       
                                         case(y_type)
@@ -1303,7 +1303,7 @@ end
                                 else if((src_y_transfer_count >= des_y_transfer_count) && x_type == 1)begin
                                     if((srcx_transfer_count * src_y_transfer_count) % desx_transfer_count == 0)
                                     begin
-                                        src_x_left <= /*(y_type == 2)? desx_transfer_count :*/ srcx_transfer_count;
+                                        src_x_left <= /*(y_type == 2)? desx_transfer_count :*/ (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1315,7 +1315,7 @@ end
                                     
                                     else if((((srcx_transfer_count * src_y_transfer_count)% desx_transfer_count ) != 0) && x_type == 1)
                                         begin
-                                       src_x_left <= srcx_transfer_count;
+                                       src_x_left <=(cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1329,7 +1329,7 @@ end
                                 
                                 else if(src_y_transfer_count < des_y_transfer_count) begin
                                     if(x_type == 2)begin
-                                    src_x_left <= desx_transfer_count;
+                                    src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1339,7 +1339,7 @@ end
                                         endcase
                                     end
                                     else if(x_type == 3)begin
-                                    src_x_left <= srcx_transfer_count;
+                                    src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
@@ -1352,23 +1352,23 @@ end
                                     
                                         case(y_type)
                                             0 : begin
-                                                src_x_left <= srcx_transfer_count;
+                                                src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                                 src_y_left <= src_y_transfer_count;
                                             end
                                             1 :  begin
-                                                src_x_left <= srcx_transfer_count;
+                                                src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                                 src_y_left <= src_y_transfer_count;
                                             end //continue
                                             2 : begin
-                                                src_x_left <= srcx_transfer_count;
+                                                src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                                 src_y_left <= (area_des > area_src) ? ((area_des % srcx_transfer_count==0)? (area_des/srcx_transfer_count) :((area_des/srcx_transfer_count) +1)): src_y_transfer_count;
                                             end// wrap
                                             3 :  begin
-                                                src_x_left <= srcx_transfer_count;
+                                                src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                                 src_y_left <= src_y_transfer_count;
                                             end //fill
                                         default: begin
-                                                src_x_left <= srcx_transfer_count;
+                                                src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;
                                                 src_y_left <= src_y_transfer_count;
                                             end 
                                         endcase
@@ -1405,18 +1405,18 @@ end
                         
                                
                     else if ((case4 || case5)) begin
-                        /*if((cmd_restart_en || cmd_restart_cnt != 0))
-                            src_x_left <= (src_trigin_blk_size > src_x_transfer_count_reload)?src_x_transfer_count_reload:src_trigin_blk_size;
-                        else*/
+                        if((cmd_restart_en || cmd_restart_cnt != 0))
+                            src_x_left <= des_x_transfer_count_reload;
+                        else
 
                             src_x_left <= desx_transfer_count;//(src_trigin_blk_size > desx_transfer_count)?desx_transfer_count:src_trigin_blk_size;
                     end else if (case6) begin
                         case (x_type)
                             0: begin src_x_left <= 0; end
-                            1: begin src_x_left <= srcx_transfer_count;end//(src_trigin_blk_size > srcx_transfer_count)?srcx_transfer_count:src_trigin_blk_size; end
-                            2: begin src_x_left <= desx_transfer_count;end// (src_trigin_blk_size > desx_transfer_count)?desx_transfer_count:src_trigin_blk_size; end
-                            3: begin src_x_left <= srcx_transfer_count;end//(src_trigin_blk_size > srcx_transfer_count)?srcx_transfer_count:src_trigin_blk_size; end
-                            default: begin src_x_left <= srcx_transfer_count; config_error_case6 <= 1; end
+                            1: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;end//(src_trigin_blk_size > srcx_transfer_count)?srcx_transfer_count:src_trigin_blk_size; end
+                            2: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;end// (src_trigin_blk_size > desx_transfer_count)?desx_transfer_count:src_trigin_blk_size; end
+                            3: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count;end//(src_trigin_blk_size > srcx_transfer_count)?srcx_transfer_count:src_trigin_blk_size; end
+                            default: begin src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count; config_error_case6 <= 1; end
                         endcase
                     end
                   
@@ -1866,7 +1866,7 @@ if(rd_state == RD_CONFIG) begin
     end 
     else if (case2 || ycase2) begin
         if ((x_type == 3 && case2) || (ycase2 && y_type == 3 && x_type == 3)) begin
-            des_x_left <= desx_transfer_count;
+            des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
         end
     end 
 
@@ -1880,11 +1880,11 @@ if(rd_state == RD_CONFIG) begin
     else if (ycase5 && y_type !=0 ) begin
 
         if (srcx_transfer_count == desx_transfer_count) begin
-            des_x_left <= desx_transfer_count;
+            des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)?des_x_transfer_count_reload : desx_transfer_count;
 
             case (y_type)
                 0: des_y_left <= 0;
-                1: des_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
+                1: des_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_x_transfer_count_reload : desx_transfer_count;
                 2: des_y_left <= des_y_transfer_count;
                 3: des_y_left <= des_y_transfer_count;
                 default: des_y_left <= des_y_transfer_count;
@@ -1895,12 +1895,12 @@ if(rd_state == RD_CONFIG) begin
 
             if (src_y_transfer_count >= des_y_transfer_count) begin
                 des_y_left <= des_y_transfer_count;
-                des_x_left <= desx_transfer_count;
+                des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;
             end
 
             else begin
                 if (x_type == 2 || x_type == 3) begin
-                    des_x_left <= desx_transfer_count;
+                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;
 
                     case (y_type)
                         0: des_y_left <= des_y_transfer_count;
@@ -1912,7 +1912,7 @@ if(rd_state == RD_CONFIG) begin
                 end
 
                 else if (((srcx_transfer_count * src_y_transfer_count) % desx_transfer_count == 0) && (x_type == 1)) begin
-                    des_x_left <= desx_transfer_count;
+                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)?  des_x_transfer_count_reload : desx_transfer_count;
 
                     case (y_type)
                         0: des_y_left <= des_y_transfer_count;
@@ -1924,7 +1924,7 @@ if(rd_state == RD_CONFIG) begin
                 end
 
                 else if (((srcx_transfer_count * src_y_transfer_count) % desx_transfer_count != 0) && (x_type == 1)) begin
-                    des_x_left <= desx_transfer_count;
+                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)?  des_x_transfer_count_reload:desx_transfer_count;
 
                     case (y_type)
                         0: des_y_left <= des_y_transfer_count;
@@ -1950,16 +1950,16 @@ if(rd_state == RD_CONFIG) begin
                     end
 
                     1: begin
-                        des_x_left <= srcx_transfer_count;
+                        des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload:srcx_transfer_count;
                     end
 
                     2: begin
-                        des_x_left <= desx_transfer_count;
+                        des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                         des_y_left <= des_y_transfer_count;
                     end
 
                     3: begin
-                        des_x_left <= desx_transfer_count;
+                        des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                         des_y_left <= des_y_transfer_count;
                     end
 
@@ -1972,7 +1972,7 @@ if(rd_state == RD_CONFIG) begin
            else if(src_y_transfer_count >= des_y_transfer_count && x_type == 1)begin
                     if(area_src % desx_transfer_count == 0)
                     begin
-                        des_x_left <= desx_transfer_count;
+                        des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                         case(y_type)
                             0 : des_y_left <= des_y_transfer_count;
                             1 : des_y_left <= area_src/desx_transfer_count; //continue
@@ -1985,7 +1985,7 @@ if(rd_state == RD_CONFIG) begin
                     
                      else if((((srcx_transfer_count * src_y_transfer_count)% desx_transfer_count ) != 0) && x_type == 1)
                                         begin
-                                       des_x_left <= desx_transfer_count;
+                                       des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                                         case(y_type)
                                             0 : des_y_left <= src_y_transfer_count;
                                             1 : des_y_left <= (area_src > area_des) ? des_y_transfer_count :((srcx_transfer_count * src_y_transfer_count) / desx_transfer_count) + 1; //continue
@@ -1998,7 +1998,7 @@ if(rd_state == RD_CONFIG) begin
                 end 
                  else if(src_y_transfer_count < des_y_transfer_count) begin
                     if(x_type == 2)begin
-                        des_x_left <= desx_transfer_count;
+                        des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                             case(y_type)
                                 0 : des_y_left <= des_y_transfer_count;
                                 1 : des_y_left <= src_y_transfer_count; //continue
@@ -2008,7 +2008,7 @@ if(rd_state == RD_CONFIG) begin
                             endcase
                         end
                         else if(x_type == 3)begin
-                        des_x_left <= desx_transfer_count;
+                        des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                             case(y_type)
                                 0 : des_y_left <= des_y_transfer_count;
                                 1 : des_y_left <= src_y_transfer_count; //continue
@@ -2021,23 +2021,23 @@ if(rd_state == RD_CONFIG) begin
 
                             case(y_type)
                                 0 : begin
-                                    des_x_left <= desx_transfer_count;
+                                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)?des_x_transfer_count_reload: desx_transfer_count;
                                     des_y_left <= des_y_transfer_count;
                                 end
                                 1 :  begin
-                                    des_x_left <= desx_transfer_count;
+                                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                                     des_y_left <= (((srcx_transfer_count * src_y_transfer_count)% desx_transfer_count ) == 0) ? (area_src)/desx_transfer_count : ((area_src)/desx_transfer_count + 1);
                                 end //continue
                                 2 : begin
-                                    des_x_left <= desx_transfer_count;
+                                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                                     des_y_left <= des_y_transfer_count;
                                 end// wrap
                                 3 :  begin
-                                    des_x_left <= desx_transfer_count;
+                                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                                     des_y_left <= des_y_transfer_count/*(area_src)/desx_transfer_count*/;// should add fill y count
                                 end //fill
                             default: begin
-                                    des_x_left <= desx_transfer_count;
+                                    des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
                                     des_y_left <= des_y_transfer_count;
                                 end 
                             endcase
@@ -2050,7 +2050,7 @@ if(rd_state == RD_CONFIG) begin
     // OTHER CASES (FIXED DUPLICATE ycase5)
     //------------------------------------------
     else if (case4 || case5) begin
-        des_x_left <= desx_transfer_count;
+        des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
     end 
 
     else if (case6) begin
@@ -2060,19 +2060,19 @@ if(rd_state == RD_CONFIG) begin
             end
 
             1: begin
-                des_x_left <= srcx_transfer_count;
+                des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload:srcx_transfer_count;
             end
 
             2: begin
-                des_x_left <= desx_transfer_count;
+                des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
             end
 
             3: begin
-                des_x_left <= desx_transfer_count;
+                des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
             end
 
             default: begin
-                des_x_left <= desx_transfer_count;
+                des_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload:desx_transfer_count;
             end
         endcase
     end
@@ -2193,8 +2193,8 @@ end
                     if(des_y_left > 1 )
                     begin
                     if(ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 1 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (des_y_left == 2) &&(area_src < area_des))begin
-                            des_x_left <= area_src % desx_transfer_count;
-                            des_x_transfer_count_remaining_2d <= area_src % desx_transfer_count; 
+                            des_x_left <= area_src % desx_transfer_count_reg;
+                            des_x_transfer_count_remaining_2d <= area_src % desx_transfer_count_reg; 
                    end
                     else begin
                         des_x_left <= des_x_left_initial;
