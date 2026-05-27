@@ -368,12 +368,12 @@ end
                     ARVALID <= 1; 
                     ARQOS <= ch_prio;         
                     if (count == 0) begin
-                        ARADDR <= next_cmd_addr;
+                        ARADDR <= {next_cmd_addr[29:0],2'b00};
                         ARLEN <= 0;
                          ARBURST <= 1;
                     end
                     else begin
-                        ARADDR <= (max_transfer_count) ? next_cmd_addr + 20 : next_cmd_addr + 4;
+                        ARADDR <= (!ARVALID) ? ( (max_transfer_count) ? ARADDR + 'h40 :ARADDR + 'h4) : ARADDR;
                       
                         if (max_transfer_count) begin
                             ARLEN <= count_reg - 'd17;
