@@ -1522,7 +1522,16 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                           
                          if(src_tmplt[m] ) begin
                          src_tmplt_flag <= 1;
-                          ARVALID <= (((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
+                         // ARVALID <= (((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
+                          if((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)) begin
+                            if(ARVALID && ARREADY)
+                                ARVALID <= 0;
+                            else
+                                ARVALID <= 1;
+                        end
+                        else begin
+                            ARVALID <= 0;
+                        end
                           ARQOS <= ch_prio;
                           ARADDR <= (!src_tmplt_flag)?initial_tmplt_addr_src + m * (2**transize):ARADDR;      end                      
                    end
@@ -1538,7 +1547,17 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
 //                         ARVALID <= 1;
 //                    end
                     else if (case6 && x_type == 'd2 ) begin
-                          ARVALID <= ( ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
+                          //ARVALID <= ( ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
+                           if((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)) begin
+                            if(ARVALID && ARREADY)
+                                ARVALID <= 0;
+                            else
+                                ARVALID <= 1;
+                        end
+                        else begin
+                            ARVALID <= 0;
+                        end
+                        
                          ARQOS <= ch_prio;
                         ARADDR <= (ARVALID_reg)?ARADDR : src_addr_reg + 
                                   ((srcx_transfer_count_initial_reg_2d_wrap - src_x_transfer_count_remaining) * 
@@ -1547,7 +1566,16 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                     else begin
                     
                     
-                          ARVALID <= ( ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
+                        //  ARVALID <= ( ((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)))? 1 :0;
+                         if((32-fifo_ptr_diff) >= (ARLEN_wire1 + 1)) begin
+                            if(ARVALID && ARREADY)
+                                ARVALID <= 0;
+                            else
+                                ARVALID <= 1;
+                        end
+                        else begin
+                            ARVALID <= 0;
+                        end
                      ARQOS <= ch_prio;
                         ARADDR <= (ARVALID)?ARADDR : src_addr_reg + 
                                   (src_x_left_initial - src_x_transfer_count_remaining) * 
