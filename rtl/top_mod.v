@@ -69,7 +69,7 @@ parameter WIDTH = 32,
       output wire [DATA_W -1 :0] WDATA_D,
       output wire WLAST_D,
       output wire BREADY_D,
-      output  wire IRQ
+      output  wire [NUM_CH -1:0]IRQ
     );
     
     // wires for connecting configutations from apb reg to global channel
