@@ -1293,7 +1293,7 @@ end
                                       
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
-                                            1 : src_y_left <= src_y_transfer_count; //continue
+                                            1 : src_y_left <= (x_type == 'd2 || x_type == 'd3)? des_y_transfer_count : src_y_transfer_count; //continue
                                             2 : src_y_left <= des_y_transfer_count; // wrap
                                             3 : src_y_left <= des_y_transfer_count; //fill
                                         default: src_y_left <= src_y_transfer_count;
