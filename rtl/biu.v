@@ -578,13 +578,14 @@ always @( * ) begin
     else
         case (rd_state)
            RD_IDLE:begin
-    
+               if (ch0_ARVALID || ch1_ARVALID || ch2_ARVALID)     
                     rd_state_next = RD_AR;
-    
+                else 
+                    rd_state_next = RD_IDLE;
             end
     
             RD_AR: begin
-                if (ARREADY_reg && ARVALID)
+                if (ARREADY && ARVALID)
                     rd_state_next = RD_R;
                 else
                     rd_state_next = RD_AR;
