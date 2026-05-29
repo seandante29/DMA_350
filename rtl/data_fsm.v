@@ -1730,7 +1730,9 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                         src_x_transfer_count_remaining <= (case6 && x_type ==2 )? srcx_transfer_count_initial_reg : {6'd0,src_x_left_initial};
                         //src_x_transfer_count_remaining <= src_x_left_initial;
                         if(ycase5 && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) != 0) && x_type == 1)&& y_type == 2 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (src_y_left == 2) &&(area_src < area_des))begin
-                            src_x_left <= area_des % srcx_transfer_count_reg;//srcx_transfer_count
+                                src_x_left <= ((area_des % srcx_transfer_count_reg) == 0) ? srcx_transfer_count_reg : area_des % srcx_transfer_count_reg ;//srcx_transfer_count
+
+                            //  src_x_left <= area_des % srcx_transfer_count_reg;//srcx_transfer_count
 //                        src_x_transfer_count_remaining <= area_des % srcx_transfer_count;
                     end
 //                        if((ycase5 && y_type == 2) && src_y_transfer_count_remaining == 1 && src_y_left !=1)begin
