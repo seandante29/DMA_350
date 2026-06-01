@@ -413,7 +413,13 @@ end
             write_base_addr_UPDATED <= write_base_addr_UPDATED;
             //x_transfer_count_UPDATED <= (case6 && x_type == 2)?(src_x_transfer_count_remaining == 0 && src_x_left <= srcx_transfer_count_reg && src_x_left!=0)?x_transfer_count_UPDATED:(src_x_transfer_count_remaining>=src_x_left)?({des_x_left,src_x_left}):{des_x_left,srcx_transfer_count_reg-((desx_transfer_count_reg -src_x_left)%srcx_transfer_count_reg)}
             //                : (case6 && x_type == 1)? {(des_x_left+(desx_transfer_count_reg - srcx_transfer_count_reg)),src_x_left}:{des_x_left,src_x_left};// src_x_left-(desx_transfer_count_reg - srcx_transfer_count_reg)
-            if (y_type !=0) begin
+           if((cmd_restart_en || restart_cnt_reg1 != 0) && (src_x_left == 0 && des_x_left == 0 && DONE_temp) && (reg_reload_type != 0) /*&& rd_state != RD_WAIT*/)
+               /* if(*//*rd_state == RD_R ||*//* *//*rd_state == RD_PAUSED*//* )
+                     x_transfer_count_UPDATED <= {des_x_left, src_x_left};
+                 else*/
+                    x_transfer_count_UPDATED <= {des_x_transfer_count_reload,src_x_transfer_count_reload};
+           
+            else if (y_type !=0) begin
 //                x_transfer_count_UPDATED  <= (des_x_left == 0 && des_y_left !=0)?{des_x_left_initial, src_x_left}
 //                                             :(src_x_left == 0 && src_y_left !=0)?(src_x_left == 0 && src_y_left == 1)?{des_x_left, src_x_left} :{des_x_left,src_x_left_initial}
 //                                             :  {des_x_left, src_x_left};
@@ -459,11 +465,7 @@ end
             else if (case6 && x_type == 1 ) begin
                 x_transfer_count_UPDATED <= {des_x_left /*+ (desx_transfer_count_reg - srcx_transfer_count_reg)*/, src_x_left};
             end
-            else if((cmd_restart_en || restart_cnt_reg1 != 0) && (src_x_left == 0 && DONE_temp) && (reg_reload_type != 0) && rd_state != RD_WAIT)
-               /* if(*//*rd_state == RD_R ||*//* *//*rd_state == RD_PAUSED*//* )
-                     x_transfer_count_UPDATED <= {des_x_left, src_x_left};
-                 else*/
-                    x_transfer_count_UPDATED <= {des_x_transfer_count_reload,src_x_transfer_count_reload};
+            
             else begin
                 x_transfer_count_UPDATED <= {des_x_left, src_x_left};
             end 
@@ -484,7 +486,7 @@ end
             else if (case6 && x_type == 1) begin
                 y_transfer_count_UPDATED <= {des_y_left + (desy_transfer_count_reg - srcy_transfer_count_reg), src_y_left};
             end
-            else if((cmd_restart_en || restart_cnt_reg != 0) && (src_y_left == 0 && DONE_temp) && (reg_reload_type != 0))
+            else if((cmd_restart_en || restart_cnt_reg1 != 0) && (src_y_left == 0 && des_y_left == 0 &&  DONE_temp) && (reg_reload_type != 0))
                  y_transfer_count_UPDATED <= {des_y_transfer_count_reload,src_y_transfer_count_reload};
             else begin
                 y_transfer_count_UPDATED <= {des_y_left, src_y_left};
@@ -761,7 +763,10 @@ end
                     begin
                         rd_next_st = RD_WRAP_FILL;
                         if (((src_x_left == 0) && (fill_count == 0)) && DONE_temp )
-                            rd_next_st = RD_IDLE; 
+                                if(disable_cmd_partsel) 
+                                    rd_next_st = RD_IDLE;
+                                else
+                                    rd_next_st = RD_WAIT;  
                     end
                       
                      else if (src_x_left == 0 && fill_count == 0 && fill_count_y == 0)
@@ -1758,6 +1763,8 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
             
             if((rd_state == RD_R&& RLAST && !(case3 && y_type ==0))||(rd_state == RD_WRAP_FILL && fill_count == 0)||(ycase2))
                 wr_start <= 1;
+                if(/*(wr_state == W_DONE_ST || rd_state == RD_WAIT) &&*/ src_x_left == 0 && src_y_left == 0 && des_x_left == 0 && des_y_left == 0 /*&& DONE_temp*/ )
+                    wr_start <= 0;
         end
     end
     
