@@ -3,7 +3,7 @@ module trigger_matrix (
     input clk, resetn,
     // form internal register  
     input [2:0]STAT_ERR,
-	
+	input wire [2:0] enablecmd,
 	
 	// from peripherals
     // External Trigger INPUTS (from peripherals)
@@ -48,6 +48,7 @@ module trigger_matrix (
 
 wire [7:0]src_sel[2:0] ;
 wire [1:0] src_type [2:0];
+wire enablecmd_wire [2:0]; 
 wire [7:0]des_sel[2:0] ;
 wire [5:0] trigout_sel1 [2:0];
 wire [1:0] des_type [2:0];
@@ -59,6 +60,10 @@ reg trig_out_use [0:255];
 reg [1:0] trigout_allocated_to [0:255];
 reg [1:0] trig_ack_type1 [0:255];
 reg [255:0]trig_ack1 ;
+
+assign enablecmd_wire[0] = enablecmd[0];
+assign enablecmd_wire[1] = enablecmd[1];
+assign enablecmd_wire[2] = enablecmd[2]; 
 
 assign trig_ack = trig_ack1;
 assign trig_ack_type = {trig_ack_type1[5],trig_ack_type1[4],trig_ack_type1[3],trig_ack_type1[2],trig_ack_type1[1],trig_ack_type1[0]};
@@ -94,7 +99,7 @@ end
 
 else begin
     for(ch=0; ch<3; ch=ch+1) begin
-		if(use_src_trigin[ch] && src_type[ch] == 2'b10)
+		if(use_src_trigin[ch] && src_type[ch] == 2'b10 && enablecmd_wire[ch])
 		begin
 			if(src_sel[ch] >= 6)
 				SRCTRIGINSELERR[ch] <= 1'b1;
@@ -108,7 +113,7 @@ else begin
 			end
 		end
 		
-		if(use_des_trigin[ch] && des_type[ch] == 2'b10)
+		if(use_des_trigin[ch] && des_type[ch] == 2'b10 && enablecmd_wire[ch])
 		begin
             if(des_sel[ch] >= 6)
                 DESTRIGINSELERR[ch] <= 1'b1;
@@ -119,7 +124,7 @@ else begin
                 trig_allocated_to[des_sel[ch]] <= ch;
                 end
 		end
-		if(use_src_trigin[ch] && use_des_trigin[ch] && src_type[ch] == 2'b10 && des_type[ch] == 2'b10 && src_sel[ch] == des_sel[ch])
+		if(use_src_trigin[ch] && use_des_trigin[ch] && src_type[ch] == 2'b10 && des_type[ch] == 2'b10 && src_sel[ch] == des_sel[ch] && enablecmd_wire[ch])
 		begin
 			SRCTRIGINSELERR[ch] <= 1'b1;
 			DESTRIGINSELERR[ch] <= 1'b1;
@@ -143,7 +148,7 @@ end
 else begin
 	
 	for(i=0; i<3; i=i+1) begin
-		if ( !SRCTRIGINSELERR[i] &&  trig_in_use[src_sel[i]] && trig_allocated_to[src_sel[i]]== i) begin
+		if ( !SRCTRIGINSELERR[i] &&  trig_in_use[src_sel[i]] && trig_allocated_to[src_sel[i]]== i  && enablecmd_wire[ch]) begin
 		case(src_sel[i] )
 			0: begin
 				src_trig_req[i] <= trig_req[0];
@@ -195,7 +200,7 @@ else begin
 			end
 		endcase
 		end
-		if(!DESTRIGINSELERR[i] &&  trig_in_use[des_sel[i]]&& trig_allocated_to[des_sel[i]]== i) begin
+				if(!DESTRIGINSELERR[i] &&  trig_in_use[des_sel[i]]&& trig_allocated_to[des_sel[i]]== i  && enablecmd_wire[ch]) begin
 		case(des_sel[i])
 
     0: begin
@@ -263,7 +268,7 @@ always@(posedge clk or negedge resetn) begin
 	end
 	else begin
 	for(cn=0; cn<3; cn=cn+1) begin
-		if(use_trigout[cn] && trigout_type[(2 * cn) +: 2 ]  == 2'b10)
+		if(enablecmd_wire[cn] && use_trigout[cn] && trigout_type[(2 * cn) +: 2 ]  == 2'b10)
 		begin
 			if(trigout_sel1[cn ] >= 6)
 				TRIGOUTSELERR[cn] <= 1'b1;
@@ -288,7 +293,7 @@ if(!resetn) begin
 end
 else begin
 	for(m=0; m<3; m=m+1) begin
-		if( !TRIGOUTSELERR[m] && trig_out_use[trigout_sel1[m]] && trigout_allocated_to[trigout_sel1[m]] == m) begin
+				if( !TRIGOUTSELERR[m] && trig_out_use[trigout_sel1[m]] && trigout_allocated_to[trigout_sel1[m]] == m  && enablecmd_wire[m]) begin
 		case(trigout_sel1[m] )
 
 			0: begin
