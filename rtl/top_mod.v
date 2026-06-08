@@ -1,4 +1,4 @@
-module top_mod#(
+module top_mod_multi#(
 parameter WIDTH = 32,
     parameter DATA_W = 128,
     parameter DATA_WIDTH = 32,
