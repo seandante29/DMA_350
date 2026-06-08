@@ -9,6 +9,7 @@ parameter WIDTH = 32,
     parameter ADDR_W =32,
     parameter NUM_CH = 3  
 )
+
     (// apb_reg interface
       input wire clk,
       input wire resetn,
@@ -69,7 +70,7 @@ parameter WIDTH = 32,
       output wire [DATA_W -1 :0] WDATA_D,
       output wire WLAST_D,
       output wire BREADY_D,
-      output  wire [NUM_CH -1:0]IRQ
+      output  wire IRQ
     );
     
     // wires for connecting configutations from apb reg to global channel
@@ -686,6 +687,7 @@ global_channel #(
     trigger_matrix dut_trig_mtx (
     .clk(clk),
     .resetn(resetn),
+    .enablecmd({enable_cmd_to_apb_ch2,enable_cmd_to_apb_ch1,enable_cmd_to_apb_ch0}),
     // -------- STATUS --------
     .STAT_ERR ({stat_err_ch2,stat_err_ch1,stat_err_ch0}),
 
