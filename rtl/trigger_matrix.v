@@ -63,7 +63,7 @@ reg [255:0]trig_ack1 ;
 
 assign enablecmd_wire[0] = enablecmd[0];
 assign enablecmd_wire[1] = enablecmd[1];
-assign enablecmd_wire[2] = enablecmd[2]; 
+assign [2] = enablecmd[2]; 
 
 assign trig_ack = trig_ack1;
 assign trig_ack_type = {trig_ack_type1[5],trig_ack_type1[4],trig_ack_type1[3],trig_ack_type1[2],trig_ack_type1[1],trig_ack_type1[0]};
@@ -148,7 +148,7 @@ end
 else begin
 	
 	for(i=0; i<3; i=i+1) begin
-		if ( !SRCTRIGINSELERR[i] &&  trig_in_use[src_sel[i]] && trig_allocated_to[src_sel[i]]== i  && enablecmd_wire[ch]) begin
+		if ( !SRCTRIGINSELERR[i] &&  trig_in_use[src_sel[i]] && trig_allocated_to[src_sel[i]]== i  && enablecmd_wire[i]) begin
 		case(src_sel[i] )
 			0: begin
 				src_trig_req[i] <= trig_req[0];
@@ -200,7 +200,7 @@ else begin
 			end
 		endcase
 		end
-				if(!DESTRIGINSELERR[i] &&  trig_in_use[des_sel[i]]&& trig_allocated_to[des_sel[i]]== i  && enablecmd_wire[ch]) begin
+		if(!DESTRIGINSELERR[i] &&  trig_in_use[des_sel[i]]&& trig_allocated_to[des_sel[i]]== i  && enablecmd_wire[i]) begin
 		case(des_sel[i])
 
     0: begin
