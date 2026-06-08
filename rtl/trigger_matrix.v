@@ -143,7 +143,7 @@ end
 else begin
 	
 	for(i=0; i<3; i=i+1) begin
-		if ( !SRCTRIGINSELERR[i]) begin
+		if ( !SRCTRIGINSELERR[i] &&  trig_in_use[src_sel[i]] && trig_allocated_to[src_sel[i]]== i) begin
 		case(src_sel[i] )
 			0: begin
 				src_trig_req[i] <= trig_req[0];
@@ -195,7 +195,7 @@ else begin
 			end
 		endcase
 		end
-		if(!DESTRIGINSELERR[i]) begin
+		if(!DESTRIGINSELERR[i] &&  trig_in_use[des_sel[i]]&& trig_allocated_to[des_sel[i]]== i) begin
 		case(des_sel[i])
 
     0: begin
@@ -288,7 +288,7 @@ if(!resetn) begin
 end
 else begin
 	for(m=0; m<3; m=m+1) begin
-		if( !TRIGOUTSELERR[m]) begin
+		if( !TRIGOUTSELERR[m] && trig_out_use[trigout_sel1[m]] && trigout_allocated_to[trigout_sel1[m]] == m) begin
 		case(trigout_sel1[m] )
 
 			0: begin
