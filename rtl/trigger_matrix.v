@@ -63,7 +63,7 @@ reg [255:0]trig_ack1 ;
 
 assign enablecmd_wire[0] = enablecmd[0];
 assign enablecmd_wire[1] = enablecmd[1];
-assign [2] = enablecmd[2]; 
+assign enablecmd_wire[2] = enablecmd[2]; 
 
 assign trig_ack = trig_ack1;
 assign trig_ack_type = {trig_ack_type1[5],trig_ack_type1[4],trig_ack_type1[3],trig_ack_type1[2],trig_ack_type1[1],trig_ack_type1[0]};
