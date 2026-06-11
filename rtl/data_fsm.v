@@ -1221,7 +1221,8 @@ end
                                    
                                     if(src_y_transfer_count >= des_y_transfer_count)
                                     begin
-                                        src_y_left <= des_y_transfer_count;
+                                       // src_y_left <= (srcx_transfer_count >= (2*desx_transfer_count))? des_y_transfer_count/2 : des_y_transfer_count;//11/0
+                                        src_y_left <= ((area_des % srcx_transfer_count) == 0 )? (area_des / srcx_transfer_count) : (area_des / srcx_transfer_count) + 1;  
                                         src_x_left <= (x_type == 1)?((cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count) : ((cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count);
                                     end
 //                                    else if(src_y_transfer_count < des_y_transfer_count)begin
