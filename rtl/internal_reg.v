@@ -88,7 +88,8 @@ output reg rst_posedge,
  input wire [31:0] SRCx_transfer_count_INITIAL,DESy_transfer_count_INITIAL,
  input wire [31:0] DESx_transfer_count_INITIAL,SRCy_transfer_count_INITIAL//inputs from data fsm
  );
- 
+    reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd,swtrigoutack,srcswtriginreq,desswtriginreq; 
+
  integer i;
  wire INTR_TRIGOUTACKWAIT;
  wire INTR_DESTRIGINWAIT;
@@ -102,7 +103,7 @@ output reg rst_posedge,
  reg [ WIDTH-1:0 ] intr_mem [ 0:DEPTH-1 ];
  reg [31:0] WRKREGVAL_temp;
       
-  wire regval_err_reserved_bits = ( (|intr_mem[0][31:25]) | (intr_mem[0][23]) | intr_mem[0][19] | (|intr_mem[0][15:6]) 
+  wire regval_err_reserved_bits = (enablecmd)? (( (|intr_mem[0][31:25]) | (intr_mem[0][23]) | intr_mem[0][19] | (|intr_mem[0][15:6]) 
         | (|intr_mem[4][31:27]) | (|intr_mem[4][23:22]) | (|intr_mem[4][15:11]) | (|intr_mem[4][7:4])
         | (|intr_mem[8][31:11]) | (|intr_mem[8][7:4])
         | (|intr_mem[12][31:30]) | (|intr_mem[12][17:15]) | (intr_mem[12][8]) | (|intr_mem[12][3]) 
@@ -113,7 +114,7 @@ output reg rst_posedge,
         | (|intr_mem[84][31:10]) | (|intr_mem[84][7:6])
         | (intr_mem[120][1])
         | (|intr_mem[136][31:4])
-        | (|intr_mem[144][15:8]) | (|intr_mem[144][6:5]) );
+        | (|intr_mem[144][15:8]) | (|intr_mem[144][6:5]) )) : 0;
       
  wire STAT_ERR = AXIRDRESPERR| AXIRDPOISERR | AXIWRRESPERR|  BUSERR |
                  config_error| regval_error | SRCTRIGINSELERR| DESTRIGINSELERR 
@@ -126,7 +127,6 @@ output reg rst_posedge,
   assign stat_err_intr_reg = data_in [49] | data_in[0] ? 1'b0  : STAT_ERR;
   assign deassert_stat_done = data_in [48] | data_in[0];
    
-   reg stopcmd,disablecmd,enablecmd,pausecmd,resumecmd,swtrigoutack,srcswtriginreq,desswtriginreq; 
 // reg resetn_d;
 //wire resetn_posedge;
 //reg resetn_posedge_1;
@@ -220,9 +220,22 @@ assign src_des_x_transfer_count_updated = {intr_mem[16],intr_mem[24],intr_mem[32
 
         if(!resetn)begin
             data_in_0_1<= 0;
-            for(i = 0;i<DEPTH;i=i+1)
-                intr_mem [i] <= 'd0;
             {stopcmd,disablecmd,enablecmd,pausecmd,resumecmd,swtrigoutack,srcswtriginreq,desswtriginreq} <= 'd0;
+            for(i = 0;i<DEPTH;i=i+1)
+//             if(!((i == 'd12) || (i == 'd40) || (i == 'd44)|| (i == 'd68)|| (i == 'd72)))
+                            intr_mem [i] <= 'd0;
+             
+//             else
+
+                
+//                 begin
+//                intr_mem[12] <= 'h00200200;// ch_ctrl
+//                intr_mem[40] <= 'h000f0000;//ch_srctranscfg
+//                intr_mem[44] <= 'h000f0000;//ch_destranscfg
+//                intr_mem[68] <= 'h00000001;//ch_srctmplt
+//                intr_mem[72] <= 'h00000001;//ch_destmplt
+//             end
+          
         end
   
     
