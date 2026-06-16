@@ -8,7 +8,7 @@ module global_channel#(parameter WIDTH = 32,
     input wire clk,
     input wire resetn,
     //IRQ
-    output  wire IRQ,
+    output  wire [2:0]IRQ,
     //Boot interface
     input wire boot_en,
     input wire [29:0] boot_addr, 
