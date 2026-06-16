@@ -285,53 +285,56 @@ always@(posedge clk or negedge resetn) begin
 end
 end
 
-always @(posedge clk or negedge resetn) begin
-if(!resetn) begin
-    //for(k=0;k<6;k=k+1) 
-    trig_out_req     <= 0;
-    ch_trigout_ack <= 0;
-end
-else begin
+always @(*) begin
+    trig_out_req     = 0;
+    ch_trigout_ack = 0;
+//if(!resetn) begin
+//    //for(k=0;k<6;k=k+1) 
+//    trig_out_req     <= 0;
+//    ch_trigout_ack <= 0;
+//end
+//else 
+//begin
 	for(m=0; m<3; m=m+1) begin
 				if( !TRIGOUTSELERR[m] && trig_out_use[trigout_sel1[m]] && trigout_allocated_to[trigout_sel1[m]] == m  && enablecmd_wire[m]) begin
 		case(trigout_sel1[m] )
 
 			0: begin
-				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[0];
+				trig_out_req[trigout_sel1[m][2:0]]      = ch_trigout_req[m];
+				ch_trigout_ack[m] = trig_out_ack[0];
 			end
 
 			1: begin
-				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[1];
+				trig_out_req[trigout_sel1[m][2:0]]      = ch_trigout_req[m];
+				ch_trigout_ack[m] = trig_out_ack[1];
 			end
 
 			2: begin
-				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[2];
+				trig_out_req[trigout_sel1[m][2:0]]      = ch_trigout_req[m];
+				ch_trigout_ack[m] = trig_out_ack[2];
 			end
 			3: begin
-				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[3];
+				trig_out_req[trigout_sel1[m][2:0]]      = ch_trigout_req[m];
+				ch_trigout_ack[m] = trig_out_ack[3];
 			end
 
 			4: begin
-				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[4];
+				trig_out_req[trigout_sel1[m][2:0]]      = ch_trigout_req[m];
+				ch_trigout_ack[m] = trig_out_ack[4];
 			end
 
 			5: begin
-				trig_out_req[trigout_sel1[m][2:0]]      <= ch_trigout_req[m];
-				ch_trigout_ack[m] <= trig_out_ack[5];
+				trig_out_req[trigout_sel1[m][2:0]]      = ch_trigout_req[m];
+				ch_trigout_ack[m] = trig_out_ack[5];
 			end
 			default: begin
-				trig_out_req[trigout_sel1[m][2:0]]      <= 0;
-				ch_trigout_ack[m] <= 0;
+				trig_out_req[trigout_sel1[m][2:0]]      = 0;
+				ch_trigout_ack[m] = 0;
 			end
 		endcase
 		end
 	end
 end
-end
+
 
 endmodule
