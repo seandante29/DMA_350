@@ -584,9 +584,13 @@ end
                 STAT_RESUMEWAIT_DATA <= 0;
             end
             if(wr_state == W_DONE_ST)
-               STAT_DONE_DATA <= (done_type == 0)? 0 : 
-                                       (done_type == 1 && !(cmd_restart_en || restart_cnt_reg1>0))? 1:
-                                       (done_type == 3)? (1 & (cmd_restart_en || restart_cnt_reg1>0)):0;
+//               STAT_DONE_DATA <= (done_type == 0)? 0 : 
+//                                       (done_type == 1 && !(cmd_restart_en || restart_cnt_reg1>0))? 1:
+//                                       (done_type == 3)? (1 & (cmd_restart_en || restart_cnt_reg1>0)):0;
+                                 STAT_DONE_DATA <= (done_type == 0)? 0 : 
+                                       (done_type == 1 && !(cmd_restart_en || restart_cnt_reg1 > 1 || (cmd_restart_cnt && restart_cnt_reg1 == 0)))? 1:
+                                      (done_type == 3)? (1 & (cmd_restart_en || restart_cnt_reg1>0)):0;
+
 //    STAT_DONE_DATA <= !(link_en || cmd_restart_en || restart_cnt_reg >0 ) ? 1 : 0;
             else if (rd_state == RD_IDLE )
                 STAT_DONE_DATA <= !(link_en )?STAT_DONE_DATA :0;
@@ -2182,10 +2186,12 @@ end
                     end
                 end                
                 W_TRIG_OUT: begin
-                    if (use_trigout && trigout_type == 'b10)
+                 if(use_trigout && trigout_type == 'b10 && trig_out_ack)
+                        trig_out_req <= 0;
+                 else if (use_trigout && trigout_type == 'b10)
                    trig_out_req <= 1;  
-                    else if (use_trigout && trigout_type == 'b00)             
-                        SWTRIGOUTACK_DATA <= 1;   
+                  else if (use_trigout && trigout_type == 'b00)             
+                        SWTRIGOUTACK_DATA <= 1;  
                     if (use_trigout && !trig_out_ack_sw && trigout_type == 'b00) 
 
                         STAT_TRIGOUTACKWAIT_DATA <= 1'b1;
