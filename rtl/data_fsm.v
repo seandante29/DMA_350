@@ -1214,9 +1214,9 @@ end
                                         src_x_left <= (cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count;
                                      case(y_type)
                                           0:src_y_left <= 0;
-                                            1:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
-                                            2:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?src_y_transfer_count:des_y_transfer_count;
-                                            3:src_y_left <= (src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:src_y_transfer_count;
+                                            1:src_y_left <= /*(src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:*/src_y_transfer_count;
+                                            2:src_y_left <= /*(src_y_transfer_count >= des_y_transfer_count)?src_y_transfer_count:*/src_y_transfer_count;
+                                            3:src_y_left <= /*(src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:*/src_y_transfer_count;
                                             default : src_y_left <= src_y_transfer_count;
                                        endcase
                                    end
@@ -1270,7 +1270,8 @@ end
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
-                                            2 : src_y_left <= des_y_transfer_count; // wrap
+                                            //2 : src_y_left <= des_y_transfer_count; // wrap
+                                            2 : src_y_left <= ((area_des % srcx_transfer_count) == 0 )? (area_des / srcx_transfer_count) : (area_des / srcx_transfer_count) + 1;
                                             3 : src_y_left <= src_y_transfer_count; //fill
                                         default: src_y_left <= src_y_transfer_count;
                                         endcase
@@ -1281,7 +1282,8 @@ end
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= src_y_transfer_count; //continue
-                                            2 : src_y_left <= des_y_transfer_count; // wrap
+                                            //2 : src_y_left <= des_y_transfer_count; // wrap
+                                            2 : src_y_left <= ((area_des % srcx_transfer_count) == 0 )? (area_des / srcx_transfer_count) : (area_des / srcx_transfer_count) + 1; // wrap
                                             3 : src_y_left <= src_y_transfer_count; //fill
                                         default: src_y_left <= src_y_transfer_count;
                                         endcase
