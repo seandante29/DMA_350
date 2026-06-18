@@ -1519,7 +1519,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                     else /*if(src_trig_req_type_reg == 'd2)*/
                         ARLEN <= ((src_x_transfer_count_remaining - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len} : src_x_transfer_count_remaining - 1;
                     
-                    ARBURST <= ((src_xaddr_inc == 1)) ? 2'b01 : 2'b00;
+                    ARBURST <= /*((src_xaddr_inc == 1)) ? 2'b01 :*/ 2'b01;
                     ARSIZE  <= transize;
                     ARID    <= 0;
                    // ARVALID <= 1;
@@ -2146,7 +2146,7 @@ end
                         end
                     end
 //                    AWLEN <= ((des_x_transfer_count_remaining - 1) > des_max_burst_len) ? des_max_burst_len : des_x_transfer_count_remaining - 1;//(case6 && x_type == 1)? srcx_transfer_count - 1: desx_transfer_count - 1;
-                    AWBURST <= (des_xaddr_inc == 1) ? 2'b01 : 2'b00;
+                    AWBURST <= /*(des_xaddr_inc == 1) ? 2'b01 :*/ 2'b01;
                     AWSIZE  <= transize;
                     AWID    <= 0;
                     //AWVALID <= (!stop_cmd_apb)?AWVALID:0;
