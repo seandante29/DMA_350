@@ -1707,7 +1707,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                                 begin
                                     fifo_mem[fifo_wptr[4:0]] <= {96'd0, fillval};
                                     fifo_wptr           <= fifo_wptr + 1;
-                                    r1 <= r1+1;end
+                                    r1 <= (r1 == des_x_left_initial - 1) ? 0 : r1 + 1;end
                                     fill_count_y <= (r1 == src_x_left_initial-1)? fill_count_y - 1 : fill_count_y;
                             end
                             
