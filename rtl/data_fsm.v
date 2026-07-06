@@ -1517,7 +1517,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                      else if(ycase5 &&(srcx_transfer_count_reg < desx_transfer_count_reg)&&(srcy_transfer_count_reg >= desy_transfer_count_reg) && ((((srcx_transfer_count_reg * srcy_transfer_count_reg)% desx_transfer_count_reg ) == 0) && x_type == 1)&& y_type == 2 /*&& srcx_transfer_count_reg > desx_transfer_count_reg*/ && (src_y_left == 1) &&(area_src < area_des))begin
                         ARLEN <= ((src_x_left - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len}  : src_x_left - 1;
                     end
-                    else if(ycase5  && (srcx_transfer_count_reg > desx_transfer_count_reg)&&(srcy_transfer_count_reg >= desy_transfer_count_reg) && x_type == 3 && y_type == 3)begin
+                    else if(ycase5  && (srcx_transfer_count_reg > desx_transfer_count_reg)&&(srcy_transfer_count_reg >= desy_transfer_count_reg) && /*x_type == 3 &&*/ (y_type == 1 || y_type == 3))begin
                          ARLEN <= ((src_x_left - 1) > src_max_burst_len) ? {4'd0,src_max_burst_len}  : src_x_left - 1;
                     end
                     else if(/*src_trig_req_type_reg == 'd0 &&*/ (src_xaddr_inc > 1) || (src_xaddr_inc < 0)) 
