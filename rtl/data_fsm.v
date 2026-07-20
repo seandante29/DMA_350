@@ -259,7 +259,7 @@ generate
     end
 endgenerate
     
-    wire full =( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]});
+  wire full =(( (fifo_wptr +1)  == {~fifo_rptr[5],fifo_rptr[4:0]}) || (fifo_ptr_diff == 31));
     wire empty = ((fifo_wptr == fifo_rptr)||(WVALID && WREADY &&(fifo_wptr == fifo_rptr+1))) ? 1 : 0;
      wire ycase1_wire = ((srcx_transfer_count == 0 || src_y_transfer_count == 0) &&
                                        (!(desx_transfer_count > 0 && des_y_transfer_count > 0)));
@@ -323,7 +323,10 @@ endgenerate
             if(WREADY)
                 begin
                     if(des_xaddr_inc == 1)
-                        write_base_addr_UPDATED_wire = des_addr_reg + ((desx_transfer_count_reg - des_x_left) * ( 2**transize));
+                        write_base_addr_UPDATED_wire = //des_addr_reg + ((desx_transfer_count_reg - des_x_left) * ( 2**transize));
+                        (y_type != 0  && des_x_left==1)? des_addr_reg + (des_yaddr_stride *( 2**transize)) 
+                                                    //: _addr_reg + ((src_x_left_initial - src_x_left +1) *( 2**transize)*(src_xaddr_inc_sign)) 
+                                                    :des_addr_reg + ((desx_transfer_count_reg - des_x_left) * (( 2**transize)*des_xaddr_inc_sign));
                         
                  end
             else
@@ -1094,7 +1097,7 @@ end
                     area_des <= desx_transfer_count * des_y_transfer_count;
                     
                  
-                    src_y_left <= src_y_transfer_count;
+                    src_y_left <= (y_type == 0)? 0 :src_y_transfer_count;
                    read_base_addr_INITIAL  <= src_addr_reg;
                     write_base_addr_INITIAL  <= des_addr_reg;
 //                   src_x_transfer_count_reload <= srcx_transfer_count_reg;
@@ -1216,7 +1219,7 @@ end
                                      case(y_type)
                                           0:src_y_left <= 0;
                                             1:src_y_left <= /*(src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:*/src_y_transfer_count;
-                                            2:src_y_left <= /*(src_y_transfer_count >= des_y_transfer_count)?src_y_transfer_count:*/des_y_transfer_count;
+                                            2:src_y_left <= /*(src_y_transfer_count >= des_y_transfer_count)?src_y_transfer_count:*/src_y_transfer_count;
                                             3:src_y_left <= /*(src_y_transfer_count >= des_y_transfer_count)?des_y_transfer_count:*/src_y_transfer_count;
                                             default : src_y_left <= src_y_transfer_count;
                                        endcase
@@ -1226,9 +1229,14 @@ end
                                    
                                     if(src_y_transfer_count >= des_y_transfer_count)
                                     begin
-                                       // src_y_left <= (srcx_transfer_count >= (2*desx_transfer_count))? des_y_transfer_count/2 : des_y_transfer_count;//11/0
+                                       //src_y_left <= (srcx_transfer_count >= (2*desx_transfer_count))? des_y_transfer_count/2 : des_y_transfer_count;//11/0
+                                        //src_y_left <= ((area_des % srcx_transfer_count) == 0 )? (area_des / srcx_transfer_count) : (area_des / srcx_transfer_count) + 1;  //02/07
+                                        if(x_type == 1)
                                         src_y_left <= ((area_des % srcx_transfer_count) == 0 )? (area_des / srcx_transfer_count) : (area_des / srcx_transfer_count) + 1;  //02/07
-                                        src_x_left <= (x_type == 1)?((cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count) : ((cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count);
+                                        else
+                                        src_y_left <= des_y_transfer_count;
+                                        
+                                        src_x_left <= (x_type == 1)?((cmd_restart_en || cmd_restart_cnt != 0)? src_x_transfer_count_reload : srcx_transfer_count) : ((cmd_restart_en || cmd_restart_cnt != 0)? des_x_transfer_count_reload : desx_transfer_count);
                                     end
 //                                    else if(src_y_transfer_count < des_y_transfer_count)begin
 //                                    case(y_type)
@@ -1333,7 +1341,7 @@ end
                                         case(y_type)
                                             0 : src_y_left <= src_y_transfer_count;
                                             1 : src_y_left <= (area_src >area_des)?(((area_des % srcx_transfer_count) == 0 )? (area_des / srcx_transfer_count) : (area_des / srcx_transfer_count) + 1):src_y_transfer_count; //continue
-                                            2 : src_y_left <= (area_des > area_src) ? (((area_des % srcx_transfer_count)==0)? (area_des/srcx_transfer_count) :((area_des/srcx_transfer_count) +1)): src_y_transfer_count; // wrap
+                                            2 : src_y_left <= (area_des > area_src) ? (((area_des % srcx_transfer_count)==0)? (area_des/srcx_transfer_count) :((area_des/srcx_transfer_count) +1)): des_y_transfer_count;//src_y_transfer_count; // wrap
                                             3 : src_y_left <= src_y_transfer_count; //fill
                                         default: src_y_left <= src_y_transfer_count;
                                         endcase
@@ -1444,11 +1452,11 @@ end
                     write_base_addr_INITIAL  <= des_addr_reg;
                 if(use_src_trigin)begin
                  src_trig_req_type_reg <= (src_trigin_type == 'b10) ? src_trig_req_type : (src_trigin_type == 'b00) ? src_trigin_sw_type : src_trig_req_type_reg;
-                   SRCSWTRIGINREQ_DATA   <= (src_trigin_type == 'b00)?1:0;
+                    SRCSWTRIGINREQ_DATA   <= (src_trigin_type == 'b00 && src_trigin_sw)?1:0;
                  end                 
                    if(use_des_trigin)begin
                 des_trig_req_type_reg <= (des_trigin_type == 'b10) ? des_trig_req_type : (des_trigin_type == 'b00) ? des_trigin_sw_type : des_trig_req_type_reg; 
-                   DESSWTRIGINREQ_DATA   <= (des_trigin_type == 'b00)?1:0;
+                  DESSWTRIGINREQ_DATA   <= (des_trigin_type == 'b00 && des_trigin_sw)?1:0;
                  end
                    // src_trig_req_type_reg <= (use_src_trigin)?src_trig_req_type:src_trig_req_type_reg;
                    // des_trig_req_type_reg <= (use_des_trigin)?des_trig_req_type:des_trig_req_type_reg; 
@@ -1659,7 +1667,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                     case (x_type)
                         1: begin
                        // r1 <= 0;
-                            if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5) && y_type == 3) begin
+                            if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5) && y_type == 3 && !full) begin
                                 //for(r = 0; r < des_x_left_initial_integer ; r=r+1)
                                 if(r1 < des_x_left_initial)
                                 begin
@@ -1674,7 +1682,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                           end
                         2: begin 
                                                 
-                           if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5) && y_type == 3) begin
+                           if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5) && y_type == 3 && !full) begin
                                 //for(r = 0; r < des_x_left_initial_integer ; r=r+1)
                                 if(r1 < des_x_left_initial)
                                 begin
@@ -1687,7 +1695,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                             end
                         end
                         3: begin
-                            if (fill_count > 0 && src_x_left == 0 && (case2 || case6)) begin
+                            if (fill_count > 0 && src_x_left == 0 && (case2 || case6)&& !full) begin
                                 fifo_mem[fifo_wptr[4:0]] <= {96'd0, fillval};
                                 fill_count          <= fill_count - 1;
                                 fifo_wptr           <= fifo_wptr + 1;
@@ -1706,7 +1714,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                                     end
                             end
                             
-                            else if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5)) begin
+                            else if (fill_count_y >0 && src_y_left == 0 && (ycase2 || ycase5) && !full) begin
                                 //for(r = 0; r < src_x_left_initial_integer ; r=r+1)
                                 if(r1 < des_x_left_initial)
                                 begin
@@ -1744,6 +1752,7 @@ src_trigack_type <= (src_trigin_type == 2'b10 /*&& (src_trig_req_type == 0||src_
                     if(src_y_left > 1 )
                     begin
                     srcx_transfer_count_initial_reg_2d_wrap <= srcx_transfer_count_initial_reg;
+                    srcx_transfer_count_reg                <= srcx_transfer_count_initial_reg;
                         if(src_x_left == 0 )begin
                             fill_count <= ((src_x_left_initial < des_x_left_initial) && x_type == 3 && (case2 || case6)) ? ((des_x_left_initial - src_x_left_initial) & 16'hFFFF) : 0;end
                             
@@ -1879,8 +1888,8 @@ W_IDLE: begin
     des_x_left_initial   <= des_x_left;
     //des_x_left_initial_integer <= des_x_left;
     //initial_tmplt_addr_des <= des_ADDR;
-    des_x_transfer_count_remaining  <= (case6 && x_type == 1&& (y_type == 0 || des_y_transfer_count == 1))?srcx_transfer_count_reg:desx_transfer_count_reg;
-    des_x_transfer_count_remaining_2d<= (case6 && x_type == 1&& (y_type == 0 || des_y_transfer_count == 1))?srcx_transfer_count_reg:desx_transfer_count_reg;
+  des_x_transfer_count_remaining  <= (case6 && x_type == 1&& (y_type == 0 || (desy_transfer_count_reg == 1 && srcy_transfer_count_reg == 1)))?srcx_transfer_count_reg:desx_transfer_count_reg;
+    des_x_transfer_count_remaining_2d<= (case6 && x_type == 1&& (y_type == 0 || (desy_transfer_count_reg == 1 && srcy_transfer_count_reg == 1)))?srcx_transfer_count_reg:desx_transfer_count_reg;
 
     if (stat_error_intr_reg == 0) begin
         awr_error  <= 0;
@@ -2130,7 +2139,7 @@ end
                                AWADDR <= ( !des_tmplt_flag )?(initial_tmplt_addr_des + l * (2**transize)) : AWADDR;   end                         
                    end
                    else begin
-                         AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/  (case6 && x_type == 1 && y_type == 0)?des_addr_reg + (srcx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign):
+                        AWADDR  <= /*(des_x_transfer_count_remaining == des_x_left) ? AWADDR :*/  (case6 && x_type == 1 && (y_type == 0 || (desy_transfer_count_reg == 1 && srcy_transfer_count_reg == 1)))?des_addr_reg + (srcx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign):
                          des_addr_reg + (desx_transfer_count_reg - des_x_transfer_count_remaining)  *  (( 2**transize)*des_xaddr_inc_sign);
 //                         AWVALID <= 1; 
                          AWQOS <= ch_prio;
